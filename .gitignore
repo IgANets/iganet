@@ -17,3 +17,4 @@ key.pem
 *.egg-info
 __pycache__
 /build/
+/.github
