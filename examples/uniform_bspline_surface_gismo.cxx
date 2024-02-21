@@ -30,7 +30,7 @@ int main() {
   // Load B-spline from XML object
   bspline.from_xml(xml);
 
-#ifdef WITH_GISMO
+#ifdef IGANET_WITH_GISMO
   // Create gsTensorBSpline object
   auto bspline_gismo = bspline.to_gismo();
 

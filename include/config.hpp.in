@@ -18,4 +18,4 @@
 #cmakedefine IGANET_WITH_GISMO
 
 /// @brief Compile with Matplotlib enabled
-#cmakedefine IGANET_WITH_MATPLOTLIB
+#cmakedefine IGANET_WITH_MATPLOT

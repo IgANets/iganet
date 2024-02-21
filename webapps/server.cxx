@@ -330,8 +330,10 @@ int main(int argc, char const *argv[]) {
                      .open =
                          [](auto *ws) {
 #ifndef NDEBUG
-                           std::clog << "[Thread " << std::this_thread::get_id()
-                                     << "] Connection has been opened\n";
+                           std::stringstream msg;
+                           msg << "[Thread " << std::this_thread::get_id()
+                               << "] Connection has been opened\n";
+                           std::clog << msg.str();
 #endif
                          },
                      .message =
@@ -350,11 +352,13 @@ int main(int argc, char const *argv[]) {
                                  iganet::webapp::status::success;
 
 #ifndef NDEBUG
+                             std::stringstream msg;
                              for (auto const &token : tokens)
-                               std::clog << "[Thread "
-                                         << std::this_thread::get_id() << "] "
-                                         << token << "/";
-                             std::clog << std::endl;
+                               msg << "[Thread "
+                                   << std::this_thread::get_id() << "] "
+                                   << token << "/";
+                             msg << std::endl;
+                             std::clog << msg.str();
 #endif
 
                              // Dispatch request
@@ -1423,22 +1427,28 @@ int main(int argc, char const *argv[]) {
                          [](auto *ws, int code, std::string_view message) {
         /* You may access ws->getUserData() here */
 #ifndef NDEBUG
-                           std::clog << "[Thread " << std::this_thread::get_id()
-                                     << "] Connection has been closed\n";
+                           std::stringstream msg;
+                           msg << "[Thread " << std::this_thread::get_id()
+                               << "] Connection has been closed\n";
+                           std::clog << msg.str();
 #endif
                          }})
                 .listen(port_option->value(),
                         [&port_option](auto *listen_socket) {
                           if (listen_socket) {
-                            std::clog << "[Thread "
-                                      << std::this_thread::get_id()
-                                      << "] Listening on port "
-                                      << port_option->value() << std::endl;
+                            std::stringstream msg;
+                            msg << "[Thread "
+                                << std::this_thread::get_id()
+                                << "] Listening on port "
+                                << port_option->value() << std::endl;
+                            std::clog << msg.str();
                           } else {
-                            std::clog << "[Thread "
-                                      << std::this_thread::get_id()
-                                      << "] Failed to listen on port "
-                                      << port_option->value() << std::endl;
+                            std::stringstream msg;
+                            msg << "[Thread "
+                                << std::this_thread::get_id()
+                                << "] Failed to listen on port "
+                                << port_option->value() << std::endl;
+                            std::clog << msg.str();
                           }
                         })
                 .run();

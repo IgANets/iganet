@@ -50,7 +50,7 @@ int main() {
 
   using namespace iganet::literals;
   using optimizer_t = torch::optim::Adam;
-  using real_t = float;
+  using real_t = double;
 
 #if 0
   {

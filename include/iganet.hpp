@@ -746,14 +746,14 @@ public:
     // x_in.index({torch::indexing::Slice(147, torch::indexing::None)}),
     // x);
 
-    x.view({7, 7}).index_put_({"...", 0},
-                              x_in.index({torch::indexing::Slice(147, 154)}));
-    x.view({7, 7}).index_put_({"...", -1},
-                              x_in.index({torch::indexing::Slice(154, 161)}));
-    x.view({7, 7}).index_put_({0, "..."},
-                              x_in.index({torch::indexing::Slice(161, 168)}));
-    x.view({7, 7}).index_put_({-1, "..."},
-                              x_in.index({torch::indexing::Slice(168, 175)}));
+    // x.view({7, 7}).index_put_({"...", 0},
+    //                           x_in.index({torch::indexing::Slice(147, 154)}));
+    // x.view({7, 7}).index_put_({"...", -1},
+    //                           x_in.index({torch::indexing::Slice(154, 161)}));
+    // x.view({7, 7}).index_put_({0, "..."},
+    //                           x_in.index({torch::indexing::Slice(161, 168)}));
+    // x.view({7, 7}).index_put_({-1, "..."},
+    //                           x_in.index({torch::indexing::Slice(168, 175)}));
 
     // std::cout << x_in.index({torch::indexing::Slice(147,
     // torch::indexing::None)});
@@ -1216,15 +1216,6 @@ public:
 
       if (status & status::variable_samples)
         variable_samples = this->variable_samples(epoch);
-
-      // std::cout << inputs << std::endl;
-      // std::cout << geometry_.as_tensor_size(false)
-      //           << "+"
-      //           << variable_.as_tensor_size(false)
-      //           << std::endl;
-      // std::cout << inputs.index({torch::indexing::Slice(147,
-      // torch::indexing::None)})
-      //           << std::endl;
 
       auto closure = [&]() {
         // Reset gradients

@@ -102,12 +102,26 @@ enum class deriv : short_t {
   dt = 1000, /*!< first derivative in t-direction  */
 };
 
+/// @brief Adds two enumerators for specifying the derivative of B-spline evaluation
+///
+/// @param[in] lhs First derivative enumerator
+///
+/// @param[in] rhs Second derivative enumerator
+///
+/// @result Sum of the two enumerators
 inline constexpr auto operator+(deriv lhs, deriv rhs) {
   return deriv(static_cast<short_t>(lhs) + static_cast<short_t>(rhs));
 }
 
+/// @brief Raises an enumerator for specifying the derivative of B-spline evaluation to a higher exponent
+///
+/// @param[in] lhs Derivative enumerator
+///
+/// @param[in] rhs Exponent
+///
+/// @result Derivative enumerator raised to the exponent
 inline constexpr auto operator^(deriv lhs, short_t rhs) {
-  return deriv(static_cast<short_t>(lhs) * rhs);
+  return deriv(static_cast<short_t>(lhs) * static_cast<short_t>(rhs));
 }
 
 /// @brief Tensor-product uniform B-spline (core functionality)
@@ -1467,6 +1481,11 @@ public:
   ///
   /// The indices are returned as `std::array<torch::Tensor,
   /// parDim_>` in the same order as provided in `xi`
+  ///
+  /// @param[in] xi Point(s) where to evaluate the B-spline object
+  ///
+  /// @result Indices of the knot spans containing `xi`
+  ///
   /// @{
   inline auto find_knot_indices(const torch::Tensor &xi) const {
     if constexpr (parDim_ == 0)
@@ -1553,6 +1572,11 @@ public:
 
   /// @brief Returns the indices of the coefficients corresponding to the knot
   /// indices `indices`
+  ///
+  /// @param[in] indices Indices of the knot spans
+  ///
+  /// @result Indices of the coefficients corresponding to the knot indices
+  ///
   /// @{
   template <bool memory_optimized = false>
   inline auto find_coeff_indices(const torch::Tensor &indices) const {
@@ -1621,6 +1645,11 @@ public:
 
   /// @brief Returns the vector of multivariate B-spline basis
   /// functions (or their derivatives) evaluated in the point `xi`
+  ///
+  /// @param[in] xi Point(s) where to evaluate the B-spline object
+  ///
+  /// @result Multivariate B-spline basis functions (or their derivatives) evaluated in the point `xi`
+  ///
   /// @{
   template <deriv deriv = deriv::func, bool memory_optimized = false>
   inline auto eval_basfunc(const torch::Tensor &xi) const {
@@ -6086,12 +6115,6 @@ public:
     return lapl<memory_optimized>(utils::TensorArray1({xi}));
   }
 
-  /// Plots the B-spline object
-  inline auto plot(int64_t res0 = 10, int64_t res1 = 10,
-                   int64_t res2 = 10) const {
-    return plot(*this, res0, res1, res2);
-  }
-
   template <bool memory_optimized = false>
   inline auto
   lapl(const std::array<torch::Tensor, BSplineCore::parDim_> &xi) const {
@@ -6387,6 +6410,12 @@ public:
     return (jacInv.tr() * hessu * jacInv).trace();
   }
 
+  /// Plots the B-spline object
+  inline auto plot(int64_t res0 = 10, int64_t res1 = 10,
+                   int64_t res2 = 10) const {
+    return plot(*this, res0, res1, res2);
+  }
+  
   /// Plots the B-spline object
   template <typename BSplineCoreColor>
   inline auto plot(const BSplineCommon<BSplineCoreColor> &color,
