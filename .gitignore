@@ -16,3 +16,4 @@ key.pem
 *.sw?
 *.egg-info
 __pycache__
+/build/
