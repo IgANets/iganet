@@ -1,12 +1,12 @@
 /**
-   @file examples/iganet_fitting.cxx
+   @file examples/iganet_fitting_simple.cxx
 
    @brief Demonstration of IgANet function fitting
 
-   This example demonstrates how to implement an IgANet to fit a
+   This example demonstrates how to implement a simple IgANet to fit a
    given function on a square geometry. In contrast to the example
-   iganet_fitting_simple.cxx this examples makes use of pre-computed
-   indices and coefficients and should therefore be faster.
+   iganet_fitting.cxx this examples does not make use of pre-computed
+   indices and coefficients and might therefore be slower.
    
    @author Matthias Moller
 
@@ -24,16 +24,11 @@
 /// @brief Specialization of the abstract IgANet class for function fitting
 template <typename Optimizer, typename GeometryMap, typename Variable>
 class fitting
-  : public iganet::IgANet<Optimizer, GeometryMap, Variable>,
-    public iganet::IgANetCustomizable<Optimizer, GeometryMap, Variable> {
+  : public iganet::IgANet<Optimizer, GeometryMap, Variable> {
 
 private:
   /// @brief Type of the base class
   using Base = iganet::IgANet<Optimizer, GeometryMap, Variable>;
-
-  /// @brief Type of the customizable class
-  using Customizable =
-    iganet::IgANetCustomizable<Optimizer, GeometryMap, Variable>;
 
 public:
   /// @brief Constructors from the base class
@@ -76,30 +71,14 @@ public:
        const typename Base::variable_collPts_type &variable_collPts,
        int64_t epoch, iganet::status status) override {
 
-    // Update indices and pre-compute basis functions for variables u and f
-    if (status & iganet::status::variable_collPts) {
-      Customizable::variable_interior_knot_indices_ =
-        Base::f_
-        .template find_knot_indices<iganet::functionspace::interior>(
-                                                                     variable_collPts.first);
-      Customizable::variable_interior_coeff_indices_ =
-        Base::f_
-        .template find_coeff_indices<iganet::functionspace::interior>(
-                                                                      Customizable::variable_interior_knot_indices_);
-    }
-
     // Cast the network output (a raw tensor) into the proper
     // function-space format, i.e. B-spline objects for the interior
     // and boundary parts that can be evaluated.
-    Base::u_.from_tensor(outputs, false);   
+    Base::u_.from_tensor(outputs, false);
     
     // Evaluate the loss function
-    return torch::mse_loss(*Base::u_.eval(variable_collPts.first,
-                                          Customizable::variable_interior_knot_indices_,
-                                          Customizable::variable_interior_coeff_indices_)[0],
-                           *Base::f_.eval(variable_collPts.first,
-                                          Customizable::variable_interior_knot_indices_,
-                                          Customizable::variable_interior_coeff_indices_)[0]);
+    return torch::mse_loss(*Base::u_.eval(variable_collPts.first)[0],
+                           *Base::f_.eval(variable_collPts.first)[0]);
   }
 };
 
@@ -161,10 +140,10 @@ int main() {
   
 #ifdef IGANET_WITH_MATPLOT
   // Plot the solution
-  net.G().plot(net.u(), 50, 50);
+  net.G().plot(net.u(), net.variable_collPts(0).first, 50, 50);
 
   // Plot the difference between the solution and the reference data
-  net.G().plot(net.u().abs_diff(net.f()), 50, 50);
+  net.G().plot(net.u().abs_diff(net.f()), net.variable_collPts(0).first, 50, 50);
 #endif
 
 #ifdef IGANET_WITH_GISMO

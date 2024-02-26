@@ -1,7 +1,7 @@
 /**
-   @file examples/demo.cxx
+   @file examples/iganet_poisson.cxx
 
-   @brief Demonstrator application
+   @brief Demonstration of IgANet Poisson solver
 
    @author Matthias Moller
 
@@ -40,9 +40,10 @@ public:
     std::cout << "Epoch " << std::to_string(epoch) << ": ";
 
     return (epoch == 0
-                ? iganet::status::inputs + iganet::status::geometryMap_collPts +
-                      iganet::status::variable_collPts
-                : iganet::status::inputs);
+            ? iganet::status::inputs
+            + iganet::status::geometryMap_collPts
+            + iganet::status::variable_collPts
+            : iganet::status::inputs);
   }
 
   /// @brief Computes the loss function
@@ -51,6 +52,7 @@ public:
        const typename Base::geometryMap_collPts_type &geometryMap_collPts,
        const typename Base::variable_collPts_type &variable_collPts,
        int64_t epoch, iganet::status status) override {
+    
     // Update indices and precompute basis functions for geometry
     if (status & iganet::status::geometryMap_collPts) {
       Customizable::geometryMap_interior_knot_indices_ =
@@ -129,10 +131,10 @@ public:
     // Evaluate pde loss
     auto sol_ilaplace =
         Base::u_.ihess(Base::G_, variable_collPts.first);
-    // auto loss_pde     = torch::mse_loss(*sol_ilaplace[0] + *sol_ilaplace[3],
-    // *rhs[0]);
+    auto loss_pde     = torch::mse_loss(*sol_ilaplace[0] + *sol_ilaplace[3],
+                                        *rhs[0]);
 
-    // return loss_pde + 0*(loss_bdr0 + loss_bdr1 + loss_bdr2 + loss_bdr3);
+    return loss_pde + 0*(loss_bdr0 + loss_bdr1 + loss_bdr2 + loss_bdr3);
   }
 };
 
@@ -144,49 +146,37 @@ int main() {
   using optimizer_t = torch::optim::Adam;
   using real_t = double;
 
-  using bspline_t = iganet::UniformBSpline<real_t, 1, 2, 2>;
   using geometry_t = iganet::S2<iganet::UniformBSpline<real_t, 2, 2, 2>>;
   using variable_t = iganet::S2<iganet::UniformBSpline<real_t, 1, 2, 2>>;
 
-  bspline_t sol(iganet::utils::to_array(7_i64, 7_i64));
-
-  sol.transform([](const std::array<real_t, 2> xi) {
-    return std::array<real_t, 1>{(xi[0] + 1) * cos(M_PI * xi[1])};
-  });
-
-  std::cout << sol << std::endl;
-
-  sol.to<float>();
-
-  std::cout << sol << std::endl;
-
-  //  exit(0);
-
   poisson<optimizer_t, geometry_t, variable_t>
       net( // Number of neurons per layers
-          {50, 50, 50, 50, 50},
+           {50, 50, 50, 50, 50}
+           ,
           // Activation functions
           {{iganet::activation::sigmoid},
            {iganet::activation::sigmoid},
            {iganet::activation::sigmoid},
            {iganet::activation::sigmoid},
            {iganet::activation::sigmoid},
-           {iganet::activation::none}},
+           {iganet::activation::none}}
+           ,
           // Number of B-spline coefficients
-          std::tuple(iganet::utils::to_array(7_i64, 7_i64)));
+           std::tuple(iganet::utils::to_array(7_i64, 7_i64))
+           );
 
-  // deform geometry
-  net.G().transform([](const std::array<real_t, 2> xi) {
-    return std::array<real_t, 2>{(xi[0] + 1) * cos(M_PI * xi[1]),
-                                 (xi[0] + 1) * sin(M_PI * xi[1])};
-  });
+  // Deform geometry
+  // net.G().transform([](const std::array<real_t, 2> xi) {
+  //   return std::array<real_t, 2>{(xi[0] + 1) * cos(M_PI * xi[1]),
+  //                                (xi[0] + 1) * sin(M_PI * xi[1])};
+  // });
 
-  // impose solution value for supervised training (not right-hand side)
+  // Impose solution value for supervised training (not right-hand side)
   net.f().transform([](const std::array<real_t, 2> xi) {
     return std::array<real_t, 1>{sin(M_PI * xi[0]) * sin(M_PI * xi[1])};
   });
 
-  // boundary values
+  // Impose boundary values
   net.f().boundary().template side<1>().transform(
       [](const std::array<real_t, 1> xi) {
         return std::array<real_t, 1>{0.0};
@@ -209,10 +199,11 @@ int main() {
 
   net.options().max_epoch(1000);
   net.options().min_loss(1e-8);
-
   net.train();
 
+#ifdef IGANET_WITH_MATPLOT
   net.G().plot(net.u(), 50, 50);
+#endif
 
   net.f().transform([](const std::array<real_t, 2> xi) {
     return std::array<real_t, 1>{-2.0 * M_PI * M_PI * sin(M_PI * xi[0]) *
@@ -224,7 +215,9 @@ int main() {
   net.options().min_loss(1e-10);
   net.train();
 
+#ifdef IGANET_WITH_MATPLOT
   net.G().plot(net.u(), 50, 50);
-
+#endif
+  
   return 0;
 }

@@ -16,15 +16,15 @@
 #include <iostream>
 
 /// @brief IgANet for Poisson's equation
-template <typename optimizer_t, typename geometry_t, typename variable_t>
-class poisson : public iganet::IgANet<optimizer_t, geometry_t, variable_t> {
+template <typename Optimizer, typename GeometryMap, typename Variable>
+class poisson : public iganet::IgANet<Optimizer, GeometryMap, Variable> {
 private:
   /// @brief Type of the base class
-  using Base = iganet::IgANet<optimizer_t, geometry_t, variable_t>;
+  using Base = iganet::IgANet<Optimizer, GeometryMap, Variable>;
 
 public:
   /// @brief Constructors from the base class
-  using iganet::IgANet<optimizer_t, geometry_t, variable_t>::IgANet;
+  using iganet::IgANet<Optimizer, GeometryMap, Variable>::IgANet;
 
   /// @brief Initializes the epoch
   iganet::status epoch(int64_t epoch) override {
@@ -35,8 +35,8 @@ public:
   /// @brief Computes the loss function
   torch::Tensor
   loss(const torch::Tensor &outputs,
-       const typename Base::geometry_samples_type &geometry_samples,
-       const typename Base::variable_samples_type &variable_samples,
+       const typename Base::geometryMap_collPts_type &geometryMap_collPts,
+       const typename Base::variable_collPts_type &variable_collPts,
        int64_t epoch, iganet::status status) override {
     return torch::zeros({1});
   }
