@@ -40,10 +40,9 @@ public:
     std::cout << "Epoch " << std::to_string(epoch) << ": ";
 
     return (epoch == 0
-            ? iganet::status::inputs
-            + iganet::status::geometryMap_collPts
-            + iganet::status::variable_collPts
-            : iganet::status::inputs);
+                ? iganet::status::inputs + iganet::status::geometryMap_collPts +
+                      iganet::status::variable_collPts
+                : iganet::status::inputs);
   }
 
   /// @brief Computes the loss function
@@ -52,47 +51,39 @@ public:
        const typename Base::geometryMap_collPts_type &geometryMap_collPts,
        const typename Base::variable_collPts_type &variable_collPts,
        int64_t epoch, iganet::status status) override {
-    
+
     // Update indices and precompute basis functions for geometry
     if (status & iganet::status::geometryMap_collPts) {
       Customizable::geometryMap_interior_knot_indices_ =
-          Base::G_
-              .template find_knot_indices<iganet::functionspace::interior>(
-                  geometryMap_collPts.first);
+          Base::G_.template find_knot_indices<iganet::functionspace::interior>(
+              geometryMap_collPts.first);
       Customizable::geometryMap_interior_coeff_indices_ =
-          Base::G_
-              .template find_coeff_indices<iganet::functionspace::interior>(
-                  Customizable::geometryMap_interior_knot_indices_);
+          Base::G_.template find_coeff_indices<iganet::functionspace::interior>(
+              Customizable::geometryMap_interior_knot_indices_);
 
       Customizable::geometryMap_boundary_knot_indices_ =
-          Base::G_
-              .template find_knot_indices<iganet::functionspace::boundary>(
-                  geometryMap_collPts.second);
+          Base::G_.template find_knot_indices<iganet::functionspace::boundary>(
+              geometryMap_collPts.second);
       Customizable::geometryMap_boundary_coeff_indices_ =
-          Base::G_
-              .template find_coeff_indices<iganet::functionspace::boundary>(
-                  Customizable::geometryMap_boundary_knot_indices_);
+          Base::G_.template find_coeff_indices<iganet::functionspace::boundary>(
+              Customizable::geometryMap_boundary_knot_indices_);
     }
 
     // Update indices and precompute basis functions for variable
     if (status & iganet::status::variable_collPts) {
       Customizable::variable_interior_knot_indices_ =
-          Base::f_
-              .template find_knot_indices<iganet::functionspace::interior>(
-                  variable_collPts.first);
+          Base::f_.template find_knot_indices<iganet::functionspace::interior>(
+              variable_collPts.first);
       Customizable::variable_interior_coeff_indices_ =
-          Base::f_
-              .template find_coeff_indices<iganet::functionspace::interior>(
-                  Customizable::variable_interior_knot_indices_);
+          Base::f_.template find_coeff_indices<iganet::functionspace::interior>(
+              Customizable::variable_interior_knot_indices_);
 
       Customizable::variable_boundary_knot_indices_ =
-          Base::f_
-              .template find_knot_indices<iganet::functionspace::boundary>(
-                  variable_collPts.second);
+          Base::f_.template find_knot_indices<iganet::functionspace::boundary>(
+              variable_collPts.second);
       Customizable::variable_boundary_coeff_indices_ =
-          Base::f_
-              .template find_coeff_indices<iganet::functionspace::boundary>(
-                  Customizable::variable_boundary_knot_indices_);
+          Base::f_.template find_coeff_indices<iganet::functionspace::boundary>(
+              Customizable::variable_boundary_knot_indices_);
     }
 
     // Evaluate right-hand side in the interior
@@ -100,12 +91,10 @@ public:
     auto rhs = Base::f_.eval(variable_collPts.first);
 
     // Evaluate solution at the boundary
-    auto bdr_pred =
-        Base::u_.template eval<iganet::functionspace::boundary>(
-            variable_collPts.second);
-    auto bdr_cond =
-        Base::f_.template eval<iganet::functionspace::boundary>(
-            variable_collPts.second);
+    auto bdr_pred = Base::u_.template eval<iganet::functionspace::boundary>(
+        variable_collPts.second);
+    auto bdr_cond = Base::f_.template eval<iganet::functionspace::boundary>(
+        variable_collPts.second);
 
     // Evaluate boundary losses
     auto loss_bdr0 =
@@ -129,18 +118,21 @@ public:
              0 * (loss_bdr0 + loss_bdr1 + loss_bdr2 + loss_bdr3);
 
     // Evaluate pde loss
-    auto sol_ilaplace =
-        Base::u_.ihess(Base::G_, variable_collPts.first);
-    auto loss_pde     = torch::mse_loss(*sol_ilaplace[0] + *sol_ilaplace[3],
-                                        *rhs[0]);
+    auto sol_ilaplace = Base::u_.ihess(Base::G_, variable_collPts.first);
+    auto loss_pde =
+        torch::mse_loss(*sol_ilaplace[0] + *sol_ilaplace[3], *rhs[0]);
 
-    return loss_pde + 0*(loss_bdr0 + loss_bdr1 + loss_bdr2 + loss_bdr3);
+    return loss_pde + 0 * (loss_bdr0 + loss_bdr1 + loss_bdr2 + loss_bdr3);
   }
 };
 
 int main() {
   iganet::init();
   iganet::verbose(std::cout);
+
+  nlohmann::json json;
+  json["res0"] = 50;
+  json["res1"] = 50;
 
   using namespace iganet::literals;
   using optimizer_t = torch::optim::Adam;
@@ -151,19 +143,16 @@ int main() {
 
   poisson<optimizer_t, geometry_t, variable_t>
       net( // Number of neurons per layers
-           {50, 50, 50, 50, 50}
-           ,
+          {50, 50, 50, 50, 50},
           // Activation functions
           {{iganet::activation::sigmoid},
            {iganet::activation::sigmoid},
            {iganet::activation::sigmoid},
            {iganet::activation::sigmoid},
            {iganet::activation::sigmoid},
-           {iganet::activation::none}}
-           ,
+           {iganet::activation::none}},
           // Number of B-spline coefficients
-           std::tuple(iganet::utils::to_array(7_i64, 7_i64))
-           );
+          std::tuple(iganet::utils::to_array(7_i64, 7_i64)));
 
   // Deform geometry
   // net.G().transform([](const std::array<real_t, 2> xi) {
@@ -202,7 +191,7 @@ int main() {
   net.train();
 
 #ifdef IGANET_WITH_MATPLOT
-  net.G().plot(net.u(), 50, 50);
+  net.G().plot(net.u(), net.variable_collPts(0).first, json)->show();
 #endif
 
   net.f().transform([](const std::array<real_t, 2> xi) {
@@ -216,8 +205,8 @@ int main() {
   net.train();
 
 #ifdef IGANET_WITH_MATPLOT
-  net.G().plot(net.u(), 50, 50);
+  net.G().plot(net.u(), net.variable_collPts(0).first, json)->show();
 #endif
-  
+
   return 0;
 }

@@ -354,9 +354,8 @@ int main(int argc, char const *argv[]) {
 #ifndef NDEBUG
                              std::stringstream msg;
                              for (auto const &token : tokens)
-                               msg << "[Thread "
-                                   << std::this_thread::get_id() << "] "
-                                   << token << "/";
+                               msg << "[Thread " << std::this_thread::get_id()
+                                   << "] " << token << "/";
                              msg << std::endl;
                              std::clog << msg.str();
 #endif
@@ -1437,15 +1436,13 @@ int main(int argc, char const *argv[]) {
                         [&port_option](auto *listen_socket) {
                           if (listen_socket) {
                             std::stringstream msg;
-                            msg << "[Thread "
-                                << std::this_thread::get_id()
+                            msg << "[Thread " << std::this_thread::get_id()
                                 << "] Listening on port "
                                 << port_option->value() << std::endl;
                             std::clog << msg.str();
                           } else {
                             std::stringstream msg;
-                            msg << "[Thread "
-                                << std::this_thread::get_id()
+                            msg << "[Thread " << std::this_thread::get_id()
                                 << "] Failed to listen on port "
                                 << port_option->value() << std::endl;
                             std::clog << msg.str();

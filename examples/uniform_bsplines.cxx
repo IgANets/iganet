@@ -16,9 +16,14 @@
 #include <iostream>
 
 int main() {
-  std::cout << iganet::verbose;
-  using real_t = double;
   iganet::init();
+  iganet::verbose(std::cout);
+  using real_t = double;
+
+  nlohmann::json json;
+  json["res0"] = 50;
+  json["res1"] = 50;
+  json["cnet"] = true;
 
   {
     // Univariate uniform B-spline of degree 2 with 6 control points in R^1
@@ -44,8 +49,8 @@ int main() {
 
 #ifdef IGANET_WITH_MATPLOT
     // Plot B-spline
-    bspline.plot(50);
-    bspline.plot(color, 50);
+    bspline.plot(json)->show();
+    bspline.plot(color, json)->show();
 #endif
 
     // Export B-spline to XML
@@ -62,7 +67,8 @@ int main() {
 
     // Map control points to phyiscal coordinates
     bspline.transform([](const std::array<real_t, 1> xi) {
-      return std::array<real_t, 2>{xi[0] * xi[0], sin(static_cast<real_t>(M_PI) * xi[0])};
+      return std::array<real_t, 2>{xi[0] * xi[0],
+                                   sin(static_cast<real_t>(M_PI) * xi[0])};
     });
 
     // Map colors
@@ -77,8 +83,8 @@ int main() {
 
 #ifdef IGANET_WITH_MATPLOT
     // Plot B-spline
-    bspline.plot(50);
-    bspline.plot(color, 50);
+    bspline.plot(json)->show();
+    bspline.plot(color, json)->show();
 #endif
 
     // Export B-spline to XML
@@ -95,7 +101,8 @@ int main() {
 
     // Map control points to phyiscal coordinates
     bspline.transform([](const std::array<real_t, 1> xi) {
-      return std::array<real_t, 3>{xi[0] * xi[0], sin(static_cast<real_t>(M_PI) * xi[0]), xi[0]};
+      return std::array<real_t, 3>{
+          xi[0] * xi[0], sin(static_cast<real_t>(M_PI) * xi[0]), xi[0]};
     });
 
     // Map colors
@@ -110,8 +117,8 @@ int main() {
 
 #ifdef IGANET_WITH_MATPLOT
     // Plot B-spline
-    bspline.plot(50);
-    bspline.plot(color, 50);
+    bspline.plot(json)->show();
+    bspline.plot(color, json)->show();
 #endif
 
     // Export B-spline to XML
@@ -129,8 +136,9 @@ int main() {
 
     // Map control points to phyiscal coordinates
     bspline.transform([](const std::array<real_t, 2> xi) {
-      return std::array<real_t, 2>{(xi[0] + 1) * cos(static_cast<real_t>(M_PI) * xi[1]),
-                                   (xi[0] + 1) * sin(static_cast<real_t>(M_PI) * xi[1])};
+      return std::array<real_t, 2>{
+          (xi[0] + 1) * cos(static_cast<real_t>(M_PI) * xi[1]),
+          (xi[0] + 1) * sin(static_cast<real_t>(M_PI) * xi[1])};
     });
 
     // Map colors
@@ -145,8 +153,8 @@ int main() {
 
 #ifdef IGANET_WITH_MATPLOT
     // Plot B-spline
-    bspline.plot(50, 50);
-    bspline.plot(color, 50, 50);
+    bspline.plot(json)->show();
+    bspline.plot(color, json)->show();
 #endif
 
     // Export B-spline to XML
@@ -164,8 +172,9 @@ int main() {
 
     // Map control points to phyiscal coordinates
     bspline.transform([](const std::array<real_t, 2> xi) {
-      return std::array<real_t, 3>{(xi[0] + 1) * cos(static_cast<real_t>(M_PI) * xi[1]),
-                                   (xi[0] + 1) * sin(static_cast<real_t>(M_PI) * xi[1]), xi[0]};
+      return std::array<real_t, 3>{
+          (xi[0] + 1) * cos(static_cast<real_t>(M_PI) * xi[1]),
+          (xi[0] + 1) * sin(static_cast<real_t>(M_PI) * xi[1]), xi[0]};
     });
 
     // Map colors
@@ -180,8 +189,8 @@ int main() {
 
 #ifdef IGANET_WITH_MATPLOT
     // Plot B-spline
-    bspline.plot(50, 50);
-    bspline.plot(color, 50, 50);
+    bspline.plot(json)->show();
+    bspline.plot(color, json)->show();
 #endif
 
     // Export B-spline to XML

@@ -18,7 +18,7 @@
 
 include(FetchContent)
 FetchContent_Declare(pugixml
-  URL https://github.com/zeux/pugixml/releases/download/v1.13/pugixml-1.13.zip
+  URL https://github.com/zeux/pugixml/releases/download/v1.14/pugixml-1.14.zip
   )
 
 FetchContent_MakeAvailable(pugixml)

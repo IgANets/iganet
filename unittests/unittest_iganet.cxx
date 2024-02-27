@@ -137,10 +137,8 @@ TEST(BSpline, IgANet_UniformBSpline_2d) {
 
   EXPECT_EQ(net.f().boundary().side<iganet::side::east>().ncoeffs(0), 6);
   EXPECT_EQ(net.f().boundary().side<iganet::side::west>().ncoeffs(0), 6);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::south>().ncoeffs(0),
-            4);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::north>().ncoeffs(0),
-            4);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::south>().ncoeffs(0), 4);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::north>().ncoeffs(0), 4);
 }
 
 TEST(BSpline, IgANet_UniformBSpline_3d) {
@@ -223,22 +221,16 @@ TEST(BSpline, IgANet_UniformBSpline_3d) {
 
   EXPECT_EQ(net.f().boundary().side<iganet::side::east>().ncoeffs(0), 6);
   EXPECT_EQ(net.f().boundary().side<iganet::side::west>().ncoeffs(0), 6);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::south>().ncoeffs(0),
-            4);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::north>().ncoeffs(0),
-            4);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::front>().ncoeffs(0),
-            4);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::south>().ncoeffs(0), 4);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::north>().ncoeffs(0), 4);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::front>().ncoeffs(0), 4);
   EXPECT_EQ(net.f().boundary().side<iganet::side::back>().ncoeffs(0), 4);
 
   EXPECT_EQ(net.f().boundary().side<iganet::side::east>().ncoeffs(1), 3);
   EXPECT_EQ(net.f().boundary().side<iganet::side::west>().ncoeffs(1), 3);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::south>().ncoeffs(1),
-            3);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::north>().ncoeffs(1),
-            3);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::front>().ncoeffs(1),
-            6);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::south>().ncoeffs(1), 3);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::north>().ncoeffs(1), 3);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::front>().ncoeffs(1), 6);
   EXPECT_EQ(net.f().boundary().side<iganet::side::back>().ncoeffs(1), 6);
 }
 
@@ -347,45 +339,30 @@ TEST(BSpline, IgANet_UniformBSpline_4d) {
 
   EXPECT_EQ(net.f().boundary().side<iganet::side::east>().ncoeffs(0), 6);
   EXPECT_EQ(net.f().boundary().side<iganet::side::west>().ncoeffs(0), 6);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::south>().ncoeffs(0),
-            4);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::north>().ncoeffs(0),
-            4);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::front>().ncoeffs(0),
-            4);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::south>().ncoeffs(0), 4);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::north>().ncoeffs(0), 4);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::front>().ncoeffs(0), 4);
   EXPECT_EQ(net.f().boundary().side<iganet::side::back>().ncoeffs(0), 4);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::stime>().ncoeffs(0),
-            4);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::etime>().ncoeffs(0),
-            4);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::stime>().ncoeffs(0), 4);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::etime>().ncoeffs(0), 4);
 
   EXPECT_EQ(net.f().boundary().side<iganet::side::east>().ncoeffs(1), 3);
   EXPECT_EQ(net.f().boundary().side<iganet::side::west>().ncoeffs(1), 3);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::south>().ncoeffs(1),
-            3);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::north>().ncoeffs(1),
-            3);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::front>().ncoeffs(1),
-            6);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::south>().ncoeffs(1), 3);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::north>().ncoeffs(1), 3);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::front>().ncoeffs(1), 6);
   EXPECT_EQ(net.f().boundary().side<iganet::side::back>().ncoeffs(1), 6);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::stime>().ncoeffs(1),
-            6);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::etime>().ncoeffs(1),
-            6);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::stime>().ncoeffs(1), 6);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::etime>().ncoeffs(1), 6);
 
   EXPECT_EQ(net.f().boundary().side<iganet::side::east>().ncoeffs(2), 5);
   EXPECT_EQ(net.f().boundary().side<iganet::side::west>().ncoeffs(2), 5);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::south>().ncoeffs(2),
-            5);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::north>().ncoeffs(2),
-            5);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::front>().ncoeffs(2),
-            5);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::south>().ncoeffs(2), 5);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::north>().ncoeffs(2), 5);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::front>().ncoeffs(2), 5);
   EXPECT_EQ(net.f().boundary().side<iganet::side::back>().ncoeffs(2), 5);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::stime>().ncoeffs(2),
-            3);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::etime>().ncoeffs(2),
-            3);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::stime>().ncoeffs(2), 3);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::etime>().ncoeffs(2), 3);
 }
 
 TEST(BSpline, IgANet_NonUniformBSpline_1d) {
@@ -488,10 +465,8 @@ TEST(BSpline, IgANet_NonUniformBSpline_2d) {
 
   EXPECT_EQ(net.f().boundary().side<iganet::side::east>().ncoeffs(0), 6);
   EXPECT_EQ(net.f().boundary().side<iganet::side::west>().ncoeffs(0), 6);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::south>().ncoeffs(0),
-            4);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::north>().ncoeffs(0),
-            4);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::south>().ncoeffs(0), 4);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::north>().ncoeffs(0), 4);
 }
 
 TEST(BSpline, IgANet_NonUniformBSpline_3d) {
@@ -574,22 +549,16 @@ TEST(BSpline, IgANet_NonUniformBSpline_3d) {
 
   EXPECT_EQ(net.f().boundary().side<iganet::side::east>().ncoeffs(0), 6);
   EXPECT_EQ(net.f().boundary().side<iganet::side::west>().ncoeffs(0), 6);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::south>().ncoeffs(0),
-            4);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::north>().ncoeffs(0),
-            4);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::front>().ncoeffs(0),
-            4);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::south>().ncoeffs(0), 4);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::north>().ncoeffs(0), 4);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::front>().ncoeffs(0), 4);
   EXPECT_EQ(net.f().boundary().side<iganet::side::back>().ncoeffs(0), 4);
 
   EXPECT_EQ(net.f().boundary().side<iganet::side::east>().ncoeffs(1), 3);
   EXPECT_EQ(net.f().boundary().side<iganet::side::west>().ncoeffs(1), 3);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::south>().ncoeffs(1),
-            3);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::north>().ncoeffs(1),
-            3);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::front>().ncoeffs(1),
-            6);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::south>().ncoeffs(1), 3);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::north>().ncoeffs(1), 3);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::front>().ncoeffs(1), 6);
   EXPECT_EQ(net.f().boundary().side<iganet::side::back>().ncoeffs(1), 6);
 }
 
@@ -598,7 +567,8 @@ TEST(BSpline, IgANet_NonUniformBSpline_4d) {
   using real_t = iganet::unittests::real_t;
   using Optimizer = torch::optim::Adam;
 
-  using GeometryMap = iganet::S4<iganet::NonUniformBSpline<real_t, 4, 3, 5, 1, 4>>;
+  using GeometryMap =
+      iganet::S4<iganet::NonUniformBSpline<real_t, 4, 3, 5, 1, 4>>;
   using Variable = iganet::S4<iganet::NonUniformBSpline<real_t, 1, 3, 5, 1, 4>>;
 
   IgANet<Optimizer, GeometryMap, Variable> net( // Number of neurons per layers
@@ -698,45 +668,30 @@ TEST(BSpline, IgANet_NonUniformBSpline_4d) {
 
   EXPECT_EQ(net.f().boundary().side<iganet::side::east>().ncoeffs(0), 6);
   EXPECT_EQ(net.f().boundary().side<iganet::side::west>().ncoeffs(0), 6);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::south>().ncoeffs(0),
-            4);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::north>().ncoeffs(0),
-            4);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::front>().ncoeffs(0),
-            4);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::south>().ncoeffs(0), 4);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::north>().ncoeffs(0), 4);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::front>().ncoeffs(0), 4);
   EXPECT_EQ(net.f().boundary().side<iganet::side::back>().ncoeffs(0), 4);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::stime>().ncoeffs(0),
-            4);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::etime>().ncoeffs(0),
-            4);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::stime>().ncoeffs(0), 4);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::etime>().ncoeffs(0), 4);
 
   EXPECT_EQ(net.f().boundary().side<iganet::side::east>().ncoeffs(1), 3);
   EXPECT_EQ(net.f().boundary().side<iganet::side::west>().ncoeffs(1), 3);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::south>().ncoeffs(1),
-            3);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::north>().ncoeffs(1),
-            3);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::front>().ncoeffs(1),
-            6);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::south>().ncoeffs(1), 3);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::north>().ncoeffs(1), 3);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::front>().ncoeffs(1), 6);
   EXPECT_EQ(net.f().boundary().side<iganet::side::back>().ncoeffs(1), 6);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::stime>().ncoeffs(1),
-            6);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::etime>().ncoeffs(1),
-            6);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::stime>().ncoeffs(1), 6);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::etime>().ncoeffs(1), 6);
 
   EXPECT_EQ(net.f().boundary().side<iganet::side::east>().ncoeffs(2), 5);
   EXPECT_EQ(net.f().boundary().side<iganet::side::west>().ncoeffs(2), 5);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::south>().ncoeffs(2),
-            5);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::north>().ncoeffs(2),
-            5);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::front>().ncoeffs(2),
-            5);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::south>().ncoeffs(2), 5);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::north>().ncoeffs(2), 5);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::front>().ncoeffs(2), 5);
   EXPECT_EQ(net.f().boundary().side<iganet::side::back>().ncoeffs(2), 5);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::stime>().ncoeffs(2),
-            3);
-  EXPECT_EQ(net.f().boundary().side<iganet::side::etime>().ncoeffs(2),
-            3);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::stime>().ncoeffs(2), 3);
+  EXPECT_EQ(net.f().boundary().side<iganet::side::etime>().ncoeffs(2), 3);
 }
 
 int main(int argc, char **argv) {

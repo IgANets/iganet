@@ -18,7 +18,7 @@
 
 include(FetchContent)
 FetchContent_Declare(matplotplusplus
-  URL https://github.com/alandefreitas/matplotplusplus/archive/refs/tags/v1.1.0.zip
+  URL https://github.com/alandefreitas/matplotplusplus/archive/refs/tags/v1.2.1.zip
   )
 
 set(BUILD_EXAMPLES 0 CACHE INTERNAL "")

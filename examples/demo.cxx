@@ -54,43 +54,35 @@ public:
     // Update indices and precompute basis functions for geometry
     if (status & iganet::status::geometryMap_collPts) {
       Customizable::geometryMap_interior_knot_indices_ =
-          Base::G_
-              .template find_knot_indices<iganet::functionspace::interior>(
-                  geometryMap_collPts.first);
+          Base::G_.template find_knot_indices<iganet::functionspace::interior>(
+              geometryMap_collPts.first);
       Customizable::geometryMap_interior_coeff_indices_ =
-          Base::G_
-              .template find_coeff_indices<iganet::functionspace::interior>(
-                  Customizable::geometryMap_interior_knot_indices_);
+          Base::G_.template find_coeff_indices<iganet::functionspace::interior>(
+              Customizable::geometryMap_interior_knot_indices_);
 
       Customizable::geometryMap_boundary_knot_indices_ =
-          Base::G_
-              .template find_knot_indices<iganet::functionspace::boundary>(
-                  geometryMap_collPts.second);
+          Base::G_.template find_knot_indices<iganet::functionspace::boundary>(
+              geometryMap_collPts.second);
       Customizable::geometryMap_boundary_coeff_indices_ =
-          Base::G_
-              .template find_coeff_indices<iganet::functionspace::boundary>(
-                  Customizable::geometryMap_boundary_knot_indices_);
+          Base::G_.template find_coeff_indices<iganet::functionspace::boundary>(
+              Customizable::geometryMap_boundary_knot_indices_);
     }
 
     // Update indices and precompute basis functions for variable
     if (status & iganet::status::variable_collPts) {
       Customizable::variable_interior_knot_indices_ =
-          Base::f_
-              .template find_knot_indices<iganet::functionspace::interior>(
-                  variable_collPts.first);
+          Base::f_.template find_knot_indices<iganet::functionspace::interior>(
+              variable_collPts.first);
       Customizable::variable_interior_coeff_indices_ =
-          Base::f_
-              .template find_coeff_indices<iganet::functionspace::interior>(
-                  Customizable::variable_interior_knot_indices_);
+          Base::f_.template find_coeff_indices<iganet::functionspace::interior>(
+              Customizable::variable_interior_knot_indices_);
 
       Customizable::variable_boundary_knot_indices_ =
-          Base::f_
-              .template find_knot_indices<iganet::functionspace::boundary>(
-                  variable_collPts.second);
+          Base::f_.template find_knot_indices<iganet::functionspace::boundary>(
+              variable_collPts.second);
       Customizable::variable_boundary_coeff_indices_ =
-          Base::f_
-              .template find_coeff_indices<iganet::functionspace::boundary>(
-                  Customizable::variable_boundary_knot_indices_);
+          Base::f_.template find_coeff_indices<iganet::functionspace::boundary>(
+              Customizable::variable_boundary_knot_indices_);
     }
 
     // Evaluate right-hand side in the interior
@@ -98,12 +90,10 @@ public:
     auto rhs = Base::f_.eval(variable_collPts.first);
 
     // Evaluate solution at the boundary
-    auto bdr_pred =
-        Base::u_.template eval<iganet::functionspace::boundary>(
-            variable_collPts.second);
-    auto bdr_cond =
-        Base::f_.template eval<iganet::functionspace::boundary>(
-            variable_collPts.second);
+    auto bdr_pred = Base::u_.template eval<iganet::functionspace::boundary>(
+        variable_collPts.second);
+    auto bdr_cond = Base::f_.template eval<iganet::functionspace::boundary>(
+        variable_collPts.second);
 
     // Evaluate boundary losses
     auto loss_bdr0 =
@@ -127,8 +117,7 @@ public:
              0 * (loss_bdr0 + loss_bdr1 + loss_bdr2 + loss_bdr3);
 
     // Evaluate pde loss
-    auto sol_ilaplace =
-        Base::u_.ihess(Base::G_, variable_collPts.first);
+    auto sol_ilaplace = Base::u_.ihess(Base::G_, variable_collPts.first);
     // auto loss_pde     = torch::mse_loss(*sol_ilaplace[0] + *sol_ilaplace[3],
     // *rhs[0]);
 
@@ -139,6 +128,10 @@ public:
 int main() {
   iganet::init();
   iganet::verbose(std::cout);
+
+  nlohmann::json json;
+  json["res0"] = 50;
+  json["res1"] = 50;
 
   using namespace iganet::literals;
   using optimizer_t = torch::optim::Adam;
@@ -212,7 +205,7 @@ int main() {
 
   net.train();
 
-  net.G().plot(net.u(), 50, 50);
+  net.G().plot(net.u(), json);
 
   net.f().transform([](const std::array<real_t, 2> xi) {
     return std::array<real_t, 1>{-2.0 * M_PI * M_PI * sin(M_PI * xi[0]) *
@@ -224,7 +217,7 @@ int main() {
   net.options().min_loss(1e-10);
   net.train();
 
-  net.G().plot(net.u(), 50, 50);
+  net.G().plot(net.u(), json);
 
   return 0;
 }
