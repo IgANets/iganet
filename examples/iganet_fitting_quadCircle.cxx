@@ -1,7 +1,8 @@
 /**
-   @file examples/iganet_fitting_quadCircle_simple.cxx
+   @file examples/iganet_fitting_quadCircle.cxx
 
-   @brief Demonstration of IgANet function fitting on a quad circle geometry loaded from a file
+   @brief Demonstration of IgANet function fitting on a quad circle geometry loaded from a file. this examples makes use of pre-computed
+   indices and coefficients and should therefore be faster.
 
    @author Veronika Travnikova
 
@@ -19,11 +20,17 @@
 /// @brief Specialization of the abstract IgANet class for function fitting
 template <typename Optimizer, typename GeometryMap, typename Variable>
 class fitting
-  : public iganet::IgANet<Optimizer, GeometryMap, Variable> {
+  : public iganet::IgANet<Optimizer, GeometryMap, Variable>,
+    public iganet::IgANetCustomizable<Optimizer, GeometryMap, Variable> {
 
 private:
   /// @brief Type of the base class
   using Base = iganet::IgANet<Optimizer, GeometryMap, Variable>;
+
+  /// @brief Type of the customizable class
+  using Customizable =
+      iganet::IgANetCustomizable<Optimizer, GeometryMap, Variable>;
+
 
 public:
   /// @brief Constructors from the base class
@@ -66,14 +73,29 @@ public:
        const typename Base::variable_collPts_type &variable_collPts,
        int64_t epoch, iganet::status status) override {
 
+    // Update indices and pre-compute basis functions for variables u and f
+    if (status & iganet::status::variable_collPts) {
+      Customizable::variable_interior_knot_indices_ =
+          Base::f_.template find_knot_indices<iganet::functionspace::interior>(
+              variable_collPts.first);
+      Customizable::variable_interior_coeff_indices_ =
+          Base::f_.template find_coeff_indices<iganet::functionspace::interior>(
+              Customizable::variable_interior_knot_indices_);
+    }
+
     // Cast the network output (a raw tensor) into the proper
     // function-space format, i.e. B-spline objects for the interior
     // and boundary parts that can be evaluated.
     Base::u_.from_tensor(outputs, false);
     
     // Evaluate the loss function
-    return torch::mse_loss(*Base::u_.eval(variable_collPts.first)[0],
-                           *Base::f_.eval(variable_collPts.first)[0]);
+    return torch::mse_loss(
+        *Base::u_.eval(variable_collPts.first,
+                       Customizable::variable_interior_knot_indices_,
+                       Customizable::variable_interior_coeff_indices_)[0],
+        *Base::f_.eval(variable_collPts.first,
+                       Customizable::variable_interior_knot_indices_,
+                       Customizable::variable_interior_coeff_indices_)[0]);
   }
 };
 
@@ -93,7 +115,7 @@ int main() {
   pugi::xml_document xml;
   xml.load_file(IGANET_DATA_DIR "surfaces/2d/quadCircleNUB_ref.xml");
 
-  // Bivariate uniform B-spline of degree 2 in first and degree 3 in second param. direction
+  // Bivariate nonuniform B-spline of degree 2 in first and degree 3 in second param. direction
   // the type has to correspond to the respective geometry parameterization in the input file
   using geometry_t = iganet::S2<iganet::NonUniformBSpline<real_t, 2, 2, 3>>;
 
