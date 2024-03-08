@@ -24,6 +24,9 @@
 #include <omp.h>
 #endif
 
+#include <torch/csrc/api/include/torch/types.h>
+#include <torch/torch.h>
+
 #ifdef IGANET_WITH_GISMO
 #include <gismo.h>
 #endif
@@ -41,9 +44,6 @@
 #pragma nv_diag_default 611
 #endif
 #endif
-
-#include <torch/csrc/api/include/torch/types.h>
-#include <torch/torch.h>
 
 namespace iganet {
 

@@ -1,7 +1,7 @@
 /**
-   @file webapps/models/gismo/GismoPoissonModel.hpp
+   @file webapps/models/gismo/GismoLinearElasticityModel.hpp
 
-   @brief G+Smo Poisson model
+   @brief G+Smo Linear elasticity model
 
    @author Matthias Moller
 
@@ -18,11 +18,11 @@ namespace iganet {
 
 namespace webapp {
 
-/// @brief G+Smo Poisson model
+/// @brief G+Smo Linear elasticity model
 template <short_t d, typename T>
-class GismoPoissonModel : public GismoPdeModel<d, T>,
-                          public ModelEval,
-                          public ModelParameters {
+class GismoLinearElasticityModel : public GismoPdeModel<d, T>,
+                                   public ModelEval,
+                                   public ModelParameters {
 
 private:
   /// @brief Base class
@@ -58,22 +58,37 @@ private:
   /// @brief Solution
   gsMultiPatch<T> solution_;
 
-  /// @brief Solve the Poisson problem
+  /// @brief Young's modulus
+  T E_;
+
+  /// Poisson's ratio
+  T nu_;
+
+  /// @brief Solve the Linear elasticity problem
   void solve() {
 
     // Set up expression assembler
     auto G = assembler_.getMap(Base::geo_);
-    auto u = assembler_.getSpace(basis_);
+    auto u = assembler_.getSpace(basis_, d);
+    auto v = u; // just for distinction of test/trial funs
     auto f = assembler_.getCoeff(rhsFunc_, G);
 
     // Impose boundary conditions
     u.setup(bc_, gismo::dirichlet::l2Projection, 0);
 
+    // Lame coefficients
+    T mu = 0.5 * E_ / (1.0 + nu_);
+    T lambda = E_ * nu_ / ((1.0 + nu_) * (1.0 - 2.0 * nu_));
+
     // Set up system
     assembler_.initSystem();
-    assembler_.assemble(igrad(u, G) * igrad(u, G).tr() * meas(G) // matrix
-                        ,
-                        u * f * meas(G) // rhs vector
+    assembler_.assemble(
+        0.5 * mu * meas(G) * (ijac(v, G) + ijac(v, G).cwisetr()) %
+                (ijac(u, G) + ijac(u, G).cwisetr()).tr() +
+            lambda * meas(G) *
+                (ijac(v, G).trace() * ijac(u, G).trace().tr()) // matrix
+        ,
+        u * (f - G) * meas(G) // rhs vector
     );
 
     // Solve system
@@ -90,14 +105,14 @@ private:
 
 public:
   /// @brief Default constructor
-  GismoPoissonModel() = delete;
+  GismoLinearElasticityModel() = delete;
 
   /// @brief Constructor for equidistant knot vectors
-  GismoPoissonModel(const std::array<short_t, d> degrees,
-                    const std::array<int64_t, d> ncoeffs,
-                    const std::array<int64_t, d> npatches)
+  GismoLinearElasticityModel(const std::array<short_t, d> degrees,
+                             const std::array<int64_t, d> ncoeffs,
+                             const std::array<int64_t, d> npatches)
       : Base(degrees, ncoeffs, npatches), basis_(Base::geo_, true),
-        rhsFunc_("2*pi^2*sin(pi*x)*sin(pi*y)", d), assembler_(1, 1) {
+        rhsFunc_("0", "0", d), assembler_(1, 1), E_(2.1e5), nu_(0.29) {
     // Specify assembler options
     gsOptionList Aopt;
 
@@ -130,15 +145,13 @@ public:
     // Set boundary conditions
     for (short_t i = 0; i < 2 * d; ++i) {
       if constexpr (d == 1)
-        bcFunc_[i] = gismo::give(gsFunctionExpr<T>("sin(pi*x)", 1));
+        bcFunc_[i] = gismo::give(gsFunctionExpr<T>("0", 1));
       else if constexpr (d == 2)
-        bcFunc_[i] = gismo::give(gsFunctionExpr<T>("sin(pi*x)*sin(pi*y)", 2));
+        bcFunc_[i] = gismo::give(gsFunctionExpr<T>("0", "0", 2));
       else if constexpr (d == 3)
-        bcFunc_[i] =
-            gismo::give(gsFunctionExpr<T>("sin(pi*x)*sin(pi*y)*sin(pi*z)", 3));
+        bcFunc_[i] = gismo::give(gsFunctionExpr<T>("0", "0", "0", 3));
       else if constexpr (d == 4)
-        bcFunc_[i] = gismo::give(
-            gsFunctionExpr<T>("sin(pi*x)*sin(pi*y)*sin(pi*z)*sin(pi*t)", 4));
+        bcFunc_[i] = gismo::give(gsFunctionExpr<T>("0", "0", "0", "0", 4));
 
       bc_.addCondition(i + 1, gismo::condition_type::dirichlet, &bcFunc_[i]);
     }
@@ -151,23 +164,24 @@ public:
   }
 
   /// @brief Destructor
-  ~GismoPoissonModel() {}
+  ~GismoLinearElasticityModel() {}
 
   /// @brief Returns the model's name
   std::string getName() const override {
-    return "GismoPoisson" + std::to_string(d) + "d";
+    return "GismoLinearElasticity" + std::to_string(d) + "d";
   }
 
   /// @brief Returns the model's description
   std::string getDescription() const override {
-    return "G+Smo Poisson model in " + std::to_string(d) + " dimensions";
+    return "G+Smo linear elasticity model in " + std::to_string(d) +
+           " dimensions";
   };
 
   /// @brief Returns the model's outputs
   nlohmann::json getOutputs() const override {
     return R"([{
            "name" : "Solution",
-           "description" : "Solution of the Poisson equation",
+           "description" : "Solution of the linear elasticity equation",
            "type" : 1}])"_json;
   }
 
@@ -176,40 +190,20 @@ public:
 
     if constexpr (d == 1)
       return R"([{
+         "name" : "E",
+         "description" : "Young's modulus",
+             "type" : "float",
+             "value" : "2.1e5",
+             "default" : "2.1e5",
+             "uiid" : 0},{
+         "name" : "nu",
+         "description" : "Poisson's ratio",
+             "type" : "float",
+             "value" : "0.29",
+             "default" : "0.29",
+             "uiid" : 1},{
          "name" : "bc_east",
          "description" : "Boundary condition at the east boundary",
-             "type" : "text",
-             "value" : "0",
-             "default" : "0",
-             "uiid" : 0},{
-         "name" : "bc_west",
-         "description" : "Boundary condition at the west boundary",
-             "type" : "text",
-             "value" : "0",
-             "default" : "0",
-             "uiid" : 1},{
-         "name" : "rhs",
-         "description" : "Right-hand side function",
-             "type" : "text",
-             "value" : "0",
-             "default" : "0",
-             "uiid" : 2}])"_json;
-    else if constexpr (d == 2)
-      return R"([{
-         "name" : "bc_north",
-         "description" : "Boundary condition at the north boundary",
-             "type" : "text",
-             "value" : "0",
-             "default" : "0",
-             "uiid" : 0},{
-         "name" : "bc_east",
-         "description" : "Boundary condition at the east boundary",
-             "type" : "text",
-             "value" : "0",
-             "default" : "0",
-             "uiid" : 1},{
-         "name" : "bc_south",
-         "description" : "Boundary condition at the south boundary",
              "type" : "text",
              "value" : "0",
              "default" : "0",
@@ -226,40 +220,40 @@ public:
              "value" : "0",
              "default" : "0",
              "uiid" : 4}])"_json;
-    else if constexpr (d == 3)
+    else if constexpr (d == 2)
       return R"([{
+         "name" : "E",
+         "description" : "Young's modulus",
+             "type" : "float",
+             "value" : "2.1e5",
+             "default" : "2.1e5",
+             "uiid" : 0},{
+         "name" : "nu",
+         "description" : "Poisson's ratio",
+             "type" : "float",
+             "value" : "0.29",
+             "default" : "0.29",
+             "uiid" : 1},{
          "name" : "bc_north",
          "description" : "Boundary condition at the north boundary",
              "type" : "text",
              "value" : "0",
              "default" : "0",
-             "uiid" : 0},{
+             "uiid" : 2},{
          "name" : "bc_east",
          "description" : "Boundary condition at the east boundary",
              "type" : "text",
              "value" : "0",
              "default" : "0",
-             "uiid" : 1},{
+             "uiid" : 3},{
          "name" : "bc_south",
          "description" : "Boundary condition at the south boundary",
              "type" : "text",
              "value" : "0",
              "default" : "0",
-             "uiid" : 2},{
+             "uiid" : 4},{
          "name" : "bc_west",
          "description" : "Boundary condition at the west boundary",
-             "type" : "text",
-             "value" : "0",
-             "default" : "0",
-             "uiid" : 3},{
-         "name" : "bc_front",
-         "description" : "Boundary condition at the front boundary",
-             "type" : "text",
-             "value" : "0",
-             "default" : "0",
-             "uiid" : 4},{
-         "name" : "bc_back",
-         "description" : "Boundary condition at the back boundary",
              "type" : "text",
              "value" : "0",
              "default" : "0",
@@ -270,52 +264,52 @@ public:
              "value" : "0",
              "default" : "0",
              "uiid" : 6}])"_json;
-    else if constexpr (d == 4)
+    else if constexpr (d == 3)
       return R"([{
+         "name" : "E",
+         "description" : "Young's modulus",
+             "type" : "float",
+             "value" : "2.1e5",
+             "default" : "2.1e5",
+             "uiid" : 0},{
+         "name" : "nu",
+         "description" : "Poisson's ratio",
+             "type" : "float",
+             "value" : "0.29",
+             "default" : "0.29",
+             "uiid" : 1},{
          "name" : "bc_north",
          "description" : "Boundary condition at the north boundary",
              "type" : "text",
              "value" : "0",
              "default" : "0",
-             "uiid" : 0},{
+             "uiid" : 2},{
          "name" : "bc_east",
          "description" : "Boundary condition at the east boundary",
              "type" : "text",
              "value" : "0",
              "default" : "0",
-             "uiid" : 1},{
+             "uiid" : 3},{
          "name" : "bc_south",
          "description" : "Boundary condition at the south boundary",
              "type" : "text",
              "value" : "0",
              "default" : "0",
-             "uiid" : 2},{
+             "uiid" : 4},{
          "name" : "bc_west",
          "description" : "Boundary condition at the west boundary",
              "type" : "text",
              "value" : "0",
              "default" : "0",
-             "uiid" : 3},{
+             "uiid" : 5},{
          "name" : "bc_front",
          "description" : "Boundary condition at the front boundary",
              "type" : "text",
              "value" : "0",
              "default" : "0",
-             "uiid" : 4},{
+             "uiid" : 6},{
          "name" : "bc_back",
          "description" : "Boundary condition at the back boundary",
-             "type" : "text",
-             "value" : "0",
-             "default" : "0",
-             "uiid" : 5},{
-         "name" : "bc_stime",
-         "description" : "Boundary condition at the start-time boundary",
-             "type" : "text",
-             "value" : "0",
-             "default" : "0",
-             "uiid" : 6},{
-         "name" : "bc_etime",
-         "description" : "Boundary condition at the end-time boundary",
              "type" : "text",
              "value" : "0",
              "default" : "0",
@@ -326,6 +320,74 @@ public:
              "value" : "0",
              "default" : "0",
              "uiid" : 8}])"_json;
+    else if constexpr (d == 4)
+      return R"([{
+         "name" : "E",
+         "description" : "Young's modulus",
+             "type" : "float",
+             "value" : "2.1e5",
+             "default" : "2.1e5",
+             "uiid" : 0},{
+         "name" : "nu",
+         "description" : "Poisson's ratio",
+             "type" : "float",
+             "value" : "0.29",
+             "default" : "0.29",
+             "uiid" : 1},{
+         "name" : "bc_north",
+         "description" : "Boundary condition at the north boundary",
+             "type" : "text",
+             "value" : "0",
+             "default" : "0",
+             "uiid" : 2},{
+         "name" : "bc_east",
+         "description" : "Boundary condition at the east boundary",
+             "type" : "text",
+             "value" : "0",
+             "default" : "0",
+             "uiid" : 3},{
+         "name" : "bc_south",
+         "description" : "Boundary condition at the south boundary",
+             "type" : "text",
+             "value" : "0",
+             "default" : "0",
+             "uiid" : 4},{
+         "name" : "bc_west",
+         "description" : "Boundary condition at the west boundary",
+             "type" : "text",
+             "value" : "0",
+             "default" : "0",
+             "uiid" : 5},{
+         "name" : "bc_front",
+         "description" : "Boundary condition at the front boundary",
+             "type" : "text",
+             "value" : "0",
+             "default" : "0",
+             "uiid" : 6},{
+         "name" : "bc_back",
+         "description" : "Boundary condition at the back boundary",
+             "type" : "text",
+             "value" : "0",
+             "default" : "0",
+             "uiid" : 7},{
+         "name" : "bc_stime",
+         "description" : "Boundary condition at the start-time boundary",
+             "type" : "text",
+             "value" : "0",
+             "default" : "0",
+             "uiid" : 8},{
+         "name" : "bc_etime",
+         "description" : "Boundary condition at the end-time boundary",
+             "type" : "text",
+             "value" : "0",
+             "default" : "0",
+             "uiid" : 9},{
+         "name" : "rhs",
+         "description" : "Right-hand side function",
+             "type" : "text",
+             "value" : "0",
+             "default" : "0",
+             "uiid" : 10}])"_json;
     else
       return R"({ INVALID REQUEST })"_json;
   }
@@ -337,7 +399,25 @@ public:
 
     nlohmann::json result = R"({})"_json;
 
-    if (attribute == "bc_north") {
+    if (attribute == "E") {
+      if (!json.contains("data"))
+        throw InvalidModelAttributeException();
+      if (!json["data"].contains("E"))
+        throw InvalidModelAttributeException();
+
+      E_ = json["data"]["E"].get<T>();
+    }
+
+    else if (attribute == "nu") {
+      if (!json.contains("data"))
+        throw InvalidModelAttributeException();
+      if (!json["data"].contains("nu"))
+        throw InvalidModelAttributeException();
+
+      nu_ = json["data"]["nu"].get<T>();
+    }
+
+    else if (attribute == "bc_north") {
       if (!json.contains("data"))
         throw InvalidModelAttributeException();
       if (!json["data"].contains("bc_north"))
@@ -459,7 +539,11 @@ public:
     gsMatrix<T> pts = gsPointGrid(a, b, np);
     gsMatrix<T> eval = solution_.patch(0).eval(pts);
 
-    return utils::to_json(eval, true);
+    gsMatrix<T> result = eval.colwise().norm();
+
+    std::cout << eval.norm() << std::endl;
+
+    return utils::to_json(result, true);
   }
 
   /// @brief Elevates the model's degrees, preserves smoothness

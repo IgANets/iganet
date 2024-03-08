@@ -845,7 +845,7 @@ The `optiontype descriptor` must be one of the following
 ||| `"value" : [5,5]`  |
 | `float`       | float value  | `"value" : 5.0` or  |
 ||| `"value" : [5.0,5.0]` |
-| `string`      | string value | `"value" : "string"` or |
+| `text`      | string value | `"value" : "string"` or |
 ||| `"value" : ["string1","string2"]` |
 | `list`    | can select no, one or multiple options | `"value" : { "option0", "option1" }`|
 | `select` | must select one option  | `"value" : { "option0", "option1" }`|
@@ -872,15 +872,17 @@ The `iotype descriptor` must be one of the following
  |--------------:|:--------------|------------|
  | `create`      | create model | 0 |
  | `remove`      | remove model | 1 |
- | `eval`        | evaluate model | 2 |
- | `refine`      | h-refine model  | 3 |
- | `elevate`     | p-refine model (degree elevation) | 4 |
- | `increase`    | p-refine model (degree increase) | 5 |
- | `load`        | load model from file | 6 |
- | `save`        | save model to file   | 7 |
- | `importXML`   | import object from XML file | 8 |
- | `exportXML`   | export object to XML file   | 9 |
- | `computeL1error` | compute L1 error of the model | 10 |
- | `computeL2error` | compute L2 error of the model | 11 |
- | `computeH1error` | compute H1 error of the model | 12 |
+ | `parameters`  | model has extra parameters |2 |
+ | `eval`        | evaluate model | 3 |
+ | `refine`      | h-refine model  | 4 |
+ | `elevate`     | p-refine model (degree elevation) | 5 |
+ | `increase`    | p-refine model (degree increase) | 6 |
+ | `reparameterize` | reparameterize the model's geometry | 7 |
+ | `load`        | load model from file | 8 |
+ | `save`        | save model to file   | 9 |
+ | `importXML`   | import object from XML file | 10 |
+ | `exportXML`   | export object to XML file   | 11 |
+ | `computeL1error` | compute L1 error of the model | 12 |
+ | `computeL2error` | compute L2 error of the model | 13 |
+ | `computeH1error` | compute H1 error of the model | 14 |
 ---

@@ -51,7 +51,7 @@ public:
     }
 
     else
-      return "{ INVALID REQUEST }";
+      return R"({ INVALID REQUEST })"_json;
   }
 
   /// @brief Updates the attributes of the model
@@ -79,7 +79,7 @@ public:
     }
 
     else
-      return "{ INVALID REQUEST }";
+      return R"({ INVALID REQUEST })"_json;
   }
 
 protected:

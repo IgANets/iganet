@@ -183,7 +183,19 @@ function(genJITCompiler SOURCE_FILES SOURCE_TARGET)
       # Generate include and link directories
       foreach (lib ${IGANET_LINK_LIBRARIES})
 
-        if (lib STREQUAL "torch")
+        if(lib STREQUAL "gismo_static")
+          set(JIT_LIBRARIES
+            "${JIT_LIBRARIES} ${JIT_CXX_LINKER_SEARCH_FLAG}${PROJECT_BINARY_DIR}/lib")
+
+          list(APPEND LIBS gismo)
+
+        elseif(lib STREQUAL "pugixml")
+          set(JIT_LIBRARIES
+            "${JIT_LIBRARIES} ${JIT_CXX_LINKER_SEARCH_FLAG}${pugixml_BINARY_DIR}")
+
+          list(APPEND LIBS pugixml)
+
+        elseif (lib STREQUAL "torch")
           if (WIN32)
             set(JIT_LIBRARIES
               "${JIT_LIBRARIES} ${JIT_CXX_LINKER_SEARCH_FLAG}${Torch_DIR}\\..\\..\\..\\lib")
@@ -220,17 +232,11 @@ function(genJITCompiler SOURCE_FILES SOURCE_TARGET)
             list(APPEND LIBS torch_cpu)
           endif()
 
-        elseif(lib STREQUAL "pugixml")
+        elseif(lib STREQUAL "Matplot++::matplot")
           set(JIT_LIBRARIES
-            "${JIT_LIBRARIES} ${JIT_CXX_LINKER_SEARCH_FLAG}${pugixml_BINARY_DIR}")
+            "${JIT_LIBRARIES} ${JIT_CXX_LINKER_SEARCH_FLAG}${matplotplusplus_BINARY_DIR}/source/matplot")
 
-          list(APPEND LIBS pugixml)
-
-        elseif(lib STREQUAL "gismo_static")
-          set(JIT_LIBRARIES
-            "${JIT_LIBRARIES} ${JIT_CXX_LINKER_SEARCH_FLAG}${PROJECT_BINARY_DIR}/lib")
-
-          list(APPEND LIBS gismo)
+          list(APPEND LIBS matplot)
 
         elseif(lib STREQUAL "OpenMP::OpenMP_CXX")
 

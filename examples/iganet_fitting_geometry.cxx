@@ -1,12 +1,16 @@
 /**
-   @file examples/iganet_fitting_simple.cxx
+   @file examples/iganet_fitting_geometry.cxx
 
-   @brief Demonstration of IgANet function fitting
+   @brief Demonstration of IgANet function fitting on a geometry loaded from a
+   file
 
-   This example demonstrates how to implement a simple IgANet to fit a
-   given function on a square geometry. In contrast to the example
-   iganet_fitting.cxx this examples does not make use of pre-computed
-   indices and coefficients and might therefore be slower.
+   @author Veronika Travnikova
+
+   This example demonstrates how to implement an IgANet to fit a given
+   function on a geometry loaded from a file. In contrast to the
+   example iganet_fitting_geometry_simple.cxx this examples makes use
+   of pre-computed indices and coefficients and should therefore be
+   faster.
 
    @author Matthias Moller
 
@@ -23,7 +27,9 @@
 
 /// @brief Specialization of the abstract IgANet class for function fitting
 template <typename Optimizer, typename GeometryMap, typename Variable>
-class fitting : public iganet::IgANet<Optimizer, GeometryMap, Variable> {
+class fitting
+    : public iganet::IgANet<Optimizer, GeometryMap, Variable>,
+      public iganet::IgANetCustomizable<Optimizer, GeometryMap, Variable> {
 
 private:
   /// @brief Type of the base class
@@ -31,6 +37,16 @@ private:
 
   /// @brief Collocation points
   typename Base::variable_collPts_type collPts_;
+
+  /// @brief Type of the customizable class
+  using Customizable =
+      iganet::IgANetCustomizable<Optimizer, GeometryMap, Variable>;
+
+  /// @brief Knot indices
+  typename Customizable::variable_interior_knot_indices_type knot_indices_;
+
+  /// @broef Coefficient indices
+  typename Customizable::variable_interior_coeff_indices_type coeff_indices_;
 
 public:
   /// @brief Constructors from the base class
@@ -54,6 +70,13 @@ public:
       Base::inputs(epoch);
       collPts_ = Base::variable_collPts(iganet::collPts::greville);
 
+      knot_indices_ =
+          Base::f_.template find_knot_indices<iganet::functionspace::interior>(
+              collPts_.first);
+      coeff_indices_ =
+          Base::f_.template find_coeff_indices<iganet::functionspace::interior>(
+              knot_indices_);
+
       return true;
     } else
       return false;
@@ -72,8 +95,9 @@ public:
     Base::u_.from_tensor(outputs, false);
 
     // Evaluate the loss function
-    return torch::mse_loss(*Base::u_.eval(collPts_.first)[0],
-                           *Base::f_.eval(collPts_.first)[0]);
+    return torch::mse_loss(
+        *Base::u_.eval(collPts_.first, knot_indices_, coeff_indices_)[0],
+        *Base::f_.eval(collPts_.first, knot_indices_, coeff_indices_)[0]);
   }
 };
 
@@ -89,8 +113,14 @@ int main() {
   using optimizer_t = torch::optim::Adam;
   using real_t = double;
 
-  // Geometry: Bi-linear B-spline function space S2 (geoDim = 2, p = q = 1)
-  using geometry_t = iganet::S2<iganet::UniformBSpline<real_t, 2, 1, 1>>;
+  // Load XML file
+  pugi::xml_document xml;
+  xml.load_file(IGANET_DATA_DIR "surfaces/2d/geo02.xml");
+
+  // Bivariate uniform B-spline of degree 2 in both directions
+  // the type has to correspond to the respective geometry parameterization in
+  // the input file
+  using geometry_t = iganet::S2<iganet::UniformBSpline<real_t, 2, 2, 2>>;
 
   // Variable: Bi-quadratic B-spline function space S2 (geoDim = 1, p = q = 2)
   using variable_t = iganet::S2<iganet::UniformBSpline<real_t, 1, 2, 2>>;
@@ -105,10 +135,14 @@ int main() {
            {iganet::activation::sigmoid},
            {iganet::activation::sigmoid},
            {iganet::activation::none}},
-          // Number of B-spline coefficients of the geometry, just [0,1] x [0,1]
-          std::tuple(iganet::utils::to_array(2_i64, 2_i64)),
+          // Number of B-spline coefficients of the geometry, has to correspond
+          // to number of coefficients in input file
+          std::tuple(iganet::utils::to_array(25_i64, 25_i64)),
           // Number of B-spline coefficients of the variable
-          std::tuple(iganet::utils::to_array(10_i64, 10_i64)));
+          std::tuple(iganet::utils::to_array(30_i64, 30_i64)));
+
+  // Load geometry parameterization from XML
+  net.G().from_xml(xml);
 
   // Impose solution value for supervised training (not right-hand side)
   net.f().transform([](const std::array<real_t, 2> xi) {
@@ -137,11 +171,19 @@ int main() {
             << " seconds\n";
 
 #ifdef IGANET_WITH_MATPLOT
+  // Evaluate position of collocation points in physical domain
+  auto colPts = net.G().eval(net.collPts().first);
+
   // Plot the solution
-  net.G().plot(net.u(), net.collPts().first, json)->show();
+  net.G()
+      .plot(net.u(), std::array<torch::Tensor, 2>{*colPts[0], *colPts[1]}, json)
+      ->show();
 
   // Plot the difference between the solution and the reference data
-  net.G().plot(net.u().abs_diff(net.f()), net.collPts().first, json)->show();
+  net.G()
+      .plot(net.u().abs_diff(net.f()),
+            std::array<torch::Tensor, 2>{*colPts[0], *colPts[1]}, json)
+      ->show();
 #endif
 
 #ifdef IGANET_WITH_GISMO

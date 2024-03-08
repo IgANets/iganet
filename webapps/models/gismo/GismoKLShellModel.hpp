@@ -1,7 +1,7 @@
 /**
-   @file webapps/models/gismo/GismoPoissonModel.hpp
+   @file webapps/models/gismo/GismoKLShellModel.hpp
 
-   @brief G+Smo Poisson model
+   @brief G+Smo Kirchhoff-Love shell  model
 
    @author Matthias Moller
 
@@ -18,9 +18,9 @@ namespace iganet {
 
 namespace webapp {
 
-/// @brief G+Smo Poisson model
+/// @brief G+Smo Kirchhoff-Love shell model
 template <short_t d, typename T>
-class GismoPoissonModel : public GismoPdeModel<d, T>,
+class GismoKLShellModel : public GismoPdeModel<d, T>,
                           public ModelEval,
                           public ModelParameters {
 
@@ -90,10 +90,10 @@ private:
 
 public:
   /// @brief Default constructor
-  GismoPoissonModel() = delete;
+  GismoKLShellModel() = delete;
 
   /// @brief Constructor for equidistant knot vectors
-  GismoPoissonModel(const std::array<short_t, d> degrees,
+  GismoKLShellModel(const std::array<short_t, d> degrees,
                     const std::array<int64_t, d> ncoeffs,
                     const std::array<int64_t, d> npatches)
       : Base(degrees, ncoeffs, npatches), basis_(Base::geo_, true),
@@ -151,23 +151,24 @@ public:
   }
 
   /// @brief Destructor
-  ~GismoPoissonModel() {}
+  ~GismoKLShellModel() {}
 
   /// @brief Returns the model's name
   std::string getName() const override {
-    return "GismoPoisson" + std::to_string(d) + "d";
+    return "GismoKLShell" + std::to_string(d) + "d";
   }
 
   /// @brief Returns the model's description
   std::string getDescription() const override {
-    return "G+Smo Poisson model in " + std::to_string(d) + " dimensions";
+    return "G+Smo Kirchhoff-Love Shell model in " + std::to_string(d) +
+           " dimensions";
   };
 
   /// @brief Returns the model's outputs
   nlohmann::json getOutputs() const override {
     return R"([{
            "name" : "Solution",
-           "description" : "Solution of the Poisson equation",
+           "description" : "Solution of the Kirchhoff-Love shell model",
            "type" : 1}])"_json;
   }
 
@@ -462,96 +463,14 @@ public:
     return utils::to_json(eval, true);
   }
 
-  /// @brief Elevates the model's degrees, preserves smoothness
-  void elevate(const nlohmann::json &json = NULL) override {
-
-    bool geometry = true;
-
-    if (json.contains("data"))
-      if (json["data"].contains("num"))
-        geometry = json["data"]["geometry"].get<bool>();
-
-    if (geometry) {
-      // Elevate geometry
-      Base::elevate(json);
-
-      // Set geometry
-      bc_.setGeoMap(Base::geo_);
-    }
-
-    int num = 1, dim = -1;
-
-    if (json.contains("data")) {
-      if (json["data"].contains("num"))
-        num = json["data"]["num"].get<int>();
-
-      if (json["data"].contains("dim"))
-        dim = json["data"]["dim"].get<int>();
-    }
-
-    // Degree elevate basis of solution space
-    basis_.basis(0).degreeElevate(num, dim);
-
-    // Set assembler basis
-    assembler_.setIntegrationElements(basis_);
-
-    // Generate solution
-    solve();
-  }
-
-  /// @brief Increases the model's degrees, preserves multiplicity
-  void increase(const nlohmann::json &json = NULL) override {
-
-    bool geometry = true;
-
-    if (json.contains("data"))
-      if (json["data"].contains("num"))
-        geometry = json["data"]["geometry"].get<bool>();
-
-    if (geometry) {
-      // Increase geometry
-      Base::increase(json);
-
-      // Set geometry
-      bc_.setGeoMap(Base::geo_);
-    }
-
-    int num = 1, dim = -1;
-
-    if (json.contains("data")) {
-      if (json["data"].contains("num"))
-        num = json["data"]["num"].get<int>();
-
-      if (json["data"].contains("dim"))
-        dim = json["data"]["dim"].get<int>();
-    }
-
-    // Degree increase basis of solution space
-    basis_.basis(0).degreeIncrease(num, dim);
-
-    // Set assembler basis
-    assembler_.setIntegrationElements(basis_);
-
-    // Generate solution
-    solve();
-  }
-
   /// @brief Refines the model
   void refine(const nlohmann::json &json = NULL) override {
 
-    bool geometry = true;
+    // Refine geometry
+    Base::refine(json);
 
-    if (json.contains("data"))
-      if (json["data"].contains("num"))
-        geometry = json["data"]["geometry"].get<bool>();
-
-    if (geometry) {
-      // Refine geometry
-      Base::refine(json);
-
-      // Set geometry
-      bc_.setGeoMap(Base::geo_);
-    }
+    // Set geometry
+    bc_.setGeoMap(Base::geo_);
 
     int num = 1, dim = -1;
 
@@ -568,9 +487,6 @@ public:
 
     // Set assembler basis
     assembler_.setIntegrationElements(basis_);
-
-    // Generate solution
-    solve();
   }
 };
 

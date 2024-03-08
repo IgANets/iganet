@@ -36,10 +36,12 @@ enum class status : short_t {
   invalidPutRequest = 7,        /*!<  invalid put request              */
   invalidEvalRequest = 8,       /*!<  invalid eval request             */
   invalidRefineRequest = 9,     /*!<  invalid refine request           */
-  invalidLoadRequest = 10,      /*!<  invalid load request             */
-  invalidSaveRequest = 11,      /*!<  invalid save request             */
-  invalidImportRequest = 12,    /*!<  invalid import request           */
-  invalidExportRequest = 13     /*!<  invalid export request           */
+  invalidElevateRequest = 10,   /*!<  invalid degree elevate request   */
+  invalidIncreaseRequest = 11,  /*!<  invalid degree increase request  */
+  invalidLoadRequest = 12,      /*!<  invalid load request             */
+  invalidSaveRequest = 13,      /*!<  invalid save request             */
+  invalidImportRequest = 14,    /*!<  invalid import request           */
+  invalidExportRequest = 15     /*!<  invalid export request           */
 };
 
 /// @brief InvalidSessionId exception
@@ -732,7 +734,8 @@ int main(int argc, char const *argv[]) {
                                  response["status"] = iganet::webapp::status::
                                      invalidRemoveRequest;
                                  response["reason"] =
-                                     "Invalid remove request. Valid requests "
+                                     "Invalid REMOVE request. Valid REMOVE "
+                                     "requests "
                                      "are "
                                      "\"remove/<session-id>\" and "
                                      "\"remove/<session-id>/<model-instance>\"";
@@ -817,7 +820,8 @@ int main(int argc, char const *argv[]) {
                                  response["status"] = iganet::webapp::status::
                                      invalidDisconnectRequest;
                                  response["reason"] =
-                                     "Invalid disconnect request. Valid "
+                                     "Invalid DISCONNECT request. Valid "
+                                     "DISCONNECT "
                                      "requests are "
                                      "\"diconnect/<session-id>\"";
                                  ws->send(response.dump(), uWS::OpCode::TEXT,
@@ -856,7 +860,8 @@ int main(int argc, char const *argv[]) {
                                      response["status"] = iganet::webapp::
                                          status::invalidEvalRequest;
                                      response["reason"] =
-                                         "Invalid eval request. Valid requests "
+                                         "Invalid EVAL request. Valid EVAL "
+                                         "requests "
                                          "are "
                                          "\"eval/<session-id>/<model-instance>/"
                                          "<model-component>\"";
@@ -1016,7 +1021,8 @@ int main(int argc, char const *argv[]) {
                                      response["status"] = iganet::webapp::
                                          status::invalidSaveRequest;
                                      response["reason"] =
-                                         "Invalid save request. Valid requests "
+                                         "Invalid SAVE request. Valid SAVE "
+                                         "requests "
                                          "are "
                                          "\"save/<session-id>\" and "
                                          "\"save/<session-id>/"
@@ -1033,7 +1039,8 @@ int main(int argc, char const *argv[]) {
                                  response["status"] =
                                      iganet::webapp::status::invalidSaveRequest;
                                  response["reason"] =
-                                     "Invalid save request. Valid requests are "
+                                     "Invalid SAVE request. Valid SAVE "
+                                     "requests are "
                                      "\"save/<session-id>\" and "
                                      "\"save/<session-id>/<model-instance>\"";
                                  ws->send(response.dump(), uWS::OpCode::TEXT,
@@ -1067,7 +1074,8 @@ int main(int argc, char const *argv[]) {
                                        response["status"] = iganet::webapp::
                                            status::invalidImportRequest;
                                        response["reason"] =
-                                           "Invalid importrequest. Valid "
+                                           "Invalid IMPORTXML request. Valid "
+                                           "IMPORTXML "
                                            "requests are "
                                            "\"importxml/<session-id>\", "
                                            "\"importxml/<session-id>/"
@@ -1120,7 +1128,8 @@ int main(int argc, char const *argv[]) {
                                      response["status"] = iganet::webapp::
                                          status::invalidImportRequest;
                                      response["reason"] =
-                                         "Invalid import request. Valid "
+                                         "Invalid IMPORTXML request. Valid "
+                                         "IMPORTXML "
                                          "requests are "
                                          "\"importxml/<session-id>\", "
                                          "\"importxml/<session-id>/"
@@ -1166,7 +1175,8 @@ int main(int argc, char const *argv[]) {
                                      response["status"] = iganet::webapp::
                                          status::invalidImportRequest;
                                      response["reason"] =
-                                         "Invalid import request. Valid "
+                                         "Invalid IMPORTXML request. Valid "
+                                         "IMPORTXML "
                                          "requests are "
                                          "\"importxml/<session-id>\", "
                                          "\"importxml/<session-id>/"
@@ -1197,6 +1207,7 @@ int main(int argc, char const *argv[]) {
                                      invalidImportRequest;
                                  response["reason"] =
                                      "Invalid IMPORTXML request. Valid "
+                                     "IMPORTXML "
                                      "IMPORTXML "
                                      "requests are \"importxml/<session-id>\", "
                                      "\"importxml/<session-id>/"
@@ -1306,6 +1317,7 @@ int main(int argc, char const *argv[]) {
                                  response["reason"] =
                                      "Invalid EXPORTXML request. Valid "
                                      "EXPORTXML "
+                                     "EXPORTXML "
                                      "requests are \"exportxml/<session-id>\", "
                                      "\"exportxml/<session-id>/"
                                      "<model-instance>\" and "
@@ -1348,7 +1360,7 @@ int main(int argc, char const *argv[]) {
                                      response["status"] = iganet::webapp::
                                          status::invalidRefineRequest;
                                      response["reason"] =
-                                         "Invalid refine request. Valid "
+                                         "Invalid REFINE request. Valid REFINE "
                                          "requests are "
                                          "\"refine/<session-id>/"
                                          "<model-instance>\"";
@@ -1382,6 +1394,140 @@ int main(int argc, char const *argv[]) {
                                }
 
                              } // REFINE
+
+                             else if (tokens[0] == "elevate") {
+                               //
+                               // request: elevate/*
+                               //
+
+                               try {
+
+                                 if (tokens.size() == 3) {
+                                   //
+                                   // request:
+                                   // elevate/<session-id>/<model-instance>
+                                   //
+
+                                   // Get session
+                                   auto session =
+                                       ws->getUserData()->getSession(tokens[1]);
+
+                                   // Get model
+                                   auto model =
+                                       session->getModel(stoi(tokens[2]));
+
+                                   // Degree elevate an existing model
+                                   if (auto m = std::dynamic_pointer_cast<
+                                           iganet::ModelElevate>(model))
+                                     m->elevate(request);
+                                   else {
+                                     response["status"] = iganet::webapp::
+                                         status::invalidElevateRequest;
+                                     response["reason"] =
+                                         "Invalid ELEVATE request. Valid "
+                                         "ELEVATE "
+                                         "requests are "
+                                         "\"elevate/<session-id>/"
+                                         "<model-instance>\"";
+                                   }
+                                   ws->send(response.dump(), uWS::OpCode::TEXT,
+                                            true);
+
+                                   // Broadcast degree elevation of model
+                                   // instance
+                                   nlohmann::json broadcast;
+                                   broadcast["id"] = session->getUUID();
+                                   broadcast["request"] = "elevate/instance";
+                                   broadcast["data"]["id"] = stoi(tokens[2]);
+                                   ws->publish(session->getUUID(),
+                                               broadcast.dump(),
+                                               uWS::OpCode::TEXT);
+                                 }
+
+                                 else
+                                   throw std::runtime_error("ELEVATE");
+
+                               } catch (...) {
+                                 response["status"] = iganet::webapp::status::
+                                     invalidElevateRequest;
+                                 response["reason"] =
+                                     "Invalid ELEVATE request. Valid ELEVATE "
+                                     "requests "
+                                     "are "
+                                     "\"elevate/<session-id>/"
+                                     "<model-instance>\"";
+                                 ws->send(response.dump(), uWS::OpCode::TEXT,
+                                          true);
+                               }
+
+                             } // ELEVATE
+
+                             else if (tokens[0] == "increase") {
+                               //
+                               // request: increase/*
+                               //
+
+                               try {
+
+                                 if (tokens.size() == 3) {
+                                   //
+                                   // request:
+                                   // increase/<session-id>/<model-instance>
+                                   //
+
+                                   // Get session
+                                   auto session =
+                                       ws->getUserData()->getSession(tokens[1]);
+
+                                   // Get model
+                                   auto model =
+                                       session->getModel(stoi(tokens[2]));
+
+                                   // Degree increase an existing model
+                                   if (auto m = std::dynamic_pointer_cast<
+                                           iganet::ModelIncrease>(model))
+                                     m->increase(request);
+                                   else {
+                                     response["status"] = iganet::webapp::
+                                         status::invalidIncreaseRequest;
+                                     response["reason"] =
+                                         "Invalid INCREASE request. Valid "
+                                         "INCREASE "
+                                         "requests are "
+                                         "\"increase/<session-id>/"
+                                         "<model-instance>\"";
+                                   }
+                                   ws->send(response.dump(), uWS::OpCode::TEXT,
+                                            true);
+
+                                   // Broadcast degree increase of model
+                                   // instance
+                                   nlohmann::json broadcast;
+                                   broadcast["id"] = session->getUUID();
+                                   broadcast["request"] = "increase/instance";
+                                   broadcast["data"]["id"] = stoi(tokens[2]);
+                                   ws->publish(session->getUUID(),
+                                               broadcast.dump(),
+                                               uWS::OpCode::TEXT);
+                                 }
+
+                                 else
+                                   throw std::runtime_error("INCREASE");
+
+                               } catch (...) {
+                                 response["status"] = iganet::webapp::status::
+                                     invalidElevateRequest;
+                                 response["reason"] =
+                                     "Invalid INCREASE request. Valid INCREASE "
+                                     "requests "
+                                     "are "
+                                     "\"increase/<session-id>/"
+                                     "<model-instance>\"";
+                                 ws->send(response.dump(), uWS::OpCode::TEXT,
+                                          true);
+                               }
+
+                             } // INCREASE
 
                              else {
                                response["status"] =
