@@ -102,7 +102,7 @@ public:
     else if constexpr (BSpline_t::parDim() == 4)
       return "BSplineHyperVolume";
     else
-      return "{ INVALID REQUEST }";
+      return "invalidName";
   }
 
   /// @brief Returns the model's description
@@ -116,161 +116,146 @@ public:
     else if constexpr (BSpline_t::parDim() == 4)
       return "B-spline hypervolume";
     else
-      return "{ INVALID REQUEST }";
+      return "invalidDescription";
   }
 
   /// @brief Returns the model's options
-  std::string getOptions() const override {
+  nlohmann::json getOptions() const override {
     if constexpr (BSpline_t::parDim() == 1)
-      return "["
-             "{\"name\" : \"degree\","
-             " \"description\" : \"Polynomial degree of the B-spline\","
-             " \"type\" : \"select\","
-             " \"value\" : [\"constant\", \"linear\", \"quadratic\", "
-             "\"cubic\", \"quartic\", \"quintic\"],"
-             " \"default\" : 2,"
-             " \"uiid\" : 0},"
-             "{\"name\" : \"ncoeffs\","
-             " \"description\" : \"Number of coefficients per parametric "
-             "dimension\","
-             " \"type\" : [\"int\"],"
-             " \"value\" : [3],"
-             " \"default\" : [3],"
-             " \"uiid\" : 1},"
-             "{\"name\" : \"init\","
-             " \"description\" : \"Initialization of the coefficients\","
-             " \"type\" : \"select\","
-             " \"value\" : [\"zeros\", \"ones\", \"linear\", \"random\", "
-             "\"greville\"],"
-             " \"default\" : 4,"
-             " \"uiid\" : 2},"
-             "{\"name\" : \"nonuniform\","
-             " \"description\" : \"Create non-uniform B-spline\","
-             " \"type\" : \"select\","
-             " \"value\" : [\"false\", \"true\"],"
-             " \"default\" : 0,"
-             " \"uiid\" : 3}"
-             "]";
+      return R"([{
+             "name" : "degree",
+             "description" : "Polynomial degree of the B-spline",
+             "type" : "select",
+             "value" : ["constant", "linear", "quadratic", "cubic", "quartic", "quintic"],
+             "default" : 2,
+             "uiid" : 0},{
+             "name" : "ncoeffs",
+             "description" : "Number of coefficients per parametric dimension",
+             "type" : ["int"],
+             "value" : [3],
+             "default" : [3],
+             "uiid" : 1},{
+             "name" : "init",
+             "description" : "Initialization of the coefficients",
+             "type" : "select",
+             "value" : ["zeros", "ones", "linear", "random", "greville"],
+             "default" : 4,
+             "uiid" : 2},{
+             "name" : "nonuniform",
+             "description" : "Create non-uniform B-spline",
+             "type" : "select",
+             "value" : ["false", "true"],
+             "default" : 0,
+             "uiid" : 3}])"_json;
+
     else if constexpr (BSpline_t::parDim() == 2)
-      return "["
-             "{\"name\" : \"degree\","
-             " \"description\" : \"Polynomial degree of the B-spline\","
-             " \"type\" : \"select\","
-             " \"value\" : [\"constant\", \"linear\", \"quadratic\", "
-             "\"cubic\", \"quartic\", \"quintic\"],"
-             " \"default\" : 2,"
-             " \"uiid\" : 0},"
-             "{\"name\" : \"ncoeffs\","
-             " \"description\" : \"Number of coefficients per parametric "
-             "dimension\","
-             " \"type\" : [\"int\",\"int\"],"
-             " \"value\" : [3,3],"
-             " \"default\" : [3,3],"
-             " \"uiid\" : 1},"
-             "{\"name\" : \"init\","
-             " \"description\" : \"Initialization of the coefficients\","
-             " \"type\" : \"select\","
-             " \"value\" : [\"zeros\", \"ones\", \"linear\", \"random\", "
-             "\"greville\"],"
-             " \"default\" : 4,"
-             " \"uiid\" : 2},"
-             "{\"name\" : \"nonuniform\","
-             " \"description\" : \"Create non-uniform B-spline\","
-             " \"type\" : \"select\","
-             " \"value\" : [\"false\", \"true\"],"
-             " \"default\" : 0,"
-             " \"uiid\" : 3}"
-             "]";
+      return R"([{
+             "name" : "degree",
+             "description" : "Polynomial degree of the B-spline",
+             "type" : "select",
+             "value" : ["constant", "linear", "quadratic", "cubic", "quartic", "quintic"],
+             "default" : 2,
+             "uiid" : 0},{
+             "name" : "ncoeffs",
+             "description" : "Number of coefficients per parametric dimension",
+             "type" : ["int","int"],
+             "value" : [3,3],
+             "default" : [3,3],
+             "uiid" : 1},{
+             "name" : "init",
+             "description" : "Initialization of the coefficients",
+             "type" : "select",
+             "value" : ["zeros", "ones", "linear", "random", "greville"],
+             "default" : 4,
+             "uiid" : 2},{
+             "name" : "nonuniform",
+             "description" : "Create non-uniform B-spline",
+             "type" : "select",
+             "value" : ["false", "true"],
+             "default" : 0,
+             "uiid" : 3}])"_json;
+
     else if constexpr (BSpline_t::parDim() == 3)
-      return "["
-             "{\"name\" : \"degree\","
-             " \"description\" : \"Polynomial degree of the B-spline\","
-             " \"type\" : \"select\","
-             " \"value\" : [\"constant\", \"linear\", \"quadratic\", "
-             "\"cubic\", \"quartic\", \"quintic\"],"
-             " \"default\" : 2,"
-             " \"uiid\" : 0},"
-             "{\"name\" : \"ncoeffs\","
-             " \"description\" : \"Number of coefficients per parametric "
-             "dimension\","
-             " \"type\" : [\"int\",\"int\",\"int\"],"
-             " \"value\" : [3,3,3],"
-             " \"default\" : [3,3,3],"
-             " \"uiid\" : 1},"
-             "{\"name\" : \"init\","
-             " \"description\" : \"Initialization of the coefficients\","
-             " \"type\" : \"select\","
-             " \"value\" : [\"zeros\", \"ones\", \"linear\", \"random\", "
-             "\"greville\"],"
-             " \"default\" : 4,"
-             " \"uiid\" : 2},"
-             "{\"name\" : \"nonuniform\","
-             " \"description\" : \"Create non-uniform B-spline\","
-             " \"type\" : \"select\","
-             " \"value\" : [\"false\", \"true\"],"
-             " \"default\" : 0,"
-             " \"uiid\" : 3}"
-             "]";
+      return R"([{
+             "name" : "degree",
+             "description" : "Polynomial degree of the B-spline",
+             "type" : "select",
+             "value" : ["constant", "linear", "quadratic", "cubic", "quartic", "quintic"],
+             "default" : 2,
+             "uiid" : 0},{
+             "name" : "ncoeffs",
+             "description" : "Number of coefficients per parametric dimension",
+             "type" : ["int","int","int"],
+             "value" : [3,3,3],
+             "default" : [3,3,3],
+             "uiid" : 1},{
+             "name" : "init",
+             "description" : "Initialization of the coefficients",
+             "type" : "select",
+             "value" : ["zeros", "ones", "linear", "random", "greville"],
+             "default" : 4,
+             "uiid" : 2},{
+             "name" : "nonuniform",
+             "description" : "Create non-uniform B-spline",
+             "type" : "select",
+             "value" : ["false", "true"],
+             "default" : 0,
+             "uiid" : 3}])"_json;
+
     else if constexpr (BSpline_t::parDim() == 4)
-      return "["
-             "{\"name\" : \"degree\","
-             " \"description\" : \"Polynomial degree of the B-spline\","
-             " \"type\" : \"select\","
-             " \"value\" : [\"constant\", \"linear\", \"quadratic\", "
-             "\"cubic\", \"quartic\", \"quintic\"],"
-             " \"default\" : 2,"
-             " \"uiid\" : 0},"
-             "{\"name\" : \"ncoeffs\","
-             " \"description\" : \"Number of coefficients per parametric "
-             "dimension\","
-             " \"type\" : [int,int,int,int],"
-             " \"value\" : [3,3,3,3],"
-             " \"default\" : [3,3,3,3],"
-             " \"uiid\" : 1},"
-             "{\"name\" : \"init\","
-             " \"description\" : \"Initialization of the coefficients\","
-             " \"type\" : \"select\","
-             " \"value\" : [\"zeros\", \"ones\", \"linear\", \"random\", "
-             "\"greville\"],"
-             " \"default\" : 4,"
-             " \"uiid\" : 2},"
-             "{\"name\" : \"nonuniform\","
-             " \"description\" : \"Create non-uniform B-spline\","
-             " \"type\" : \"select\","
-             " \"value\" : [\"false\", \"true\"],"
-             " \"default\" : 0,"
-             " \"uiid\" : 3}"
-             "]";
+      return R"([{
+             "name" : "degree",
+             "description" : "Polynomial degree of the B-spline",
+             "type" : "select",
+             "value" : ["constant", "linear", "quadratic", "cubic", "quartic", "quintic"],
+             "default" : 2,
+             "uiid" : 0},{
+             "name" : "ncoeffs",
+             "description" : "Number of coefficients per parametric dimension",
+             "type" : [int,int,int,int],
+             "value" : [3,3,3,3],
+             "default" : [3,3,3,3],
+             "uiid" : 1},{
+             "name" : "init",
+             "description" : "Initialization of the coefficients",
+             "type" : "select",
+             "value" : ["zeros", "ones", "linear", "random", "greville"],
+             "default" : 4,
+             "uiid" : 2},{
+             "name" : "nonuniform",
+             "description" : "Create non-uniform B-spline",
+             "type" : "select",
+             "value" : ["false", "true"],
+             "default" : 0,
+             "uiid" : 3}])"_json;
+
     else
-      return "{ INVALID REQUEST }";
+      return R"({ INVALID REQUEST })"_json;
   }
 
   /// @brief Returns the model's inputs
-  std::string getInputs() const override {
-    return "["
-           "{\"name\" : \"geometry\","
-           " \"description\" : \"Geometry\","
-           " \"type\" : 2}"
-           "]";
+  nlohmann::json getInputs() const override {
+    return R"([{
+              "name" : "geometry",
+              "description" : "Geometry",
+              "type" : 2}])"_json;
   }
 
   /// @brief Returns the model's outputs
-  std::string getOutputs() const override {
+  nlohmann::json getOutputs() const override {
     if constexpr (BSpline_t::geoDim() == 1)
-      return "["
-             "{\"name\" : \"ValueFieldMagnitude\","
-             " \"description\" : \"Magnitude of the B-spline values\","
-             " \"type\" : 1}"
-             "]";
+      return R"([{
+                "name" : "ValueFieldMagnitude",
+                "description" : "Magnitude of the B-spline values",
+                "type" : 1}])"_json;
     else
-      return "["
-             "{\"name\" : \"ValueFieldMagnitude\","
-             " \"description\" : \"Magnitude of the B-spline values\","
-             " \"type\" : 1},"
-             "{\"name\" : \"ValueField\","
-             " \"description\" : \"B-spline values\","
-             " \"type\" : 2}"
-             "]";
+      return R"([{
+                "name" : "ValueFieldMagnitude",
+                "description" : "Magnitude of the B-spline values",
+                "type" : 1},{
+                "name" : "ValueField",
+                "description" : "B-spline values",
+                "type" : 2}])"_json;
   }
 
   /// @brief Serializes the model to JSON
@@ -455,7 +440,7 @@ public:
               utils::to_json<iganet::real_t, 1>(*(values[dim])));
         return result;
       } else
-        return "{ INVALID REQUEST }";
+        return R"({ INVALID REQUEST })"_json;
     }
 
     else if constexpr (BSpline_t::parDim() == 2) {
@@ -483,7 +468,7 @@ public:
               utils::to_json<iganet::real_t, 2>(*(values[dim])));
         return result;
       } else
-        return "{ INVALID REQUEST }";
+        return R"({ INVALID REQUEST })"_json;
     }
 
     else if constexpr (BSpline_t::parDim() == 3) {
@@ -513,7 +498,7 @@ public:
               utils::to_json<iganet::real_t, 3>(*(values[dim])));
         return result;
       } else
-        return "{ INVALID REQUEST }";
+        return R"({ INVALID REQUEST })"_json;
     }
 
     else if constexpr (BSpline_t::parDim() == 4) {
@@ -545,7 +530,7 @@ public:
               utils::to_json<iganet::real_t, 4>(*(values[dim])));
         return result;
       } else
-        return "{ INVALID REQUEST }";
+        return R"({ INVALID REQUEST })"_json;
     }
   }
 

@@ -949,19 +949,19 @@ public:
   ///
   /// @param[in] xi Point(s) where to evaluate the univariate B-spline object
   ///
-  /// @param[in] indices Knot indices where to evaluate the univariate B-spline
-  /// object
+  /// @param[in] knot_indices Knot indices where to evaluate the univariate
+  /// B-spline object
   ///
   /// @result Value(s) of the univariate B-spline evaluated at the point(s) `xi`
   template <deriv deriv = deriv::func, bool memory_optimized = false>
   inline auto eval(const utils::TensorArray1 &xi,
-                   const utils::TensorArray1 &indices) const {
+                   const utils::TensorArray1 &knot_indices) const {
     if constexpr (parDim_ == 1) {
-      assert(xi[0].sizes() == indices[0].sizes());
+      assert(xi[0].sizes() == knot_indices[0].sizes());
 
       if constexpr (memory_optimized) {
-        auto basfunc = eval_basfunc<deriv, memory_optimized>(xi, indices);
-        auto coeff_indices = find_coeff_indices<memory_optimized>(indices);
+        auto basfunc = eval_basfunc<deriv, memory_optimized>(xi, knot_indices);
+        auto coeff_indices = find_coeff_indices<memory_optimized>(knot_indices);
         utils::BlockTensor<torch::Tensor, 1, geoDim_> result;
         for (short_t i = 0; i < geoDim_; ++i)
           result.set(i, torch::matmul(coeffs(i)
@@ -972,8 +972,10 @@ public:
         return result;
       } else {
         if constexpr (geoDim_ > 1) {
-          auto basfunc = eval_basfunc<deriv, memory_optimized>(xi, indices);
-          auto coeff_indices = find_coeff_indices<memory_optimized>(indices);
+          auto basfunc =
+              eval_basfunc<deriv, memory_optimized>(xi, knot_indices);
+          auto coeff_indices =
+              find_coeff_indices<memory_optimized>(knot_indices);
           utils::BlockTensor<torch::Tensor, 1, geoDim_> result;
           for (short_t i = 0; i < geoDim_; ++i)
             result.set(i, utils::dotproduct(basfunc,
@@ -985,10 +987,10 @@ public:
         } else
           return utils::BlockTensor<torch::Tensor, 1, 1>(
               utils::dotproduct(
-                  eval_basfunc<deriv, memory_optimized>(xi, indices),
+                  eval_basfunc<deriv, memory_optimized>(xi, knot_indices),
                   coeffs(0)
                       .index_select(
-                          0, find_coeff_indices<memory_optimized>(indices))
+                          0, find_coeff_indices<memory_optimized>(knot_indices))
                       .view({-1, xi[0].numel()}))
                   .view(xi[0].sizes()));
       }
@@ -1007,8 +1009,8 @@ public:
   ///
   /// @param[in] xi Point(s) where to evaluate the univariate B-spline object
   ///
-  /// @param[in] indices Knot indices where to evaluate the univariate B-spline
-  /// object
+  /// @param[in] knot_indices Knot indices where to evaluate the univariate
+  /// B-spline object
   ///
   /// @param[in] coeff_indices Coefficient indices where to evaluate the
   /// univariate B-spline object
@@ -1016,13 +1018,13 @@ public:
   /// @result Value(s) of the univariate B-spline evaluated at the point(s) `xi`
   template <deriv deriv = deriv::func, bool memory_optimized = false>
   inline auto eval(const utils::TensorArray1 &xi,
-                   const utils::TensorArray1 &indices,
+                   const utils::TensorArray1 &knot_indices,
                    const torch::Tensor &coeff_indices) const {
     if constexpr (parDim_ == 1) {
-      assert(xi[0].sizes() == indices[0].sizes());
+      assert(xi[0].sizes() == knot_indices[0].sizes());
 
       if constexpr (memory_optimized) {
-        auto basfunc = eval_basfunc<deriv, memory_optimized>(xi, indices);
+        auto basfunc = eval_basfunc<deriv, memory_optimized>(xi, knot_indices);
         utils::BlockTensor<torch::Tensor, 1, geoDim_> result;
         for (short_t i = 0; i < geoDim_; ++i)
           result.set(i, torch::matmul(coeffs(i)
@@ -1033,7 +1035,8 @@ public:
         return result;
       } else {
         if constexpr (geoDim_ > 1) {
-          auto basfunc = eval_basfunc<deriv, memory_optimized>(xi, indices);
+          auto basfunc =
+              eval_basfunc<deriv, memory_optimized>(xi, knot_indices);
           utils::BlockTensor<torch::Tensor, 1, geoDim_> result;
           for (short_t i = 0; i < geoDim_; ++i)
             result.set(i, utils::dotproduct(basfunc,
@@ -1045,7 +1048,7 @@ public:
         } else
           return utils::BlockTensor<torch::Tensor, 1, 1>(
               utils::dotproduct(
-                  eval_basfunc<deriv, memory_optimized>(xi, indices),
+                  eval_basfunc<deriv, memory_optimized>(xi, knot_indices),
                   coeffs(0)
                       .index_select(0, coeff_indices)
                       .view({-1, xi[0].numel()}))
@@ -1066,21 +1069,21 @@ public:
   ///
   /// @param[in] xi Point(s) where to evaluate the bivariate B-spline object
   ///
-  /// @param[in] indices Knot indices where to evaluate the bivariate B-spline
-  /// object
+  /// @param[in] knot_indices Knot indices where to evaluate the bivariate
+  /// B-spline object
   ///
   /// @result Value(s) of the bivariate B-spline evaluated at the point(s) `xi`
   template <deriv deriv = deriv::func, bool memory_optimized = false>
   inline auto eval(const utils::TensorArray2 &xi,
-                   const utils::TensorArray2 &indices) const {
+                   const utils::TensorArray2 &knot_indices) const {
     if constexpr (parDim_ == 2) {
-      assert(xi[0].sizes() == indices[0].sizes() &&
-             xi[1].sizes() == indices[1].sizes() &&
+      assert(xi[0].sizes() == knot_indices[0].sizes() &&
+             xi[1].sizes() == knot_indices[1].sizes() &&
              xi[0].sizes() == xi[1].sizes());
 
       if constexpr (memory_optimized) {
-        auto basfunc = eval_basfunc<deriv, memory_optimized>(xi, indices);
-        auto coeff_indices = find_coeff_indices<memory_optimized>(indices);
+        auto basfunc = eval_basfunc<deriv, memory_optimized>(xi, knot_indices);
+        auto coeff_indices = find_coeff_indices<memory_optimized>(knot_indices);
         utils::BlockTensor<torch::Tensor, 1, geoDim_> result;
         for (short_t i = 0; i < geoDim_; ++i)
           result.set(i, torch::matmul(
@@ -1094,8 +1097,10 @@ public:
         return result;
       } else {
         if constexpr (geoDim_ > 1) {
-          auto basfunc = eval_basfunc<deriv, memory_optimized>(xi, indices);
-          auto coeff_indices = find_coeff_indices<memory_optimized>(indices);
+          auto basfunc =
+              eval_basfunc<deriv, memory_optimized>(xi, knot_indices);
+          auto coeff_indices =
+              find_coeff_indices<memory_optimized>(knot_indices);
           utils::BlockTensor<torch::Tensor, 1, geoDim_> result;
           for (short_t i = 0; i < geoDim_; ++i)
             result.set(i, utils::dotproduct(basfunc,
@@ -1107,10 +1112,10 @@ public:
         } else
           return utils::BlockTensor<torch::Tensor, 1, 1>(
               utils::dotproduct(
-                  eval_basfunc<deriv, memory_optimized>(xi, indices),
+                  eval_basfunc<deriv, memory_optimized>(xi, knot_indices),
                   coeffs(0)
                       .index_select(
-                          0, find_coeff_indices<memory_optimized>(indices))
+                          0, find_coeff_indices<memory_optimized>(knot_indices))
                       .view({-1, xi[0].numel()}))
                   .view(xi[0].sizes()));
       }
@@ -1129,8 +1134,8 @@ public:
   ///
   /// @param[in] xi Point(s) where to evaluate the bivariate B-spline object
   ///
-  /// @param[in] indices Knot indices where to evaluate the bivariate B-spline
-  /// object
+  /// @param[in] knot_indices Knot indices where to evaluate the bivariate
+  /// B-spline object
   ///
   /// @param[in] coeff_indices Coefficient indices where to evaluate the
   /// bivariate B-spline object
@@ -1138,15 +1143,15 @@ public:
   /// @result Value(s) of the bivariate B-spline evaluated at the point(s) `xi`
   template <deriv deriv = deriv::func, bool memory_optimized = false>
   inline auto eval(const utils::TensorArray2 &xi,
-                   const utils::TensorArray2 &indices,
+                   const utils::TensorArray2 &knot_indices,
                    const torch::Tensor &coeff_indices) const {
     if constexpr (parDim_ == 2) {
-      assert(xi[0].sizes() == indices[0].sizes() &&
-             xi[1].sizes() == indices[1].sizes() &&
+      assert(xi[0].sizes() == knot_indices[0].sizes() &&
+             xi[1].sizes() == knot_indices[1].sizes() &&
              xi[0].sizes() == xi[1].sizes());
 
       if constexpr (memory_optimized) {
-        auto basfunc = eval_basfunc<deriv, memory_optimized>(xi, indices);
+        auto basfunc = eval_basfunc<deriv, memory_optimized>(xi, knot_indices);
         utils::BlockTensor<torch::Tensor, 1, geoDim_> result;
         for (short_t i = 0; i < geoDim_; ++i)
           result.set(i, torch::matmul(
@@ -1160,7 +1165,8 @@ public:
         return result;
       } else {
         if constexpr (geoDim_ > 1) {
-          auto basfunc = eval_basfunc<deriv, memory_optimized>(xi, indices);
+          auto basfunc =
+              eval_basfunc<deriv, memory_optimized>(xi, knot_indices);
           utils::BlockTensor<torch::Tensor, 1, geoDim_> result;
           for (short_t i = 0; i < geoDim_; ++i)
             result.set(i, utils::dotproduct(basfunc,
@@ -1172,7 +1178,7 @@ public:
         } else
           return utils::BlockTensor<torch::Tensor, 1, 1>(
               utils::dotproduct(
-                  eval_basfunc<deriv, memory_optimized>(xi, indices),
+                  eval_basfunc<deriv, memory_optimized>(xi, knot_indices),
                   coeffs(0)
                       .index_select(0, coeff_indices)
                       .view({-1, xi[0].numel()}))
@@ -1193,22 +1199,22 @@ public:
   ///
   /// @param[in] xi Point(s) where to evaluate the trivariate B-spline object
   ///
-  /// @param[in] indices Knot indices where to evaluate the trivariate B-spline
-  /// object
+  /// @param[in] knot_indices Knot indices where to evaluate the trivariate
+  /// B-spline object
   ///
   /// @result Value(s) of the trivariate B-spline evaluated at the point(s) `xi`
   template <deriv deriv = deriv::func, bool memory_optimized = false>
   inline auto eval(const utils::TensorArray3 &xi,
-                   const utils::TensorArray3 &indices) const {
+                   const utils::TensorArray3 &knot_indices) const {
     if constexpr (parDim_ == 3) {
-      assert(xi[0].sizes() == indices[0].sizes() &&
-             xi[1].sizes() == indices[1].sizes() &&
-             xi[2].sizes() == indices[2].sizes() &&
+      assert(xi[0].sizes() == knot_indices[0].sizes() &&
+             xi[1].sizes() == knot_indices[1].sizes() &&
+             xi[2].sizes() == knot_indices[2].sizes() &&
              xi[0].sizes() == xi[1].sizes() && xi[1].sizes() == xi[2].sizes());
 
       if constexpr (memory_optimized) {
-        auto basfunc = eval_basfunc<deriv, memory_optimized>(xi, indices);
-        auto coeff_indices = find_coeff_indices<memory_optimized>(indices);
+        auto basfunc = eval_basfunc<deriv, memory_optimized>(xi, knot_indices);
+        auto coeff_indices = find_coeff_indices<memory_optimized>(knot_indices);
         utils::BlockTensor<torch::Tensor, 1, geoDim_> result;
         for (short_t i = 0; i < geoDim_; ++i)
           result.set(
@@ -1226,8 +1232,10 @@ public:
         return result;
       } else {
         if constexpr (geoDim_ > 1) {
-          auto basfunc = eval_basfunc<deriv, memory_optimized>(xi, indices);
-          auto coeff_indices = find_coeff_indices<memory_optimized>(indices);
+          auto basfunc =
+              eval_basfunc<deriv, memory_optimized>(xi, knot_indices);
+          auto coeff_indices =
+              find_coeff_indices<memory_optimized>(knot_indices);
           utils::BlockTensor<torch::Tensor, 1, geoDim_> result;
           for (short_t i = 0; i < geoDim_; ++i)
             result.set(i, utils::dotproduct(basfunc,
@@ -1239,10 +1247,10 @@ public:
         } else
           return utils::BlockTensor<torch::Tensor, 1, 1>(
               utils::dotproduct(
-                  eval_basfunc<deriv, memory_optimized>(xi, indices),
+                  eval_basfunc<deriv, memory_optimized>(xi, knot_indices),
                   coeffs(0)
                       .index_select(
-                          0, find_coeff_indices<memory_optimized>(indices))
+                          0, find_coeff_indices<memory_optimized>(knot_indices))
                       .view({-1, xi[0].numel()}))
                   .view(xi[0].sizes()));
       }
@@ -1261,8 +1269,8 @@ public:
   ///
   /// @param[in] xi Point(s) where to evaluate the trivariate B-spline object
   ///
-  /// @param[in] indices Knot indices where to evaluate the trivariate B-spline
-  /// object
+  /// @param[in] knot_indices Knot indices where to evaluate the trivariate
+  /// B-spline object
   ///
   /// @param[in] coeff_indices Coefficient indices where to evaluate the
   /// trivariate B-spline object
@@ -1270,17 +1278,17 @@ public:
   /// @result Value(s) of the trivariate B-spline evaluated at the point(s) `xi`
   template <deriv deriv = deriv::func, bool memory_optimized = false>
   inline auto eval(const utils::TensorArray3 &xi,
-                   const utils::TensorArray3 &indices,
+                   const utils::TensorArray3 &knot_indices,
                    const torch::Tensor &coeff_indices) const {
     if constexpr (parDim_ == 3) {
-      assert(xi[0].sizes() == indices[0].sizes() &&
-             xi[1].sizes() == indices[1].sizes() &&
-             xi[2].sizes() == indices[2].sizes() &&
+      assert(xi[0].sizes() == knot_indices[0].sizes() &&
+             xi[1].sizes() == knot_indices[1].sizes() &&
+             xi[2].sizes() == knot_indices[2].sizes() &&
              xi[0].sizes() == xi[1].sizes() && xi[1].sizes() == xi[2].sizes());
 
       if constexpr (memory_optimized) {
-        auto basfunc = eval_basfunc<deriv, memory_optimized>(xi, indices);
-        auto coeff_indices = find_coeff_indices<memory_optimized>(indices);
+        auto basfunc = eval_basfunc<deriv, memory_optimized>(xi, knot_indices);
+        auto coeff_indices = find_coeff_indices<memory_optimized>(knot_indices);
         utils::BlockTensor<torch::Tensor, 1, geoDim_> result;
         for (short_t i = 0; i < geoDim_; ++i)
           result.set(
@@ -1298,7 +1306,8 @@ public:
         return result;
       } else {
         if constexpr (geoDim_ > 1) {
-          auto basfunc = eval_basfunc<deriv, memory_optimized>(xi, indices);
+          auto basfunc =
+              eval_basfunc<deriv, memory_optimized>(xi, knot_indices);
           utils::BlockTensor<torch::Tensor, 1, geoDim_> result;
           for (short_t i = 0; i < geoDim_; ++i)
             result.set(i, utils::dotproduct(basfunc,
@@ -1310,7 +1319,7 @@ public:
         } else
           return utils::BlockTensor<torch::Tensor, 1, 1>(
               utils::dotproduct(
-                  eval_basfunc<deriv, memory_optimized>(xi, indices),
+                  eval_basfunc<deriv, memory_optimized>(xi, knot_indices),
                   coeffs(0)
                       .index_select(0, coeff_indices)
                       .view({-1, xi[0].numel()}))
@@ -1331,25 +1340,25 @@ public:
   ///
   /// @param[in] xi Point(s) where to evaluate the quartvariate B-spline object
   ///
-  /// @param[in] indices Knot indices where to evaluate the quartvariate
+  /// @param[in] knot_indices Knot indices where to evaluate the quartvariate
   /// B-spline object
   ///
   /// @result Value(s) of the quartvariate B-spline evaluated at the point(s)
   /// `xi`
   template <deriv deriv = deriv::func, bool memory_optimized = false>
   inline auto eval(const utils::TensorArray4 &xi,
-                   const utils::TensorArray4 &indices) const {
+                   const utils::TensorArray4 &knot_indices) const {
     if constexpr (parDim_ == 4) {
-      assert(xi[0].sizes() == indices[0].sizes() &&
-             xi[1].sizes() == indices[1].sizes() &&
-             xi[2].sizes() == indices[2].sizes() &&
-             xi[3].sizes() == indices[3].sizes() &&
+      assert(xi[0].sizes() == knot_indices[0].sizes() &&
+             xi[1].sizes() == knot_indices[1].sizes() &&
+             xi[2].sizes() == knot_indices[2].sizes() &&
+             xi[3].sizes() == knot_indices[3].sizes() &&
              xi[0].sizes() == xi[1].sizes() && xi[1].sizes() == xi[2].sizes() &&
              xi[2].sizes() == xi[3].sizes());
 
       if constexpr (memory_optimized) {
-        auto basfunc = eval_basfunc<deriv, memory_optimized>(xi, indices);
-        auto coeff_indices = find_coeff_indices<memory_optimized>(indices);
+        auto basfunc = eval_basfunc<deriv, memory_optimized>(xi, knot_indices);
+        auto coeff_indices = find_coeff_indices<memory_optimized>(knot_indices);
         utils::BlockTensor<torch::Tensor, 1, geoDim_> result;
         for (short_t i = 0; i < geoDim_; ++i)
           result.set(
@@ -1371,8 +1380,10 @@ public:
         return result;
       } else {
         if constexpr (geoDim_ > 1) {
-          auto basfunc = eval_basfunc<deriv, memory_optimized>(xi, indices);
-          auto coeff_indices = find_coeff_indices<memory_optimized>(indices);
+          auto basfunc =
+              eval_basfunc<deriv, memory_optimized>(xi, knot_indices);
+          auto coeff_indices =
+              find_coeff_indices<memory_optimized>(knot_indices);
           utils::BlockTensor<torch::Tensor, 1, geoDim_> result;
           for (short_t i = 0; i < geoDim_; ++i)
             result.set(i, utils::dotproduct(basfunc,
@@ -1384,10 +1395,10 @@ public:
         } else
           return utils::BlockTensor<torch::Tensor, 1, 1>(
               utils::dotproduct(
-                  eval_basfunc<deriv, memory_optimized>(xi, indices),
+                  eval_basfunc<deriv, memory_optimized>(xi, knot_indices),
                   coeffs(0)
                       .index_select(
-                          0, find_coeff_indices<memory_optimized>(indices))
+                          0, find_coeff_indices<memory_optimized>(knot_indices))
                       .view({-1, xi[0].numel()}))
                   .view(xi[0].sizes()));
       }
@@ -1406,7 +1417,7 @@ public:
   ///
   /// @param[in] xi Point(s) where to evaluate the quartvariate B-spline object
   ///
-  /// @param[in] indices Knot indices where to evaluate the quartvariate
+  /// @param[in] knot_indices Knot indices where to evaluate the quartvariate
   /// B-spline object
   ///
   /// @param[in] coeff_indices Coefficient indices where to evaluate the
@@ -1416,18 +1427,18 @@ public:
   /// `xi`
   template <deriv deriv = deriv::func, bool memory_optimized = false>
   inline auto eval(const utils::TensorArray4 &xi,
-                   const utils::TensorArray4 &indices,
+                   const utils::TensorArray4 &knot_indices,
                    const torch::Tensor &coeff_indices) const {
     if constexpr (parDim_ == 4) {
-      assert(xi[0].sizes() == indices[0].sizes() &&
-             xi[1].sizes() == indices[1].sizes() &&
-             xi[2].sizes() == indices[2].sizes() &&
-             xi[3].sizes() == indices[3].sizes() &&
+      assert(xi[0].sizes() == knot_indices[0].sizes() &&
+             xi[1].sizes() == knot_indices[1].sizes() &&
+             xi[2].sizes() == knot_indices[2].sizes() &&
+             xi[3].sizes() == knot_indices[3].sizes() &&
              xi[0].sizes() == xi[1].sizes() && xi[1].sizes() == xi[2].sizes() &&
              xi[2].sizes() == xi[3].sizes());
 
       if constexpr (memory_optimized) {
-        auto basfunc = eval_basfunc<deriv, memory_optimized>(xi, indices);
+        auto basfunc = eval_basfunc<deriv, memory_optimized>(xi, knot_indices);
         utils::BlockTensor<torch::Tensor, 1, geoDim_> result;
         for (short_t i = 0; i < geoDim_; ++i)
           result.set(
@@ -1449,7 +1460,8 @@ public:
         return result;
       } else {
         if constexpr (geoDim_ > 1) {
-          auto basfunc = eval_basfunc<deriv, memory_optimized>(xi, indices);
+          auto basfunc =
+              eval_basfunc<deriv, memory_optimized>(xi, knot_indices);
           utils::BlockTensor<torch::Tensor, 1, geoDim_> result;
           for (short_t i = 0; i < geoDim_; ++i)
             result.set(i, utils::dotproduct(basfunc,
@@ -1461,7 +1473,7 @@ public:
         } else
           return utils::BlockTensor<torch::Tensor, 1, 1>(
               utils::dotproduct(
-                  eval_basfunc<deriv, memory_optimized>(xi, indices),
+                  eval_basfunc<deriv, memory_optimized>(xi, knot_indices),
                   coeffs(0)
                       .index_select(0, coeff_indices)
                       .view({-1, xi[0].numel()}))
@@ -1667,7 +1679,7 @@ public:
 
   template <deriv deriv = deriv::func, bool memory_optimized = false>
   inline auto eval_basfunc(const torch::Tensor &xi,
-                           const torch::Tensor &indices) const {
+                           const torch::Tensor &knot_indices) const {
     if constexpr (parDim_ == 0) {
       if constexpr (deriv == deriv::func)
         return torch::ones_like(coeffs_[0]);
@@ -1675,7 +1687,7 @@ public:
         return torch::zeros_like(coeffs_[0]);
     } else
       return eval_basfunc<deriv, memory_optimized>(
-          utils::TensorArray1({xi}), utils::TensorArray1({indices}));
+          utils::TensorArray1({xi}), utils::TensorArray1({knot_indices}));
   }
 
   template <deriv deriv = deriv::func, bool memory_optimized = false>
@@ -1691,7 +1703,7 @@ public:
 
   template <deriv deriv = deriv::func, bool memory_optimized = false>
   inline auto eval_basfunc(const utils::TensorArray0 &xi,
-                           const utils::TensorArray0 &indices) const {
+                           const utils::TensorArray0 &knot_indices) const {
     if constexpr (parDim_ == 0) {
       if constexpr (deriv == deriv::func)
         return torch::ones_like(coeffs_[0]);
@@ -1703,9 +1715,9 @@ public:
 
   template <deriv deriv = deriv::func, bool memory_optimized = false>
   inline auto eval_basfunc(const utils::TensorArray1 &xi,
-                           const utils::TensorArray1 &indices) const {
+                           const utils::TensorArray1 &knot_indices) const {
     if constexpr (parDim_ == 1) {
-      assert(xi[0].sizes() == indices[0].sizes());
+      assert(xi[0].sizes() == knot_indices[0].sizes());
 
       if constexpr (memory_optimized) {
         utils::TensorArray1 basfunc;
@@ -1715,23 +1727,23 @@ public:
                                             10>() *
             eval_univariate<degrees_[0], 0,
                             (short_t)deriv / utils::integer_pow<10, 0>::value %
-                                10>(xi[0].flatten(), indices[0].flatten())
+                                10>(xi[0].flatten(), knot_indices[0].flatten())
                 .transpose(0, 1);
         return basfunc;
       } else
         return eval_prefactor<degrees_[0], (short_t)deriv % 10>() *
                eval_univariate<degrees_[0], 0, (short_t)deriv % 10>(
-                   xi[0].flatten(), indices[0].flatten());
+                   xi[0].flatten(), knot_indices[0].flatten());
     } else
       throw std::runtime_error("Invalid parametric dimension");
   }
 
   template <deriv deriv = deriv::func, bool memory_optimized = false>
   inline auto eval_basfunc(const utils::TensorArray2 &xi,
-                           const utils::TensorArray2 &indices) const {
+                           const utils::TensorArray2 &knot_indices) const {
     if constexpr (parDim_ == 2) {
-      assert(xi[0].sizes() == indices[0].sizes() &&
-             xi[1].sizes() == indices[1].sizes() &&
+      assert(xi[0].sizes() == knot_indices[0].sizes() &&
+             xi[1].sizes() == knot_indices[1].sizes() &&
              xi[0].sizes() == xi[1].sizes());
 
       if constexpr (memory_optimized) {
@@ -1742,7 +1754,7 @@ public:
                                             10>() *
             eval_univariate<degrees_[0], 0,
                             (short_t)deriv / utils::integer_pow<10, 0>::value %
-                                10>(xi[0].flatten(), indices[0].flatten())
+                                10>(xi[0].flatten(), knot_indices[0].flatten())
                 .transpose(0, 1);
         basfunc[1] =
             eval_prefactor<degrees_[1], (short_t)deriv /
@@ -1750,7 +1762,7 @@ public:
                                             10>() *
             eval_univariate<degrees_[1], 1,
                             (short_t)deriv / utils::integer_pow<10, 1>::value %
-                                10>(xi[1].flatten(), indices[1].flatten())
+                                10>(xi[1].flatten(), knot_indices[1].flatten())
                 .transpose(0, 1);
         return basfunc;
       } else
@@ -1758,20 +1770,20 @@ public:
                eval_prefactor<degrees_[1], ((short_t)deriv / 10) % 10>() *
                utils::kronproduct(
                    eval_univariate<degrees_[1], 1, ((short_t)deriv / 10) % 10>(
-                       xi[1].flatten(), indices[1].flatten()),
+                       xi[1].flatten(), knot_indices[1].flatten()),
                    eval_univariate<degrees_[0], 0, (short_t)deriv % 10>(
-                       xi[0].flatten(), indices[0].flatten()));
+                       xi[0].flatten(), knot_indices[0].flatten()));
     } else
       throw std::runtime_error("Invalid parametric dimension");
   }
 
   template <deriv deriv = deriv::func, bool memory_optimized = false>
   inline auto eval_basfunc(const utils::TensorArray3 &xi,
-                           const utils::TensorArray3 &indices) const {
+                           const utils::TensorArray3 &knot_indices) const {
     if constexpr (parDim_ == 3) {
-      assert(xi[0].sizes() == indices[0].sizes() &&
-             xi[1].sizes() == indices[1].sizes() &&
-             xi[2].sizes() == indices[2].sizes() &&
+      assert(xi[0].sizes() == knot_indices[0].sizes() &&
+             xi[1].sizes() == knot_indices[1].sizes() &&
+             xi[2].sizes() == knot_indices[2].sizes() &&
              xi[0].sizes() == xi[1].sizes() && xi[1].sizes() == xi[2].sizes());
 
       if constexpr (memory_optimized) {
@@ -1782,7 +1794,7 @@ public:
                                             10>() *
             eval_univariate<degrees_[0], 0,
                             (short_t)deriv / utils::integer_pow<10, 0>::value %
-                                10>(xi[0].flatten(), indices[0].flatten())
+                                10>(xi[0].flatten(), knot_indices[0].flatten())
                 .transpose(0, 1);
         basfunc[1] =
             eval_prefactor<degrees_[1], (short_t)deriv /
@@ -1790,7 +1802,7 @@ public:
                                             10>() *
             eval_univariate<degrees_[1], 1,
                             (short_t)deriv / utils::integer_pow<10, 1>::value %
-                                10>(xi[1].flatten(), indices[1].flatten())
+                                10>(xi[1].flatten(), knot_indices[1].flatten())
                 .transpose(0, 1);
         basfunc[2] =
             eval_prefactor<degrees_[2], (short_t)deriv /
@@ -1798,7 +1810,7 @@ public:
                                             10>() *
             eval_univariate<degrees_[2], 2,
                             (short_t)deriv / utils::integer_pow<10, 2>::value %
-                                10>(xi[2].flatten(), indices[2].flatten())
+                                10>(xi[2].flatten(), knot_indices[2].flatten())
                 .transpose(0, 1);
         return basfunc;
       } else
@@ -1807,25 +1819,25 @@ public:
                eval_prefactor<degrees_[2], ((short_t)deriv / 100) % 10>() *
                utils::kronproduct(
                    eval_univariate<degrees_[2], 2, ((short_t)deriv / 100) % 10>(
-                       xi[2].flatten(), indices[2].flatten()),
+                       xi[2].flatten(), knot_indices[2].flatten()),
                    utils::kronproduct(
                        eval_univariate<degrees_[1], 1,
                                        ((short_t)deriv / 10) % 10>(
-                           xi[1].flatten(), indices[1].flatten()),
+                           xi[1].flatten(), knot_indices[1].flatten()),
                        eval_univariate<degrees_[0], 0, (short_t)deriv % 10>(
-                           xi[0].flatten(), indices[0].flatten())));
+                           xi[0].flatten(), knot_indices[0].flatten())));
     } else
       throw std::runtime_error("Invalid parametric dimension");
   }
 
   template <deriv deriv = deriv::func, bool memory_optimized = false>
   inline auto eval_basfunc(const utils::TensorArray4 &xi,
-                           const utils::TensorArray4 &indices) const {
+                           const utils::TensorArray4 &knot_indices) const {
     if constexpr (parDim_ == 4) {
-      assert(xi[0].sizes() == indices[0].sizes() &&
-             xi[1].sizes() == indices[1].sizes() &&
-             xi[2].sizes() == indices[2].sizes() &&
-             xi[3].sizes() == indices[3].sizes() &&
+      assert(xi[0].sizes() == knot_indices[0].sizes() &&
+             xi[1].sizes() == knot_indices[1].sizes() &&
+             xi[2].sizes() == knot_indices[2].sizes() &&
+             xi[3].sizes() == knot_indices[3].sizes() &&
              xi[0].sizes() == xi[1].sizes() && xi[1].sizes() == xi[2].sizes() &&
              xi[2].sizes() == xi[3].sizes());
 
@@ -1837,7 +1849,7 @@ public:
                                             10>() *
             eval_univariate<degrees_[0], 0,
                             (short_t)deriv / utils::integer_pow<10, 0>::value %
-                                10>(xi[0].flatten(), indices[0].flatten())
+                                10>(xi[0].flatten(), knot_indices[0].flatten())
                 .transpose(0, 1);
         basfunc[1] =
             eval_prefactor<degrees_[1], (short_t)deriv /
@@ -1845,7 +1857,7 @@ public:
                                             10>() *
             eval_univariate<degrees_[1], 1,
                             (short_t)deriv / utils::integer_pow<10, 1>::value %
-                                10>(xi[1].flatten(), indices[1].flatten())
+                                10>(xi[1].flatten(), knot_indices[1].flatten())
                 .transpose(0, 1);
         basfunc[2] =
             eval_prefactor<degrees_[2], (short_t)deriv /
@@ -1853,7 +1865,7 @@ public:
                                             10>() *
             eval_univariate<degrees_[2], 2,
                             (short_t)deriv / utils::integer_pow<10, 2>::value %
-                                10>(xi[2].flatten(), indices[2].flatten())
+                                10>(xi[2].flatten(), knot_indices[2].flatten())
                 .transpose(0, 1);
         basfunc[3] =
             eval_prefactor<degrees_[3], (short_t)deriv /
@@ -1861,7 +1873,7 @@ public:
                                             10>() *
             eval_univariate<degrees_[3], 3,
                             (short_t)deriv / utils::integer_pow<10, 3>::value %
-                                10>(xi[3].flatten(), indices[3].flatten())
+                                10>(xi[3].flatten(), knot_indices[3].flatten())
                 .transpose(0, 1);
         return basfunc;
       } else
@@ -1873,16 +1885,16 @@ public:
                    utils::kronproduct(
                        eval_univariate<degrees_[3], 3,
                                        ((short_t)deriv / 1000) % 10>(
-                           xi[3].flatten(), indices[3].flatten()),
+                           xi[3].flatten(), knot_indices[3].flatten()),
                        eval_univariate<degrees_[2], 2,
                                        ((short_t)deriv / 100) % 10>(
-                           xi[2].flatten(), indices[2].flatten())),
+                           xi[2].flatten(), knot_indices[2].flatten())),
                    utils::kronproduct(
                        eval_univariate<degrees_[1], 1,
                                        ((short_t)deriv / 10) % 10>(
-                           xi[1].flatten(), indices[1].flatten()),
+                           xi[1].flatten(), knot_indices[1].flatten()),
                        eval_univariate<degrees_[0], 0, (short_t)deriv % 10>(
-                           xi[0].flatten(), indices[0].flatten())));
+                           xi[0].flatten(), knot_indices[0].flatten())));
     } else
       throw std::runtime_error("Invalid parametric dimension");
   }
@@ -2762,10 +2774,10 @@ public:
 
     // Get indices of the first \f$m_d\f$ new knots relative to old
     // knot vectors
-    auto indices = find_knot_indices(knots_indices);
+    auto new_knot_indices = find_knot_indices(knots_indices);
 
     // Update coefficient vector
-    update_coeffs(knots, indices);
+    update_coeffs(knots, new_knot_indices);
 
     // Swap old and new data
     knots.swap(knots_);
@@ -2972,127 +2984,133 @@ protected:
   ///
   /// @{
   inline void update_coeffs(const utils::TensorArray1 &knots,
-                            const utils::TensorArray1 &indices) {
+                            const utils::TensorArray1 &knot_indices) {
 
     if constexpr (parDim_ == 1) {
-      assert(knots[0].numel() == indices[0].numel() + degrees_[0] + 1);
+      assert(knots[0].numel() == knot_indices[0].numel() + degrees_[0] + 1);
 
       auto basfunc = update_coeffs_univariate<degrees_[0], 0>(
-          knots[0].flatten(), indices[0].flatten());
-      auto coeff_indices = find_coeff_indices(indices);
+          knots[0].flatten(), knot_indices[0].flatten());
+      auto coeff_indices = find_coeff_indices(knot_indices);
       for (short_t i = 0; i < geoDim_; ++i)
         coeffs(i) =
             utils::dotproduct(basfunc, coeffs(i)
                                            .index_select(0, coeff_indices)
-                                           .view({-1, indices[0].numel()}))
-                .view(indices[0].sizes());
+                                           .view({-1, knot_indices[0].numel()}))
+                .view(knot_indices[0].sizes());
     } else
       throw std::runtime_error("Invalid parametric dimension");
   }
 
   inline void update_coeffs(const utils::TensorArray2 &knots,
-                            const utils::TensorArray2 &indices) {
+                            const utils::TensorArray2 &knot_indices) {
 
     if constexpr (parDim_ == 2) {
-      assert(knots[0].numel() == indices[0].numel() + degrees_[0] + 1 &&
-             knots[1].numel() == indices[1].numel() + degrees_[1] + 1);
+      assert(knots[0].numel() == knot_indices[0].numel() + degrees_[0] + 1 &&
+             knots[1].numel() == knot_indices[1].numel() + degrees_[1] + 1);
 
-      auto basfunc = torch::kron(update_coeffs_univariate<degrees_[1], 1>(
-                                     knots[1].flatten(), indices[1].flatten()),
-                                 update_coeffs_univariate<degrees_[0], 0>(
-                                     knots[0].flatten(), indices[0].flatten()));
+      auto basfunc =
+          torch::kron(update_coeffs_univariate<degrees_[1], 1>(
+                          knots[1].flatten(), knot_indices[1].flatten()),
+                      update_coeffs_univariate<degrees_[0], 0>(
+                          knots[0].flatten(), knot_indices[0].flatten()));
 
-      utils::TensorArray2 indices_ = {
-          indices[0].repeat(indices[1].numel()),
-          indices[1].repeat_interleave(indices[0].numel(), 0)};
+      utils::TensorArray2 knot_indices_ = {
+          knot_indices[0].repeat(knot_indices[1].numel()),
+          knot_indices[1].repeat_interleave(knot_indices[0].numel(), 0)};
 
-      auto coeff_indices = find_coeff_indices(indices_);
+      auto coeff_indices = find_coeff_indices(knot_indices_);
 
       for (short_t i = 0; i < geoDim_; ++i)
-        coeffs(i) =
-            utils::dotproduct(basfunc, coeffs(i)
-                                           .index_select(0, coeff_indices)
-                                           .view({-1, indices_[0].numel()}))
-                .view(indices_[0].sizes());
+        coeffs(i) = utils::dotproduct(basfunc,
+                                      coeffs(i)
+                                          .index_select(0, coeff_indices)
+                                          .view({-1, knot_indices_[0].numel()}))
+                        .view(knot_indices_[0].sizes());
     } else
       throw std::runtime_error("Invalid parametric dimension");
   }
 
   inline void update_coeffs(const utils::TensorArray3 &knots,
-                            const utils::TensorArray3 &indices) {
+                            const utils::TensorArray3 &knot_indices) {
 
     if constexpr (parDim_ == 3) {
-      assert(knots[0].numel() == indices[0].numel() + degrees_[0] + 1 &&
-             knots[1].numel() == indices[1].numel() + degrees_[1] + 1 &&
-             knots[2].numel() == indices[2].numel() + degrees_[2] + 1);
+      assert(knots[0].numel() == knot_indices[0].numel() + degrees_[0] + 1 &&
+             knots[1].numel() == knot_indices[1].numel() + degrees_[1] + 1 &&
+             knots[2].numel() == knot_indices[2].numel() + degrees_[2] + 1);
 
       auto basfunc = torch::kron(
           update_coeffs_univariate<degrees_[2], 2>(knots[2].flatten(),
-                                                   indices[2].flatten()),
+                                                   knot_indices[2].flatten()),
           torch::kron(update_coeffs_univariate<degrees_[1], 1>(
-                          knots[1].flatten(), indices[1].flatten()),
+                          knots[1].flatten(), knot_indices[1].flatten()),
                       update_coeffs_univariate<degrees_[0], 0>(
-                          knots[0].flatten(), indices[0].flatten())));
+                          knots[0].flatten(), knot_indices[0].flatten())));
 
-      utils::TensorArray3 indices_ = {
-          indices[0].repeat(indices[1].numel() * indices[2].numel()),
-          indices[1]
-              .repeat_interleave(indices[0].numel(), 0)
-              .repeat(indices[2].numel()),
-          indices[2].repeat_interleave(indices[0].numel() * indices[1].numel(),
-                                       0)};
+      utils::TensorArray3 knot_indices_ = {
+          knot_indices[0].repeat(knot_indices[1].numel() *
+                                 knot_indices[2].numel()),
+          knot_indices[1]
+              .repeat_interleave(knot_indices[0].numel(), 0)
+              .repeat(knot_indices[2].numel()),
+          knot_indices[2].repeat_interleave(
+              knot_indices[0].numel() * knot_indices[1].numel(), 0)};
 
-      auto coeff_indices = find_coeff_indices(indices_);
+      auto coeff_indices = find_coeff_indices(knot_indices_);
 
       for (short_t i = 0; i < geoDim_; ++i)
-        coeffs(i) =
-            utils::dotproduct(basfunc, coeffs(i)
-                                           .index_select(0, coeff_indices)
-                                           .view({-1, indices_[0].numel()}))
-                .view(indices_[0].sizes());
+        coeffs(i) = utils::dotproduct(basfunc,
+                                      coeffs(i)
+                                          .index_select(0, coeff_indices)
+                                          .view({-1, knot_indices_[0].numel()}))
+                        .view(knot_indices_[0].sizes());
     } else
       throw std::runtime_error("Invalid parametric dimension");
   }
 
   inline void update_coeffs(const utils::TensorArray4 &knots,
-                            const utils::TensorArray4 &indices) {
+                            const utils::TensorArray4 &knot_indices) {
 
     if constexpr (parDim_ == 4) {
-      assert(knots[0].numel() == indices[0].numel() + degrees_[0] + 1 &&
-             knots[1].numel() == indices[1].numel() + degrees_[1] + 1 &&
-             knots[2].numel() == indices[2].numel() + degrees_[2] + 1 &&
-             knots[3].numel() == indices[3].numel() + degrees_[3] + 1);
+      assert(knots[0].numel() == knot_indices[0].numel() + degrees_[0] + 1 &&
+             knots[1].numel() == knot_indices[1].numel() + degrees_[1] + 1 &&
+             knots[2].numel() == knot_indices[2].numel() + degrees_[2] + 1 &&
+             knots[3].numel() == knot_indices[3].numel() + degrees_[3] + 1);
 
       auto basfunc = torch::kron(
           torch::kron(update_coeffs_univariate<degrees_[3], 3>(
-                          knots[3].flatten(), indices[3].flatten()),
+                          knots[3].flatten(), knot_indices[3].flatten()),
                       update_coeffs_univariate<degrees_[2], 2>(
-                          knots[2].flatten(), indices[2].flatten())),
+                          knots[2].flatten(), knot_indices[2].flatten())),
           torch::kron(update_coeffs_univariate<degrees_[1], 1>(
-                          knots[1].flatten(), indices[1].flatten()),
+                          knots[1].flatten(), knot_indices[1].flatten()),
                       update_coeffs_univariate<degrees_[0], 0>(
-                          knots[0].flatten(), indices[0].flatten())));
+                          knots[0].flatten(), knot_indices[0].flatten())));
 
-      utils::TensorArray4 indices_ = {
-          indices[0].repeat(indices[1].numel() * indices[2].numel() *
-                            indices[3].numel()),
-          indices[1]
-              .repeat_interleave(indices[0].numel(), 0)
-              .repeat(indices[2].numel() * indices[3].numel()),
-          indices[2]
-              .repeat_interleave(indices[0].numel() * indices[1].numel(), 0)
-              .repeat(indices[3].numel()),
-          indices[3].repeat_interleave(
-              indices[0].numel() * indices[1].numel() * indices[2].numel(), 0)};
+      utils::TensorArray4 knot_indices_ = {
+          knot_indices[0].repeat(knot_indices[1].numel() *
+                                 knot_indices[2].numel() *
+                                 knot_indices[3].numel()),
+          knot_indices[1]
+              .repeat_interleave(knot_indices[0].numel(), 0)
+              .repeat(knot_indices[2].numel() * knot_indices[3].numel()),
+          knot_indices[2]
+              .repeat_interleave(
+                  knot_indices[0].numel() * knot_indices[1].numel(), 0)
+              .repeat(knot_indices[3].numel()),
+          knot_indices[3].repeat_interleave(knot_indices[0].numel() *
+                                                knot_indices[1].numel() *
+                                                knot_indices[2].numel(),
+                                            0)};
 
-      auto coeff_indices = find_coeff_indices(indices_);
+      auto coeff_indices = find_coeff_indices(knot_indices_);
 
       for (short_t i = 0; i < geoDim_; ++i)
-        coeffs(i) =
-            utils::dotproduct(basfunc, coeffs(i)
-                                           .index_select(0, coeff_indices)
-                                           .view({-1, indices_[0].numel()}))
-                .view(indices_[0].sizes());
+        coeffs(i) = utils::dotproduct(basfunc,
+                                      coeffs(i)
+                                          .index_select(0, coeff_indices)
+                                          .view({-1, knot_indices_[0].numel()}))
+                        .view(knot_indices_[0].sizes());
     } else
       throw std::runtime_error("Invalid parametric dimension");
   }
@@ -3205,8 +3223,8 @@ protected:
   //  clang-format on
   template <short_t degree, short_t dim, short_t deriv>
   inline auto eval_univariate(const torch::Tensor &xi,
-                              const torch::Tensor &indices) const {
-    assert(xi.sizes() == indices.sizes());
+                              const torch::Tensor &knot_indices) const {
+    assert(xi.sizes() == knot_indices.sizes());
 
     if constexpr (deriv > degree) {
       return torch::zeros({degree + 1, xi.numel()}, options_);
@@ -3219,9 +3237,10 @@ protected:
 
         // Instead of calculating t1 and t2 we calculate t1 and t21=(t2-t1)
         auto t1 =
-            knots_[dim].index_select(0, utils::VSlice(indices, -k + 1, 1));
+            knots_[dim].index_select(0, utils::VSlice(knot_indices, -k + 1, 1));
         auto t21 =
-            knots_[dim].index_select(0, utils::VSlice(indices, 1, k + 1)) - t1;
+            knots_[dim].index_select(0, utils::VSlice(knot_indices, 1, k + 1)) -
+            t1;
 
         // We handle the special case 0/0:=0 by first creating a
         // mask that is 1 if t2-t1 < eps and 0 otherwise. Note that
@@ -3247,8 +3266,8 @@ protected:
 
         // Instead of calculating t1 and t2 we calculate t1 and t21=(t2-t1)
         auto t21 =
-            knots_[dim].index_select(0, utils::VSlice(indices, 1, k + 1)) -
-            knots_[dim].index_select(0, utils::VSlice(indices, -k + 1, 1));
+            knots_[dim].index_select(0, utils::VSlice(knot_indices, 1, k + 1)) -
+            knots_[dim].index_select(0, utils::VSlice(knot_indices, -k + 1, 1));
 
         // We handle the special case 0/0:=0 by first creating a
         // mask that is 1 if t2-t1 < eps and 0 otherwise. Note that
@@ -3279,19 +3298,22 @@ protected:
   /// matrix from the given knot vector to the new knot vector
   /// passed as argument `knots`.
   template <short_t degree, short_t dim>
-  inline auto update_coeffs_univariate(const torch::Tensor &knots,
-                                       const torch::Tensor &indices) const {
+  inline auto
+  update_coeffs_univariate(const torch::Tensor &knots,
+                           const torch::Tensor &knot_indices) const {
     // Algorithm 2.22 from \cite Lyche:2011 modified to implement
     // the Oslo algorithm (Algorithm 4.11 from \cite Lyche:2011)
-    torch::Tensor b = torch::ones({indices.numel()}, options_);
+    torch::Tensor b = torch::ones({knot_indices.numel()}, options_);
 
     // Calculate R_k, k = 1, ..., p_d
     for (short_t k = 1; k <= degree; ++k) {
 
       // Instead of calculating t1 and t2 we calculate t1 and t21=(t2-t1)
-      auto t1 = knots_[dim].index_select(0, utils::VSlice(indices, -k + 1, 1));
+      auto t1 =
+          knots_[dim].index_select(0, utils::VSlice(knot_indices, -k + 1, 1));
       auto t21 =
-          knots_[dim].index_select(0, utils::VSlice(indices, 1, k + 1)) - t1;
+          knots_[dim].index_select(0, utils::VSlice(knot_indices, 1, k + 1)) -
+          t1;
 
       // We handle the special case 0/0:=0 by first creating a
       // mask that is 1 if t2-t1 < eps and 0 otherwise. Note that
@@ -3304,20 +3326,20 @@ protected:
       // equals the original expression if the mask is 0, i.e.,
       // t2-t1 >= eps and 1 otherwise since t1 <= xi < t2.
       auto w = torch::div(
-          knots.index({torch::indexing::Slice(k, indices.numel() + k)})
+          knots.index({torch::indexing::Slice(k, knot_indices.numel() + k)})
                   .repeat(k) -
               t1 - mask,
           t21 - mask);
 
       // Calculate the vector of B-splines evaluated at xi
       b = torch::cat({torch::mul(torch::ones_like(w, options_) - w, b),
-                      torch::zeros_like(indices, options_)},
+                      torch::zeros_like(knot_indices, options_)},
                      0) +
-          torch::cat({torch::zeros_like(indices, options_), torch::mul(w, b)},
-                     0);
+          torch::cat(
+              {torch::zeros_like(knot_indices, options_), torch::mul(w, b)}, 0);
     }
 
-    return b.view({degree + 1, indices.numel()});
+    return b.view({degree + 1, knot_indices.numel()});
   }
 
 public:
@@ -3851,7 +3873,7 @@ public:
   template <deriv deriv = deriv::func, bool memory_optimized = false>
   inline auto
   eval(const std::array<torch::Tensor, Base::parDim_> &xi,
-       const std::array<torch::Tensor, Base::parDim_> &indices) const {
+       const std::array<torch::Tensor, Base::parDim_> &knot_indices) const {
     if constexpr (Base::parDim_ == 0) {
       utils::BlockTensor<torch::Tensor, 1, Base::geoDim_> result;
       for (short_t i = 0; i < Base::geoDim_; ++i)
@@ -3861,12 +3883,12 @@ public:
           result.set(i, torch::zeros_like(Base::coeffs_[i]));
       return result;
     } else
-      return Base::template eval<deriv, memory_optimized>(xi, indices);
+      return Base::template eval<deriv, memory_optimized>(xi, knot_indices);
   }
 
   template <deriv deriv = deriv::func, bool memory_optimized = false>
   inline auto eval(const std::array<torch::Tensor, Base::parDim_> &xi,
-                   const std::array<torch::Tensor, Base::parDim_> &indices,
+                   const std::array<torch::Tensor, Base::parDim_> &knot_indices,
                    const torch::Tensor &coeff_indices) const {
     if constexpr (Base::parDim_ == 0) {
       utils::BlockTensor<torch::Tensor, 1, Base::geoDim_> result;
@@ -3877,7 +3899,7 @@ public:
           result.set(i, torch::zeros_like(Base::coeffs_[i]));
       return result;
     } else
-      return Base::template eval<deriv, memory_optimized>(xi, indices,
+      return Base::template eval<deriv, memory_optimized>(xi, knot_indices,
                                                           coeff_indices);
   }
   /// @}
@@ -4040,10 +4062,10 @@ public:
 
     // Get indices of the first \f$m_d\f$ new knots relative to old
     // knot vectors
-    auto indices = find_knot_indices(knots_indices);
+    auto new_knot_indices = find_knot_indices(knots_indices);
 
     // Update coefficient vector
-    Base::update_coeffs(knots, indices);
+    Base::update_coeffs(knots, new_knot_indices);
 
     // Swap old and new data
     knots.swap(Base::knots_);
@@ -4084,10 +4106,10 @@ public:
 
     // Get indices of the first \f$m_d\f$ new knots relative to old
     // knot vectors
-    auto indices = find_knot_indices(knots_indices);
+    auto new_knot_indices = find_knot_indices(knots_indices);
 
     // Update coefficient vector
-    Base::update_coeffs(knots_, indices);
+    Base::update_coeffs(knots_, new_knot_indices);
 
     // Swap old and new data
     knots_.swap(Base::knots_);
@@ -4146,10 +4168,10 @@ public:
 
     // Get indices of the first \f$m_d\f$ new knots relative to old
     // knot vectors
-    auto indices = find_knot_indices(knots_indices);
+    auto new_knot_indices = find_knot_indices(knots_indices);
 
     // Update coefficient vector
-    Base::update_coeffs(knots, indices);
+    Base::update_coeffs(knots, new_knot_indices);
 
     // Swap old and new data
     knots.swap(Base::knots_);
@@ -4658,7 +4680,7 @@ public:
   ///
   /// @param[in] xi Point(s) where to evaluate the curl
   ///
-  /// @param[in] indices Knot indices where to evaluate the curl
+  /// @param[in] knot_indices Knot indices where to evaluate the curl
   ///
   /// @result Block-tensor with the curl with respect to
   /// the parametric variables
@@ -4677,12 +4699,13 @@ public:
   /// equal parametric and geometric multiplicity.
   //  clang-format on
   template <bool memory_optimized = false>
-  inline auto
-  curl(const std::array<torch::Tensor, BSplineCore::parDim_> &xi,
-       const std::array<torch::Tensor, BSplineCore::parDim_> &indices) const {
+  inline auto curl(const std::array<torch::Tensor, BSplineCore::parDim_> &xi,
+                   const std::array<torch::Tensor, BSplineCore::parDim_>
+                       &knot_indices) const {
     return curl<memory_optimized>(
-        xi, indices,
-        BSplineCore::template find_coeff_indices<memory_optimized>(indices));
+        xi, knot_indices,
+        BSplineCore::template find_coeff_indices<memory_optimized>(
+            knot_indices));
   }
 
   /// @brief Returns a block-tensor with the curl of the B-spline
@@ -4690,7 +4713,7 @@ public:
   ///
   /// @param[in] xi Point(s) where to evaluate the curl
   ///
-  /// @param[in] indices Knot indices where to evaluate the curl
+  /// @param[in] knot_indices Knot indices where to evaluate the curl
   ///
   /// @param[in] coeff_indices Coefficient indices where to evaluate
   /// the curl
@@ -4715,15 +4738,15 @@ public:
   /// @{
   template <bool memory_optimized = false>
   inline auto curl(const utils::TensorArray1 &xi,
-                   const utils::TensorArray1 &indices,
+                   const utils::TensorArray1 &knot_indices,
                    const torch::Tensor &coeff_indices) const {
-    assert(xi[0].sizes() == indices[0].sizes());
+    assert(xi[0].sizes() == knot_indices[0].sizes());
     if constexpr (BSplineCore::parDim_ == 1)
 
       /// curl = ???
       return utils::BlockTensor<torch::Tensor, 1, 1>(
           BSplineCore::template eval<deriv::dx, memory_optimized>(
-              xi, indices, coeff_indices)[0]);
+              xi, knot_indices, coeff_indices)[0]);
 
     else
       throw std::runtime_error("Unsupported parametric dimension");
@@ -4731,19 +4754,19 @@ public:
 
   template <bool memory_optimized = false>
   inline auto curl(const utils::TensorArray2 &xi,
-                   const utils::TensorArray2 &indices,
+                   const utils::TensorArray2 &knot_indices,
                    const torch::Tensor &coeff_indices) const {
-    assert(xi[0].sizes() == indices[0].sizes() &&
-           xi[1].sizes() == indices[1].sizes());
+    assert(xi[0].sizes() == knot_indices[0].sizes() &&
+           xi[1].sizes() == knot_indices[1].sizes());
 
     if constexpr (BSplineCore::parDim_ == 2)
 
       /// curl = ???
       return utils::BlockTensor<torch::Tensor, 1, 2>(
           BSplineCore::template eval<deriv::dx, memory_optimized>(
-              xi, indices, coeff_indices)[0],
+              xi, knot_indices, coeff_indices)[0],
           BSplineCore::template eval<deriv::dy, memory_optimized>(
-              xi, indices, coeff_indices)[1]);
+              xi, knot_indices, coeff_indices)[1]);
 
     else
       throw std::runtime_error("Unsupported parametric dimension");
@@ -4751,11 +4774,11 @@ public:
 
   template <bool memory_optimized = false>
   inline auto curl(const utils::TensorArray3 &xi,
-                   const utils::TensorArray3 &indices,
+                   const utils::TensorArray3 &knot_indices,
                    const torch::Tensor &coeff_indices) const {
-    assert(xi[0].sizes() == indices[0].sizes() &&
-           xi[1].sizes() == indices[1].sizes() &&
-           xi[2].sizes() == indices[2].sizes());
+    assert(xi[0].sizes() == knot_indices[0].sizes() &&
+           xi[1].sizes() == knot_indices[1].sizes() &&
+           xi[2].sizes() == knot_indices[2].sizes());
 
     if constexpr (BSplineCore::parDim_ == 3)
 
@@ -4764,42 +4787,42 @@ public:
       ///        du_y / dx - du_x / dy
       return utils::BlockTensor<torch::Tensor, 1, 3>(
           BSplineCore::template eval<deriv::dy, memory_optimized>(
-              xi, indices, coeff_indices)[2] -
+              xi, knot_indices, coeff_indices)[2] -
               BSplineCore::template eval<deriv::dz, memory_optimized>(
-                  xi, indices, coeff_indices)[1],
+                  xi, knot_indices, coeff_indices)[1],
           BSplineCore::template eval<deriv::dz, memory_optimized>(
-              xi, indices, coeff_indices)[0] +
+              xi, knot_indices, coeff_indices)[0] +
               BSplineCore::template eval<deriv::dx, memory_optimized>(
-                  xi, indices, coeff_indices)[2],
+                  xi, knot_indices, coeff_indices)[2],
           BSplineCore::template eval<deriv::dx, memory_optimized>(
-              xi, indices, coeff_indices)[1] +
+              xi, knot_indices, coeff_indices)[1] +
               BSplineCore::template eval<deriv::dy, memory_optimized>(
-                  xi, indices, coeff_indices)[0]);
+                  xi, knot_indices, coeff_indices)[0]);
     else
       throw std::runtime_error("Unsupported parametric dimension");
   }
 
   template <bool memory_optimized = false>
   inline auto curl(const utils::TensorArray4 &xi,
-                   const utils::TensorArray4 &indices,
+                   const utils::TensorArray4 &knot_indices,
                    const torch::Tensor &coeff_indices) const {
-    assert(xi[0].sizes() == indices[0].sizes() &&
-           xi[1].sizes() == indices[1].sizes() &&
-           xi[2].sizes() == indices[2].sizes() &&
-           xi[3].sizes() == indices[3].sizes());
+    assert(xi[0].sizes() == knot_indices[0].sizes() &&
+           xi[1].sizes() == knot_indices[1].sizes() &&
+           xi[2].sizes() == knot_indices[2].sizes() &&
+           xi[3].sizes() == knot_indices[3].sizes());
 
     if constexpr (BSplineCore::parDim_ == 4)
 
       /// curl = ???
       return utils::BlockTensor<torch::Tensor, 1, 4>(
           BSplineCore::template eval<deriv::dx, memory_optimized>(
-              xi, indices, coeff_indices)[0],
+              xi, knot_indices, coeff_indices)[0],
           BSplineCore::template eval<deriv::dy, memory_optimized>(
-              xi, indices, coeff_indices)[1],
+              xi, knot_indices, coeff_indices)[1],
           BSplineCore::template eval<deriv::dz, memory_optimized>(
-              xi, indices, coeff_indices)[2],
+              xi, knot_indices, coeff_indices)[2],
           BSplineCore::template eval<deriv::dt, memory_optimized>(
-              xi, indices, coeff_indices)[3]);
+              xi, knot_indices, coeff_indices)[3]);
 
     else
       throw std::runtime_error("Unsupported parametric dimension");
@@ -4843,7 +4866,7 @@ public:
   ///
   /// @param[in] xi Point(s) where to evaluate the divergence
   ///
-  /// @param[in] indices Knot indices where to evaluate the divergence
+  /// @param[in] knot_indices Knot indices where to evaluate the divergence
   ///
   /// @result Block-tensor with the divergence with respect to
   /// the parametric variables
@@ -4861,12 +4884,13 @@ public:
   /// @note This function can only be applied to B-spline objects with
   /// equal parametric and geometric multiplicity.
   template <bool memory_optimized = false>
-  inline auto
-  div(const std::array<torch::Tensor, BSplineCore::parDim_> &xi,
-      const std::array<torch::Tensor, BSplineCore::parDim_> &indices) const {
+  inline auto div(const std::array<torch::Tensor, BSplineCore::parDim_> &xi,
+                  const std::array<torch::Tensor, BSplineCore::parDim_>
+                      &knot_indices) const {
     return div<memory_optimized>(
-        xi, indices,
-        BSplineCore::template find_coeff_indices<memory_optimized>(indices));
+        xi, knot_indices,
+        BSplineCore::template find_coeff_indices<memory_optimized>(
+            knot_indices));
   }
 
   /// @brief Returns a block-tensor with the divergence of the
@@ -4874,7 +4898,7 @@ public:
   ///
   /// @param[in] xi Point(s) where to evaluate the divergence
   ///
-  /// @param[in] indices Knot indices where to evaluate the divergence
+  /// @param[in] knot_indices Knot indices where to evaluate the divergence
   ///
   /// @param[in] coeff_indices Coefficient indices where to evaluate the
   /// divergence
@@ -4898,14 +4922,14 @@ public:
   /// @{
   template <bool memory_optimized = false>
   inline auto div(const utils::TensorArray1 &xi,
-                  const utils::TensorArray1 &indices,
+                  const utils::TensorArray1 &knot_indices,
                   const torch::Tensor &coeff_indices) const {
-    assert(xi[0].sizes() == indices[0].sizes());
+    assert(xi[0].sizes() == knot_indices[0].sizes());
     if constexpr (BSplineCore::parDim_ == 1)
 
       return utils::BlockTensor<torch::Tensor, 1, 1>(
           BSplineCore::template eval<deriv::dx, memory_optimized>(
-              xi, indices, coeff_indices)[0]);
+              xi, knot_indices, coeff_indices)[0]);
 
     else
       throw std::runtime_error("Unsupported parametric dimension");
@@ -4913,18 +4937,18 @@ public:
 
   template <bool memory_optimized = false>
   inline auto div(const utils::TensorArray2 &xi,
-                  const utils::TensorArray2 &indices,
+                  const utils::TensorArray2 &knot_indices,
                   const torch::Tensor &coeff_indices) const {
-    assert(xi[0].sizes() == indices[0].sizes() &&
-           xi[1].sizes() == indices[1].sizes());
+    assert(xi[0].sizes() == knot_indices[0].sizes() &&
+           xi[1].sizes() == knot_indices[1].sizes());
 
     if constexpr (BSplineCore::parDim_ == 2)
 
       return utils::BlockTensor<torch::Tensor, 1, 1>(
           BSplineCore::template eval<deriv::dx, memory_optimized>(
-              xi, indices, coeff_indices)[0] +
+              xi, knot_indices, coeff_indices)[0] +
           BSplineCore::template eval<deriv::dy, memory_optimized>(
-              xi, indices, coeff_indices)[1]);
+              xi, knot_indices, coeff_indices)[1]);
 
     else
       throw std::runtime_error("Unsupported parametric dimension");
@@ -4932,21 +4956,21 @@ public:
 
   template <bool memory_optimized = false>
   inline auto div(const utils::TensorArray3 &xi,
-                  const utils::TensorArray3 &indices,
+                  const utils::TensorArray3 &knot_indices,
                   const torch::Tensor &coeff_indices) const {
-    assert(xi[0].sizes() == indices[0].sizes() &&
-           xi[1].sizes() == indices[1].sizes() &&
-           xi[2].sizes() == indices[2].sizes());
+    assert(xi[0].sizes() == knot_indices[0].sizes() &&
+           xi[1].sizes() == knot_indices[1].sizes() &&
+           xi[2].sizes() == knot_indices[2].sizes());
 
     if constexpr (BSplineCore::parDim_ == 3)
 
       return utils::BlockTensor<torch::Tensor, 1, 1>(
           BSplineCore::template eval<deriv::dx, memory_optimized>(
-              xi, indices, coeff_indices)[0] +
+              xi, knot_indices, coeff_indices)[0] +
           BSplineCore::template eval<deriv::dy, memory_optimized>(
-              xi, indices, coeff_indices)[1] +
+              xi, knot_indices, coeff_indices)[1] +
           BSplineCore::template eval<deriv::dz, memory_optimized>(
-              xi, indices, coeff_indices)[2]);
+              xi, knot_indices, coeff_indices)[2]);
 
     else
       throw std::runtime_error("Unsupported parametric dimension");
@@ -4954,24 +4978,24 @@ public:
 
   template <bool memory_optimized = false>
   inline auto div(const utils::TensorArray4 &xi,
-                  const utils::TensorArray4 &indices,
+                  const utils::TensorArray4 &knot_indices,
                   const torch::Tensor &coeff_indices) const {
-    assert(xi[0].sizes() == indices[0].sizes() &&
-           xi[1].sizes() == indices[1].sizes() &&
-           xi[2].sizes() == indices[2].sizes() &&
-           xi[3].sizes() == indices[3].sizes());
+    assert(xi[0].sizes() == knot_indices[0].sizes() &&
+           xi[1].sizes() == knot_indices[1].sizes() &&
+           xi[2].sizes() == knot_indices[2].sizes() &&
+           xi[3].sizes() == knot_indices[3].sizes());
 
     if constexpr (BSplineCore::parDim_ == 4)
 
       return utils::BlockTensor<torch::Tensor, 1, 1>(
           BSplineCore::template eval<deriv::dx, memory_optimized>(
-              xi, indices, coeff_indices)[0] +
+              xi, knot_indices, coeff_indices)[0] +
           BSplineCore::template eval<deriv::dy, memory_optimized>(
-              xi, indices, coeff_indices)[1] +
+              xi, knot_indices, coeff_indices)[1] +
           BSplineCore::template eval<deriv::dz, memory_optimized>(
-              xi, indices, coeff_indices)[2] +
+              xi, knot_indices, coeff_indices)[2] +
           BSplineCore::template eval<deriv::dt, memory_optimized>(
-              xi, indices, coeff_indices)[3]);
+              xi, knot_indices, coeff_indices)[3]);
 
     else
       throw std::runtime_error("Unsupported parametric dimension");
@@ -5024,9 +5048,10 @@ public:
   ///
   /// @param[in] xi Point(s) where to evaluate the divergence
   ///
-  /// @param[in] indices Knot indices where to evaluate the divergence
+  /// @param[in] knot_indices Knot indices where to evaluate the divergence
   ///
-  /// @param[in] indices_G Knot indices where to evaluate the Jacobian of `G`
+  /// @param[in] knot_indices_G Knot indices where to evaluate the Jacobian of
+  /// `G`
   ///
   /// @result Block-tensor with the divergence with respect to the
   /// physical variables
@@ -5043,12 +5068,15 @@ public:
   inline auto
   idiv(const Geometry G,
        const std::array<torch::Tensor, BSplineCore::parDim_> &xi,
-       const std::array<torch::Tensor, BSplineCore::parDim_> &indices,
-       const std::array<torch::Tensor, Geometry::parDim()> &indices_G) const {
+       const std::array<torch::Tensor, BSplineCore::parDim_> &knot_indices,
+       const std::array<torch::Tensor, Geometry::parDim()> &knot_indices_G)
+      const {
     return idiv<memory_optimized, Geometry>(
-        G, xi, indices,
-        BSplineCore::template find_coeff_indices<memory_optimized>(indices),
-        indices_G, G.template find_coeff_indices<memory_optimized>(indices_G));
+        G, xi, knot_indices,
+        BSplineCore::template find_coeff_indices<memory_optimized>(
+            knot_indices),
+        knot_indices_G,
+        G.template find_coeff_indices<memory_optimized>(knot_indices_G));
   }
 
   /// @brief Returns a block-tensor with the divergence of the
@@ -5060,9 +5088,10 @@ public:
   ///
   /// @param[in] xi Point(s) where to evaluate the divergence
   ///
-  /// @param[in] indices Knot indices where to evaluate the divergence
+  /// @param[in] knot_indices Knot indices where to evaluate the divergence
   ///
-  /// @param[in] indices_G Knot indices where to evaluate the Jacobian of `G`
+  /// @param[in] knot_indices_G Knot indices where to evaluate the Jacobian of
+  /// `G`
   ///
   /// @param[in] coeff_indices Coefficient indices where to evaluate the
   /// divergence
@@ -5085,12 +5114,12 @@ public:
   inline auto
   idiv(const Geometry &G,
        const std::array<torch::Tensor, BSplineCore::parDim_> &xi,
-       const std::array<torch::Tensor, BSplineCore::parDim_> &indices,
+       const std::array<torch::Tensor, BSplineCore::parDim_> &knot_indices,
        const torch::Tensor &coeff_indices,
-       const std::array<torch::Tensor, Geometry::parDim()> &indices_G,
+       const std::array<torch::Tensor, Geometry::parDim()> &knot_indices_G,
        const torch::Tensor &coeff_indices_G) const {
     return BSplineCore::template ijac<memory_optimized>(
-               xi, indices, coeff_indices, indices_G, coeff_indices_G)
+               xi, knot_indices, coeff_indices, knot_indices_G, coeff_indices_G)
         .trace();
   }
 
@@ -5140,7 +5169,7 @@ public:
   ///
   /// @param[in] xi Point(s) where to evaluate the gradient
   ///
-  /// @param[in] indices Knot indices where to evaluate the gradient
+  /// @param[in] knot_indices Knot indices where to evaluate the gradient
   ///
   /// @result Block-tensor with the gradient with respect to
   /// the parametric variables
@@ -5156,14 +5185,15 @@ public:
   /// @note This function can only be applied to B-spline objects with
   /// geometric multiplicity 1, i.e. scalar fields.
   template <bool memory_optimized = false>
-  inline auto
-  grad(const std::array<torch::Tensor, BSplineCore::parDim_> &xi,
-       const std::array<torch::Tensor, BSplineCore::parDim_> &indices) const {
+  inline auto grad(const std::array<torch::Tensor, BSplineCore::parDim_> &xi,
+                   const std::array<torch::Tensor, BSplineCore::parDim_>
+                       &knot_indices) const {
     static_assert(BSplineCore::geoDim_ == 1,
                   "grad(.) requires 1D variable, use jac(.) instead");
     return grad<memory_optimized>(
-        xi, indices,
-        BSplineCore::template find_coeff_indices<memory_optimized>(indices));
+        xi, knot_indices,
+        BSplineCore::template find_coeff_indices<memory_optimized>(
+            knot_indices));
   }
 
   /// @brief Returns a block-tensor with the gradient of the
@@ -5172,7 +5202,7 @@ public:
   ///
   /// @param[in] xi Point(s) where to evaluate the gradient
   ///
-  /// @param[in] indices Knot indices where to evaluate the gradient
+  /// @param[in] knot_indices Knot indices where to evaluate the gradient
   ///
   /// @param[in] coeff_indices Coefficient indices where to evaluate the
   /// gradient
@@ -5194,16 +5224,16 @@ public:
   /// @{
   template <bool memory_optimized = false>
   inline auto grad(const utils::TensorArray1 &xi,
-                   const utils::TensorArray1 &indices,
+                   const utils::TensorArray1 &knot_indices,
                    const torch::Tensor &coeff_indices) const {
     static_assert(BSplineCore::geoDim_ == 1,
                   "grad(.) requires 1D variable, use jac(.) instead");
-    assert(xi[0].sizes() == indices[0].sizes());
+    assert(xi[0].sizes() == knot_indices[0].sizes());
     if constexpr (BSplineCore::parDim_ == 1)
 
       return utils::BlockTensor<torch::Tensor, 1, 1>(
           BSplineCore::template eval<deriv::dx, memory_optimized>(
-              xi, indices, coeff_indices));
+              xi, knot_indices, coeff_indices));
 
     else
       throw std::runtime_error("Unsupported parametric dimension");
@@ -5211,20 +5241,20 @@ public:
 
   template <bool memory_optimized = false>
   inline auto grad(const utils::TensorArray2 &xi,
-                   const utils::TensorArray2 &indices,
+                   const utils::TensorArray2 &knot_indices,
                    const torch::Tensor &coeff_indices) const {
     static_assert(BSplineCore::geoDim_ == 1,
                   "grad(.) requires 1D variable, use jac(.) instead");
-    assert(xi[0].sizes() == indices[0].sizes() &&
-           xi[1].sizes() == indices[1].sizes());
+    assert(xi[0].sizes() == knot_indices[0].sizes() &&
+           xi[1].sizes() == knot_indices[1].sizes());
 
     if constexpr (BSplineCore::parDim_ == 2)
 
       return utils::BlockTensor<torch::Tensor, 1, 2>(
           BSplineCore::template eval<deriv::dx, memory_optimized>(
-              xi, indices, coeff_indices),
+              xi, knot_indices, coeff_indices),
           BSplineCore::template eval<deriv::dy, memory_optimized>(
-              xi, indices, coeff_indices));
+              xi, knot_indices, coeff_indices));
 
     else
       throw std::runtime_error("Unsupported parametric dimension");
@@ -5232,23 +5262,23 @@ public:
 
   template <bool memory_optimized = false>
   inline auto grad(const utils::TensorArray3 &xi,
-                   const utils::TensorArray3 &indices,
+                   const utils::TensorArray3 &knot_indices,
                    const torch::Tensor &coeff_indices) const {
     static_assert(BSplineCore::geoDim_ == 1,
                   "grad(.) requires 1D variable, use jac(.) instead");
-    assert(xi[0].sizes() == indices[0].sizes() &&
-           xi[1].sizes() == indices[1].sizes() &&
-           xi[2].sizes() == indices[2].sizes());
+    assert(xi[0].sizes() == knot_indices[0].sizes() &&
+           xi[1].sizes() == knot_indices[1].sizes() &&
+           xi[2].sizes() == knot_indices[2].sizes());
 
     if constexpr (BSplineCore::parDim_ == 3)
 
       return utils::BlockTensor<torch::Tensor, 1, 3>(
           BSplineCore::template eval<deriv::dx, memory_optimized>(
-              xi, indices, coeff_indices),
+              xi, knot_indices, coeff_indices),
           BSplineCore::template eval<deriv::dy, memory_optimized>(
-              xi, indices, coeff_indices),
+              xi, knot_indices, coeff_indices),
           BSplineCore::template eval<deriv::dz, memory_optimized>(
-              xi, indices, coeff_indices));
+              xi, knot_indices, coeff_indices));
 
     else
       throw std::runtime_error("Unsupported parametric dimension");
@@ -5256,26 +5286,26 @@ public:
 
   template <bool memory_optimized = false>
   inline auto grad(const utils::TensorArray4 &xi,
-                   const utils::TensorArray4 &indices,
+                   const utils::TensorArray4 &knot_indices,
                    const torch::Tensor &coeff_indices) const {
     static_assert(BSplineCore::geoDim_ == 1,
                   "grad(.) requires 1D variable, use jac(.) instead");
-    assert(xi[0].sizes() == indices[0].sizes() &&
-           xi[1].sizes() == indices[1].sizes() &&
-           xi[2].sizes() == indices[2].sizes() &&
-           xi[3].sizes() == indices[3].sizes());
+    assert(xi[0].sizes() == knot_indices[0].sizes() &&
+           xi[1].sizes() == knot_indices[1].sizes() &&
+           xi[2].sizes() == knot_indices[2].sizes() &&
+           xi[3].sizes() == knot_indices[3].sizes());
 
     if constexpr (BSplineCore::parDim_ == 4)
 
       return utils::BlockTensor<torch::Tensor, 1, 4>(
           BSplineCore::template eval<deriv::dx, memory_optimized>(
-              xi, indices, coeff_indices),
+              xi, knot_indices, coeff_indices),
           BSplineCore::template eval<deriv::dy, memory_optimized>(
-              xi, indices, coeff_indices),
+              xi, knot_indices, coeff_indices),
           BSplineCore::template eval<deriv::dz, memory_optimized>(
-              xi, indices, coeff_indices),
+              xi, knot_indices, coeff_indices),
           BSplineCore::template eval<deriv::dt, memory_optimized>(
-              xi, indices, coeff_indices));
+              xi, knot_indices, coeff_indices));
 
     else
       throw std::runtime_error("Unsupported parametric dimension");
@@ -5327,9 +5357,9 @@ public:
   ///
   /// @param[in] xi Point(s) where to evaluate the gradient
   ///
-  /// @param[in] indices Knot indices where to evaluate the gradient
+  /// @param[in] knot_indices Knot indices where to evaluate the gradient
   ///
-  /// @param[in] indices_G Knot indices where to evaluate Jacobian of `G`
+  /// @param[in] knot_indices_G Knot indices where to evaluate Jacobian of `G`
   ///
   /// @result Block-tensor with the gradient with respect to the
   /// physical variables
@@ -5344,17 +5374,19 @@ public:
   inline auto
   igrad(const Geometry G,
         const std::array<torch::Tensor, BSplineCore::parDim_> &xi,
-        const std::array<torch::Tensor, BSplineCore::parDim_> &indices,
-        const std::array<torch::Tensor, Geometry::parDim()> &indices_G) const {
+        const std::array<torch::Tensor, BSplineCore::parDim_> &knot_indices,
+        const std::array<torch::Tensor, Geometry::parDim()> &knot_indices_G)
+      const {
     if constexpr (BSplineCore::parDim_ == 0)
       return utils::BlockTensor<torch::Tensor, 1, 1>{
           torch::zeros_like(BSplineCore::coeffs_[0])};
     else
       return igrad<memory_optimized, Geometry>(
-          G, xi, indices,
-          BSplineCore::template find_coeff_indices<memory_optimized>(indices),
-          indices_G,
-          G.template find_coeff_indices<memory_optimized>(indices_G));
+          G, xi, knot_indices,
+          BSplineCore::template find_coeff_indices<memory_optimized>(
+              knot_indices),
+          knot_indices_G,
+          G.template find_coeff_indices<memory_optimized>(knot_indices_G));
   }
 
   /// @brief Returns a block-tensor with the gradient of the
@@ -5367,9 +5399,10 @@ public:
   ///
   /// @param[in] xi Point(s) where to evaluate the gradient
   ///
-  /// @param[in] indices Knot indices where to evaluate the gradient
+  /// @param[in] knot_indices Knot indices where to evaluate the gradient
   ///
-  /// @param[in] indices_G Knot indices where to evaluate the Jacobian of `G`
+  /// @param[in] knot_indices_G Knot indices where to evaluate the Jacobian of
+  /// `G`
   ///
   /// @param[in] coeff_indices Coefficient indices where to evaluate the
   /// gradient
@@ -5390,12 +5423,12 @@ public:
   inline auto
   igrad(const Geometry &G,
         const std::array<torch::Tensor, BSplineCore::parDim_> &xi,
-        const std::array<torch::Tensor, BSplineCore::parDim_> &indices,
+        const std::array<torch::Tensor, BSplineCore::parDim_> &knot_indices,
         const torch::Tensor &coeff_indices,
-        const std::array<torch::Tensor, Geometry::parDim()> &indices_G,
+        const std::array<torch::Tensor, Geometry::parDim()> &knot_indices_G,
         const torch::Tensor &coeff_indices_G) const {
-    return grad<memory_optimized>(xi, indices, coeff_indices) *
-           G.template jac<memory_optimized>(xi, indices_G, coeff_indices_G)
+    return grad<memory_optimized>(xi, knot_indices, coeff_indices) *
+           G.template jac<memory_optimized>(xi, knot_indices_G, coeff_indices_G)
                .ginv();
   }
 
@@ -5458,7 +5491,7 @@ public:
   ///
   /// @param[in] xi Point(s) where to evaluate the gradient
   ///
-  /// @param[in] indices Knot indices where to evaluate the Hessian
+  /// @param[in] knot_indices Knot indices where to evaluate the Hessian
   ///
   /// @result Block-tensor with the Hessian with respect to
   /// the parametric variables
@@ -5488,12 +5521,13 @@ public:
   /// rank-3 tensor.
   //  clang-format on
   template <bool memory_optimized = false>
-  inline auto
-  hess(const std::array<torch::Tensor, BSplineCore::parDim_> &xi,
-       const std::array<torch::Tensor, BSplineCore::parDim_> &indices) const {
+  inline auto hess(const std::array<torch::Tensor, BSplineCore::parDim_> &xi,
+                   const std::array<torch::Tensor, BSplineCore::parDim_>
+                       &knot_indices) const {
     return hess<memory_optimized>(
-        xi, indices,
-        BSplineCore::template find_coeff_indices<memory_optimized>(indices));
+        xi, knot_indices,
+        BSplineCore::template find_coeff_indices<memory_optimized>(
+            knot_indices));
   }
 
   //  clang-format off
@@ -5503,7 +5537,7 @@ public:
   ///
   /// @param[in] xi Point(s) where to evaluate the Hessian
   ///
-  /// @param[in] indices Knot indices where to evaluate the Hessian
+  /// @param[in] knot_indices Knot indices where to evaluate the Hessian
   ///
   /// @param[in] coeff_indices Coefficient indices where to evaluate the Hessian
   ///
@@ -5538,36 +5572,36 @@ public:
   /// @{
   template <bool memory_optimized = false>
   inline auto hess(const utils::TensorArray1 &xi,
-                   const utils::TensorArray1 &indices,
+                   const utils::TensorArray1 &knot_indices,
                    const torch::Tensor &coeff_indices) const {
-    assert(xi[0].sizes() == indices[0].sizes());
+    assert(xi[0].sizes() == knot_indices[0].sizes());
     if constexpr (BSplineCore::parDim_ == 1)
       return utils::BlockTensor<torch::Tensor, 1, 1, BSplineCore::geoDim_>(
           BSplineCore::template eval<deriv::dx ^ 2, memory_optimized>(
-              xi, indices, coeff_indices));
+              xi, knot_indices, coeff_indices));
     else
       throw std::runtime_error("Unsupported parametric dimension");
   }
 
   template <bool memory_optimized = false>
   inline auto hess(const utils::TensorArray2 &xi,
-                   const utils::TensorArray2 &indices,
+                   const utils::TensorArray2 &knot_indices,
                    const torch::Tensor &coeff_indices) const {
-    assert(xi[0].sizes() == indices[0].sizes() &&
-           xi[1].sizes() == indices[1].sizes());
+    assert(xi[0].sizes() == knot_indices[0].sizes() &&
+           xi[1].sizes() == knot_indices[1].sizes());
 
     if constexpr (BSplineCore::parDim_ == 2)
       return utils::BlockTensor<torch::Tensor, 2, BSplineCore::geoDim_, 2>(
                  BSplineCore::template eval<deriv::dx ^ 2, memory_optimized>(
-                     xi, indices, coeff_indices),
+                     xi, knot_indices, coeff_indices),
                  BSplineCore::template eval<deriv::dx + deriv::dy,
-                                            memory_optimized>(xi, indices,
+                                            memory_optimized>(xi, knot_indices,
                                                               coeff_indices),
                  BSplineCore::template eval<deriv::dy + deriv::dx,
-                                            memory_optimized>(xi, indices,
+                                            memory_optimized>(xi, knot_indices,
                                                               coeff_indices),
                  BSplineCore::template eval<deriv::dy ^ 2, memory_optimized>(
-                     xi, indices, coeff_indices))
+                     xi, knot_indices, coeff_indices))
           .reorder_ikj();
     else
       throw std::runtime_error("Unsupported parametric dimension");
@@ -5575,38 +5609,38 @@ public:
 
   template <bool memory_optimized = false>
   inline auto hess(const utils::TensorArray3 &xi,
-                   const utils::TensorArray3 &indices,
+                   const utils::TensorArray3 &knot_indices,
                    const torch::Tensor &coeff_indices) const {
-    assert(xi[0].sizes() == indices[0].sizes() &&
-           xi[1].sizes() == indices[1].sizes() &&
-           xi[2].sizes() == indices[2].sizes());
+    assert(xi[0].sizes() == knot_indices[0].sizes() &&
+           xi[1].sizes() == knot_indices[1].sizes() &&
+           xi[2].sizes() == knot_indices[2].sizes());
 
     if constexpr (BSplineCore::parDim_ == 3)
       return utils::BlockTensor<torch::Tensor, 3, BSplineCore::geoDim_, 3>(
                  BSplineCore::template eval<deriv::dx ^ 2, memory_optimized>(
-                     xi, indices, coeff_indices),
+                     xi, knot_indices, coeff_indices),
                  BSplineCore::template eval<deriv::dx + deriv::dy,
-                                            memory_optimized>(xi, indices,
+                                            memory_optimized>(xi, knot_indices,
                                                               coeff_indices),
                  BSplineCore::template eval<deriv::dx + deriv::dz,
-                                            memory_optimized>(xi, indices,
+                                            memory_optimized>(xi, knot_indices,
                                                               coeff_indices),
                  BSplineCore::template eval<deriv::dy + deriv::dx,
-                                            memory_optimized>(xi, indices,
+                                            memory_optimized>(xi, knot_indices,
                                                               coeff_indices),
                  BSplineCore::template eval<deriv::dy ^ 2, memory_optimized>(
-                     xi, indices, coeff_indices),
+                     xi, knot_indices, coeff_indices),
                  BSplineCore::template eval<deriv::dy + deriv::dz,
-                                            memory_optimized>(xi, indices,
+                                            memory_optimized>(xi, knot_indices,
                                                               coeff_indices),
                  BSplineCore::template eval<deriv::dz + deriv::dx,
-                                            memory_optimized>(xi, indices,
+                                            memory_optimized>(xi, knot_indices,
                                                               coeff_indices),
                  BSplineCore::template eval<deriv::dz + deriv::dy,
-                                            memory_optimized>(xi, indices,
+                                            memory_optimized>(xi, knot_indices,
                                                               coeff_indices),
                  BSplineCore::template eval<deriv::dz ^ 2, memory_optimized>(
-                     xi, indices, coeff_indices))
+                     xi, knot_indices, coeff_indices))
           .reorder_ikj();
     else
       throw std::runtime_error("Unsupported parametric dimension");
@@ -5614,59 +5648,59 @@ public:
 
   template <bool memory_optimized = false>
   inline auto hess(const utils::TensorArray4 &xi,
-                   const utils::TensorArray4 &indices,
+                   const utils::TensorArray4 &knot_indices,
                    const torch::Tensor &coeff_indices) const {
-    assert(xi[0].sizes() == indices[0].sizes() &&
-           xi[1].sizes() == indices[1].sizes() &&
-           xi[2].sizes() == indices[2].sizes() &&
-           xi[3].sizes() == indices[3].sizes());
+    assert(xi[0].sizes() == knot_indices[0].sizes() &&
+           xi[1].sizes() == knot_indices[1].sizes() &&
+           xi[2].sizes() == knot_indices[2].sizes() &&
+           xi[3].sizes() == knot_indices[3].sizes());
 
     if constexpr (BSplineCore::parDim_ == 4)
       return utils::BlockTensor<torch::Tensor, 4, BSplineCore::geoDim_, 4>(
                  BSplineCore::template eval<deriv::dx ^ 2, memory_optimized>(
-                     xi, indices, coeff_indices),
+                     xi, knot_indices, coeff_indices),
                  BSplineCore::template eval<deriv::dx + deriv::dy,
-                                            memory_optimized>(xi, indices,
+                                            memory_optimized>(xi, knot_indices,
                                                               coeff_indices),
                  BSplineCore::template eval<deriv::dx + deriv::dz,
-                                            memory_optimized>(xi, indices,
+                                            memory_optimized>(xi, knot_indices,
                                                               coeff_indices),
                  BSplineCore::template eval<deriv::dx + deriv::dt,
-                                            memory_optimized>(xi, indices,
+                                            memory_optimized>(xi, knot_indices,
                                                               coeff_indices),
                  BSplineCore::template eval<deriv::dy + deriv::dx,
-                                            memory_optimized>(xi, indices,
+                                            memory_optimized>(xi, knot_indices,
                                                               coeff_indices),
                  BSplineCore::template eval<deriv::dy ^ 2, memory_optimized>(
-                     xi, indices, coeff_indices),
+                     xi, knot_indices, coeff_indices),
                  BSplineCore::template eval<deriv::dy + deriv::dz,
-                                            memory_optimized>(xi, indices,
+                                            memory_optimized>(xi, knot_indices,
                                                               coeff_indices),
                  BSplineCore::template eval<deriv::dy + deriv::dt,
-                                            memory_optimized>(xi, indices,
+                                            memory_optimized>(xi, knot_indices,
                                                               coeff_indices),
                  BSplineCore::template eval<deriv::dz + deriv::dx,
-                                            memory_optimized>(xi, indices,
+                                            memory_optimized>(xi, knot_indices,
                                                               coeff_indices),
                  BSplineCore::template eval<deriv::dz + deriv::dy,
-                                            memory_optimized>(xi, indices,
+                                            memory_optimized>(xi, knot_indices,
                                                               coeff_indices),
                  BSplineCore::template eval<deriv::dz ^ 2, memory_optimized>(
-                     xi, indices, coeff_indices),
+                     xi, knot_indices, coeff_indices),
                  BSplineCore::template eval<deriv::dz + deriv::dt,
-                                            memory_optimized>(xi, indices,
+                                            memory_optimized>(xi, knot_indices,
                                                               coeff_indices),
                  BSplineCore::template eval<deriv::dt + deriv::dx,
-                                            memory_optimized>(xi, indices,
+                                            memory_optimized>(xi, knot_indices,
                                                               coeff_indices),
                  BSplineCore::template eval<deriv::dt + deriv::dy,
-                                            memory_optimized>(xi, indices,
+                                            memory_optimized>(xi, knot_indices,
                                                               coeff_indices),
                  BSplineCore::template eval<deriv::dt + deriv::dz,
-                                            memory_optimized>(xi, indices,
+                                            memory_optimized>(xi, knot_indices,
                                                               coeff_indices),
                  BSplineCore::template eval<deriv::dt ^ 2, memory_optimized>(
-                     xi, indices, coeff_indices))
+                     xi, knot_indices, coeff_indices))
           .reorder_ikj();
     else
       throw std::runtime_error("Unsupported parametric dimension");
@@ -5728,9 +5762,9 @@ public:
   ///
   /// @param[in] xi Point(s) where to evaluate the Hessian
   ///
-  /// @param[in] indices Knot indices where to evaluate the Hessian
+  /// @param[in] knot_indices Knot indices where to evaluate the Hessian
   ///
-  /// @param[in] indices_G Knot indices where to evaluate Jacobian of `G`
+  /// @param[in] knot_indices_G Knot indices where to evaluate Jacobian of `G`
   ///
   /// @result Block-tensor with the Hessian with respect to the
   /// physical variables
@@ -5751,12 +5785,15 @@ public:
   inline auto
   ihess(const Geometry G,
         const std::array<torch::Tensor, BSplineCore::parDim_> &xi,
-        const std::array<torch::Tensor, BSplineCore::parDim_> &indices,
-        const std::array<torch::Tensor, Geometry::parDim()> &indices_G) const {
+        const std::array<torch::Tensor, BSplineCore::parDim_> &knot_indices,
+        const std::array<torch::Tensor, Geometry::parDim()> &knot_indices_G)
+      const {
     return ihess<memory_optimized, Geometry>(
-        G, xi, indices,
-        BSplineCore::template find_coeff_indices<memory_optimized>(indices),
-        indices_G, G.template find_coeff_indices<memory_optimized>(indices_G));
+        G, xi, knot_indices,
+        BSplineCore::template find_coeff_indices<memory_optimized>(
+            knot_indices),
+        knot_indices_G,
+        G.template find_coeff_indices<memory_optimized>(knot_indices_G));
   }
 
   /// @brief Returns a block-tensor with the Hessian of the B-spline
@@ -5769,9 +5806,10 @@ public:
   ///
   /// @param[in] xi Point(s) where to evaluate the Hessian
   ///
-  /// @param[in] indices Knot indices where to evaluate the Hessian
+  /// @param[in] knot_indices Knot indices where to evaluate the Hessian
   ///
-  /// @param[in] indices_G Knot indices where to evaluate the Jacobian of `G`
+  /// @param[in] knot_indices_G Knot indices where to evaluate the Jacobian of
+  /// `G`
   ///
   /// @param[in] coeff_indices Coefficient indices where to evaluate the Hessian
   ///
@@ -5797,25 +5835,27 @@ public:
   inline auto
   ihess(const Geometry &G,
         const std::array<torch::Tensor, BSplineCore::parDim_> &xi,
-        const std::array<torch::Tensor, BSplineCore::parDim_> &indices,
+        const std::array<torch::Tensor, BSplineCore::parDim_> &knot_indices,
         const torch::Tensor &coeff_indices,
-        const std::array<torch::Tensor, Geometry::parDim()> &indices_G,
+        const std::array<torch::Tensor, Geometry::parDim()> &knot_indices_G,
         const torch::Tensor &coeff_indices_G) const {
 
-    auto hessu = hess<memory_optimized>(xi, indices, coeff_indices).slice(0);
+    auto hessu =
+        hess<memory_optimized>(xi, knot_indices, coeff_indices).slice(0);
 
     {
-      auto igradG = igrad<memory_optimized>(G, xi, indices, coeff_indices,
-                                            indices_G, coeff_indices_G);
-      auto hessG =
-          G.template hess<memory_optimized>(xi, indices_G, coeff_indices_G);
+      auto igradG = igrad<memory_optimized>(G, xi, knot_indices, coeff_indices,
+                                            knot_indices_G, coeff_indices_G);
+      auto hessG = G.template hess<memory_optimized>(xi, knot_indices_G,
+                                                     coeff_indices_G);
       assert(igradG.cols() == hessG.slices());
       for (short_t k = 0; k < hessG.slices(); ++k)
         hessu -= igradG(0, k) * hessG.slice(k);
     }
 
     auto jacInv =
-        G.template jac<memory_optimized>(xi, indices_G, coeff_indices_G).ginv();
+        G.template jac<memory_optimized>(xi, knot_indices_G, coeff_indices_G)
+            .ginv();
 
     return jacInv.tr() * hessu * jacInv;
   }
@@ -5874,7 +5914,7 @@ public:
   ///
   /// @param[in] xi Point(s) where to evaluate the Jacobian
   ///
-  /// @param[in] indices Knot indices where to evaluate the Jacobian
+  /// @param[in] knot_indices Knot indices where to evaluate the Jacobian
   ///
   /// @result Block-tensor with the Jacobian with respect to the
   /// parametric variables
@@ -5899,12 +5939,13 @@ public:
   /// \f]
   //  clang-format on
   template <bool memory_optimized = false>
-  inline auto
-  jac(const std::array<torch::Tensor, BSplineCore::parDim_> &xi,
-      const std::array<torch::Tensor, BSplineCore::parDim_> &indices) const {
+  inline auto jac(const std::array<torch::Tensor, BSplineCore::parDim_> &xi,
+                  const std::array<torch::Tensor, BSplineCore::parDim_>
+                      &knot_indices) const {
     return jac<memory_optimized>(
-        xi, indices,
-        BSplineCore::template find_coeff_indices<memory_optimized>(indices));
+        xi, knot_indices,
+        BSplineCore::template find_coeff_indices<memory_optimized>(
+            knot_indices));
   }
 
   //  clang-format off
@@ -5914,7 +5955,7 @@ public:
   ///
   /// @param[in] xi Point(s) where to evaluate the Jacobian
   ///
-  /// @param[in] indices Knot indices where to evaluate the Jacobian
+  /// @param[in] knot_indices Knot indices where to evaluate the Jacobian
   ///
   /// @param[in] coeff_indices Coefficient indices where to evaluate the
   /// Jacobian
@@ -5949,15 +5990,15 @@ public:
   /// @{
   template <bool memory_optimized = false>
   inline auto jac(const utils::TensorArray1 &xi,
-                  const utils::TensorArray1 &indices,
+                  const utils::TensorArray1 &knot_indices,
                   const torch::Tensor &coeff_indices) const {
-    assert(xi[0].sizes() == indices[0].sizes());
+    assert(xi[0].sizes() == knot_indices[0].sizes());
 
     if constexpr (BSplineCore::parDim_ == 1)
 
       return utils::BlockTensor<torch::Tensor, 1, BSplineCore::geoDim_>(
                  BSplineCore::template eval<deriv::dx, memory_optimized>(
-                     xi, indices, coeff_indices))
+                     xi, knot_indices, coeff_indices))
           .tr();
 
     else
@@ -5966,18 +6007,18 @@ public:
 
   template <bool memory_optimized = false>
   inline auto jac(const utils::TensorArray2 &xi,
-                  const utils::TensorArray2 &indices,
+                  const utils::TensorArray2 &knot_indices,
                   const torch::Tensor &coeff_indices) const {
-    assert(xi[0].sizes() == indices[0].sizes() &&
-           xi[1].sizes() == indices[1].sizes());
+    assert(xi[0].sizes() == knot_indices[0].sizes() &&
+           xi[1].sizes() == knot_indices[1].sizes());
 
     if constexpr (BSplineCore::parDim_ == 2)
 
       return utils::BlockTensor<torch::Tensor, 2, BSplineCore::geoDim_>(
                  BSplineCore::template eval<deriv::dx, memory_optimized>(
-                     xi, indices, coeff_indices),
+                     xi, knot_indices, coeff_indices),
                  BSplineCore::template eval<deriv::dy, memory_optimized>(
-                     xi, indices, coeff_indices))
+                     xi, knot_indices, coeff_indices))
           .tr();
 
     else
@@ -5986,21 +6027,21 @@ public:
 
   template <bool memory_optimized = false>
   inline auto jac(const utils::TensorArray3 &xi,
-                  const utils::TensorArray3 &indices,
+                  const utils::TensorArray3 &knot_indices,
                   const torch::Tensor &coeff_indices) const {
-    assert(xi[0].sizes() == indices[0].sizes() &&
-           xi[1].sizes() == indices[1].sizes() &&
-           xi[2].sizes() == indices[2].sizes());
+    assert(xi[0].sizes() == knot_indices[0].sizes() &&
+           xi[1].sizes() == knot_indices[1].sizes() &&
+           xi[2].sizes() == knot_indices[2].sizes());
 
     if constexpr (BSplineCore::parDim_ == 3)
 
       return utils::BlockTensor<torch::Tensor, 3, BSplineCore::geoDim_>(
                  BSplineCore::template eval<deriv::dx, memory_optimized>(
-                     xi, indices, coeff_indices),
+                     xi, knot_indices, coeff_indices),
                  BSplineCore::template eval<deriv::dy, memory_optimized>(
-                     xi, indices, coeff_indices),
+                     xi, knot_indices, coeff_indices),
                  BSplineCore::template eval<deriv::dz, memory_optimized>(
-                     xi, indices, coeff_indices))
+                     xi, knot_indices, coeff_indices))
           .tr();
 
     else
@@ -6009,24 +6050,24 @@ public:
 
   template <bool memory_optimized = false>
   inline auto jac(const utils::TensorArray4 &xi,
-                  const utils::TensorArray4 &indices,
+                  const utils::TensorArray4 &knot_indices,
                   const torch::Tensor &coeff_indices) const {
-    assert(xi[0].sizes() == indices[0].sizes() &&
-           xi[1].sizes() == indices[1].sizes() &&
-           xi[2].sizes() == indices[2].sizes() &&
-           xi[3].sizes() == indices[3].sizes());
+    assert(xi[0].sizes() == knot_indices[0].sizes() &&
+           xi[1].sizes() == knot_indices[1].sizes() &&
+           xi[2].sizes() == knot_indices[2].sizes() &&
+           xi[3].sizes() == knot_indices[3].sizes());
 
     if constexpr (BSplineCore::parDim_ == 4)
 
       return utils::BlockTensor<torch::Tensor, 4, BSplineCore::geoDim_>(
                  BSplineCore::template eval<deriv::dx, memory_optimized>(
-                     xi, indices, coeff_indices),
+                     xi, knot_indices, coeff_indices),
                  BSplineCore::template eval<deriv::dy, memory_optimized>(
-                     xi, indices, coeff_indices),
+                     xi, knot_indices, coeff_indices),
                  BSplineCore::template eval<deriv::dz, memory_optimized>(
-                     xi, indices, coeff_indices),
+                     xi, knot_indices, coeff_indices),
                  BSplineCore::template eval<deriv::dt, memory_optimized>(
-                     xi, indices, coeff_indices))
+                     xi, knot_indices, coeff_indices))
           .tr();
 
     else
@@ -6079,9 +6120,10 @@ public:
   ///
   /// @param[in] xi Point(s) where to evaluate the Jacobian
   ///
-  /// @param[in] indices Knot indices where to evaluate the Jacobian
+  /// @param[in] knot_indices Knot indices where to evaluate the Jacobian
   ///
-  /// @param[in] indices_G Knot indices where to evaluate the Jacobian of `G`
+  /// @param[in] knot_indices_G Knot indices where to evaluate the Jacobian of
+  /// `G`
   ///
   /// @result Block-tensor with the Jacobian with respect to the
   /// physical variables
@@ -6096,17 +6138,19 @@ public:
   inline auto
   ijac(const Geometry G,
        const std::array<torch::Tensor, BSplineCore::parDim_> &xi,
-       const std::array<torch::Tensor, BSplineCore::parDim_> &indices,
-       const std::array<torch::Tensor, Geometry::parDim()> &indices_G) const {
+       const std::array<torch::Tensor, BSplineCore::parDim_> &knot_indices,
+       const std::array<torch::Tensor, Geometry::parDim()> &knot_indices_G)
+      const {
     if constexpr (BSplineCore::parDim_ == 0)
       return utils::BlockTensor<torch::Tensor, 1, 1>{
           torch::zeros_like(BSplineCore::coeffs_[0])};
     else
       return ijac<memory_optimized, Geometry>(
-          G, xi, indices,
-          BSplineCore::template find_coeff_indices<memory_optimized>(indices),
-          indices_G,
-          G.template find_coeff_indices<memory_optimized>(indices_G));
+          G, xi, knot_indices,
+          BSplineCore::template find_coeff_indices<memory_optimized>(
+              knot_indices),
+          knot_indices_G,
+          G.template find_coeff_indices<memory_optimized>(knot_indices_G));
   }
 
   /// @brief Returns a block-tensor with the Jacobian of the
@@ -6119,9 +6163,10 @@ public:
   ///
   /// @param[in] xi Point(s) where to evaluate the Jacobian
   ///
-  /// @param[in] indices Knot indices where to evaluate the Jacobain
+  /// @param[in] knot_indices Knot indices where to evaluate the Jacobain
   ///
-  /// @param[in] indices_G Knot indices where to evaluate the Jacobian of `G`
+  /// @param[in] knot_indices_G Knot indices where to evaluate the Jacobian of
+  /// `G`
   ///
   /// @param[in] coeff_indices Coefficient indices where to evaluate the
   /// Jacobian
@@ -6142,12 +6187,12 @@ public:
   inline auto
   ijac(const Geometry &G,
        const std::array<torch::Tensor, BSplineCore::parDim_> &xi,
-       const std::array<torch::Tensor, BSplineCore::parDim_> &indices,
+       const std::array<torch::Tensor, BSplineCore::parDim_> &knot_indices,
        const torch::Tensor &coeff_indices,
-       const std::array<torch::Tensor, Geometry::parDim()> &indices_G,
+       const std::array<torch::Tensor, Geometry::parDim()> &knot_indices_G,
        const torch::Tensor &coeff_indices_G) const {
-    return jac<memory_optimized>(xi, indices, coeff_indices) *
-           G.template jac<memory_optimized>(xi, indices_G, coeff_indices_G)
+    return jac<memory_optimized>(xi, knot_indices, coeff_indices) *
+           G.template jac<memory_optimized>(xi, knot_indices_G, coeff_indices_G)
                .ginv();
   }
 
@@ -6194,7 +6239,7 @@ public:
   ///
   /// @param[in] xi Point(s) where to evaluate the Laplacian
   ///
-  /// @param[in] indices Knot indices where to evaluate the Laplacian
+  /// @param[in] knot_indices Knot indices where to evaluate the Laplacian
   ///
   /// @result Block-tensor with the Laplacian with respect to
   /// the parametric variables
@@ -6209,12 +6254,13 @@ public:
   /// then one then all Laplacian matrices are returned as a vector.
   //  clang-format on
   template <bool memory_optimized = false>
-  inline auto
-  lapl(const std::array<torch::Tensor, BSplineCore::parDim_> &xi,
-       const std::array<torch::Tensor, BSplineCore::parDim_> &indices) const {
+  inline auto lapl(const std::array<torch::Tensor, BSplineCore::parDim_> &xi,
+                   const std::array<torch::Tensor, BSplineCore::parDim_>
+                       &knot_indices) const {
     return lapl<memory_optimized>(
-        xi, indices,
-        BSplineCore::template find_coeff_indices<memory_optimized>(indices));
+        xi, knot_indices,
+        BSplineCore::template find_coeff_indices<memory_optimized>(
+            knot_indices));
   }
 
   //  clang-format off
@@ -6224,7 +6270,7 @@ public:
   ///
   /// @param[in] xi Point(s) where to evaluate the Laplacian
   ///
-  /// @param[in] indices Knot indices where to evaluate the Laplacian
+  /// @param[in] knot_indices Knot indices where to evaluate the Laplacian
   ///
   /// @param[in] coeff_indices Coefficient indices where to evaluate the
   /// Laplacian
@@ -6245,30 +6291,30 @@ public:
   /// @{
   template <bool memory_optimized = false>
   inline auto lapl(const utils::TensorArray1 &xi,
-                   const utils::TensorArray1 &indices,
+                   const utils::TensorArray1 &knot_indices,
                    const torch::Tensor &coeff_indices) const {
-    assert(xi[0].sizes() == indices[0].sizes());
+    assert(xi[0].sizes() == knot_indices[0].sizes());
     if constexpr (BSplineCore::parDim_ == 1)
       return utils::BlockTensor<torch::Tensor, 1, 1, BSplineCore::geoDim_>(
           BSplineCore::template eval<deriv::dx ^ 2, memory_optimized>(
-              xi, indices, coeff_indices));
+              xi, knot_indices, coeff_indices));
     else
       throw std::runtime_error("Unsupported parametric dimension");
   }
 
   template <bool memory_optimized = false>
   inline auto lapl(const utils::TensorArray2 &xi,
-                   const utils::TensorArray2 &indices,
+                   const utils::TensorArray2 &knot_indices,
                    const torch::Tensor &coeff_indices) const {
-    assert(xi[0].sizes() == indices[0].sizes() &&
-           xi[1].sizes() == indices[1].sizes());
+    assert(xi[0].sizes() == knot_indices[0].sizes() &&
+           xi[1].sizes() == knot_indices[1].sizes());
 
     if constexpr (BSplineCore::parDim_ == 2)
       return utils::BlockTensor<torch::Tensor, 2, BSplineCore::geoDim_, 2>(
                  BSplineCore::template eval<deriv::dx ^ 2, memory_optimized>(
-                     xi, indices, coeff_indices) +
+                     xi, knot_indices, coeff_indices) +
                  BSplineCore::template eval<deriv::dy ^ 2, memory_optimized>(
-                     xi, indices, coeff_indices))
+                     xi, knot_indices, coeff_indices))
           .reorder_ikj();
     else
       throw std::runtime_error("Unsupported parametric dimension");
@@ -6276,20 +6322,20 @@ public:
 
   template <bool memory_optimized = false>
   inline auto lapl(const utils::TensorArray3 &xi,
-                   const utils::TensorArray3 &indices,
+                   const utils::TensorArray3 &knot_indices,
                    const torch::Tensor &coeff_indices) const {
-    assert(xi[0].sizes() == indices[0].sizes() &&
-           xi[1].sizes() == indices[1].sizes() &&
-           xi[2].sizes() == indices[2].sizes());
+    assert(xi[0].sizes() == knot_indices[0].sizes() &&
+           xi[1].sizes() == knot_indices[1].sizes() &&
+           xi[2].sizes() == knot_indices[2].sizes());
 
     if constexpr (BSplineCore::parDim_ == 3)
       return utils::BlockTensor<torch::Tensor, 3, BSplineCore::geoDim_, 3>(
                  BSplineCore::template eval<deriv::dx ^ 2, memory_optimized>(
-                     xi, indices, coeff_indices) +
+                     xi, knot_indices, coeff_indices) +
                  BSplineCore::template eval<deriv::dy ^ 2, memory_optimized>(
-                     xi, indices, coeff_indices) +
+                     xi, knot_indices, coeff_indices) +
                  BSplineCore::template eval<deriv::dz ^ 2, memory_optimized>(
-                     xi, indices, coeff_indices))
+                     xi, knot_indices, coeff_indices))
           .reorder_ikj();
     else
       throw std::runtime_error("Unsupported parametric dimension");
@@ -6297,23 +6343,23 @@ public:
 
   template <bool memory_optimized = false>
   inline auto lapl(const utils::TensorArray4 &xi,
-                   const utils::TensorArray4 &indices,
+                   const utils::TensorArray4 &knot_indices,
                    const torch::Tensor &coeff_indices) const {
-    assert(xi[0].sizes() == indices[0].sizes() &&
-           xi[1].sizes() == indices[1].sizes() &&
-           xi[2].sizes() == indices[2].sizes() &&
-           xi[3].sizes() == indices[3].sizes());
+    assert(xi[0].sizes() == knot_indices[0].sizes() &&
+           xi[1].sizes() == knot_indices[1].sizes() &&
+           xi[2].sizes() == knot_indices[2].sizes() &&
+           xi[3].sizes() == knot_indices[3].sizes());
 
     if constexpr (BSplineCore::parDim_ == 4)
       return utils::BlockTensor<torch::Tensor, 4, BSplineCore::geoDim_, 4>(
                  BSplineCore::template eval<deriv::dx ^ 2, memory_optimized>(
-                     xi, indices, coeff_indices) +
+                     xi, knot_indices, coeff_indices) +
                  BSplineCore::template eval<deriv::dy ^ 2, memory_optimized>(
-                     xi, indices, coeff_indices) +
+                     xi, knot_indices, coeff_indices) +
                  BSplineCore::template eval<deriv::dz ^ 2, memory_optimized>(
-                     xi, indices, coeff_indices) +
+                     xi, knot_indices, coeff_indices) +
                  BSplineCore::template eval<deriv::dt ^ 2, memory_optimized>(
-                     xi, indices, coeff_indices))
+                     xi, knot_indices, coeff_indices))
           .reorder_ikj();
     else
       throw std::runtime_error("Unsupported parametric dimension");
@@ -6376,9 +6422,9 @@ public:
   ///
   /// @param[in] xi Point(s) where to evaluate the Laplacian
   ///
-  /// @param[in] indices Knot indices where to evaluate the Laplacian
+  /// @param[in] knot_indices Knot indices where to evaluate the Laplacian
   ///
-  /// @param[in] indices_G Knot indices where to evaluate Jacobian of `G`
+  /// @param[in] knot_indices_G Knot indices where to evaluate Jacobian of `G`
   ///
   /// @result Block-tensor with the Laplacian with respect to the
   /// physical variables
@@ -6400,12 +6446,15 @@ public:
   inline auto
   ilapl(const Geometry G,
         const std::array<torch::Tensor, BSplineCore::parDim_> &xi,
-        const std::array<torch::Tensor, BSplineCore::parDim_> &indices,
-        const std::array<torch::Tensor, Geometry::parDim()> &indices_G) const {
+        const std::array<torch::Tensor, BSplineCore::parDim_> &knot_indices,
+        const std::array<torch::Tensor, Geometry::parDim()> &knot_indices_G)
+      const {
     return ilapl<memory_optimized, Geometry>(
-        G, xi, indices,
-        BSplineCore::template find_coeff_indices<memory_optimized>(indices),
-        indices_G, G.template find_coeff_indices<memory_optimized>(indices_G));
+        G, xi, knot_indices,
+        BSplineCore::template find_coeff_indices<memory_optimized>(
+            knot_indices),
+        knot_indices_G,
+        G.template find_coeff_indices<memory_optimized>(knot_indices_G));
   }
 
   /// @brief Returns a block-tensor with the Laplacian of the B-spline
@@ -6418,9 +6467,10 @@ public:
   ///
   /// @param[in] xi Point(s) where to evaluate the Laplacian
   ///
-  /// @param[in] indices Knot indices where to evaluate the Laplacian
+  /// @param[in] knot_indices Knot indices where to evaluate the Laplacian
   ///
-  /// @param[in] indices_G Knot indices where to evaluate the Jacobian of `G`
+  /// @param[in] knot_indices_G Knot indices where to evaluate the Jacobian of
+  /// `G`
   ///
   /// @param[in] coeff_indices Coefficient indices where to evaluate the
   /// Laplacian
@@ -6448,25 +6498,27 @@ public:
   inline auto
   ilapl(const Geometry &G,
         const std::array<torch::Tensor, BSplineCore::parDim_> &xi,
-        const std::array<torch::Tensor, BSplineCore::parDim_> &indices,
+        const std::array<torch::Tensor, BSplineCore::parDim_> &knot_indices,
         const torch::Tensor &coeff_indices,
-        const std::array<torch::Tensor, Geometry::parDim()> &indices_G,
+        const std::array<torch::Tensor, Geometry::parDim()> &knot_indices_G,
         const torch::Tensor &coeff_indices_G) const {
 
-    auto hessu = hess<memory_optimized>(xi, indices, coeff_indices).slice(0);
+    auto hessu =
+        hess<memory_optimized>(xi, knot_indices, coeff_indices).slice(0);
 
     {
-      auto igradG = igrad<memory_optimized>(G, xi, indices, coeff_indices,
-                                            indices_G, coeff_indices_G);
-      auto hessG =
-          G.template hess<memory_optimized>(xi, indices_G, coeff_indices_G);
+      auto igradG = igrad<memory_optimized>(G, xi, knot_indices, coeff_indices,
+                                            knot_indices_G, coeff_indices_G);
+      auto hessG = G.template hess<memory_optimized>(xi, knot_indices_G,
+                                                     coeff_indices_G);
       assert(igradG.cols() == hessG.slices());
       for (short_t k = 0; k < hessG.slices(); ++k)
         hessu -= igradG(0, k) * hessG.slice(k);
     }
 
     auto jacInv =
-        G.template jac<memory_optimized>(xi, indices_G, coeff_indices_G).ginv();
+        G.template jac<memory_optimized>(xi, knot_indices_G, coeff_indices_G)
+            .ginv();
 
     return (jacInv.tr() * hessu * jacInv).trace();
   }
@@ -6476,7 +6528,11 @@ public:
   /// @param[in] json JSON configuration
   ///
   /// @result Plot of the B-spline object
+#ifdef IGANET_WITH_MATPLOT
   template <typename Backend = matplot::backend::gnuplot>
+#else
+  template <typename Backend = void>
+#endif
   inline auto plot(const nlohmann::json &json = {}) const {
     return plot<Backend>(*this, json);
   }
@@ -6488,7 +6544,11 @@ public:
   /// @param[in] json JSON configuration
   ///
   /// @result Plot of the B-spline object
+#ifdef IGANET_WITH_MATPLOT
   template <typename Backend = matplot::backend::gnuplot>
+#else
+  template <typename Backend = void>
+#endif
   inline auto plot(const std::array<torch::Tensor, BSplineCore::parDim_> &xi,
                    const nlohmann::json &json = {}) const {
 
@@ -6502,7 +6562,11 @@ public:
   /// @param[in] json JSON configuration
   ///
   /// @result Plot of the B-spline object
+#ifdef IGANET_WITH_MATPLOT
   template <typename Backend = matplot::backend::gnuplot>
+#else
+  template <typename Backend = void>
+#endif
   inline auto plot(const std::initializer_list<
                        std::array<torch::Tensor, BSplineCore::parDim_>> &xi,
                    const nlohmann::json &json = {}) const {
@@ -6517,8 +6581,12 @@ public:
   /// @param[in] json JSON configuration
   ///
   /// @result Plot of the B-spline object
+#ifdef IGANET_WITH_MATPLOT
   template <typename Backend = matplot::backend::gnuplot,
             typename BSplineCoreColor>
+#else
+  template <typename Backend = void, typename BSplineCoreColor>
+#endif
   inline auto plot(const BSplineCommon<BSplineCoreColor> &color,
                    const nlohmann::json &json = {}) const {
 #ifdef IGANET_WITH_MATPLOT
@@ -7327,12 +7395,17 @@ public:
   /// @param[in] json JSON configuration
   ///
   /// @result Plot of the B-spline object
+#ifdef IGANET_WITH_MATPLOT
   template <typename Backend = matplot::backend::gnuplot,
             typename BSplineCoreColor>
+#else
+  template <typename Backend = void, typename BSplineCoreColor>
+#endif
   inline auto plot(const BSplineCommon<BSplineCoreColor> &color,
                    const std::array<torch::Tensor, BSplineCore::parDim_> &xi,
                    const nlohmann::json &json = {}) const {
 
+#ifdef IGANET_WITH_MATPLOT
     auto f = plot<Backend>(color, json);
     auto ax = f->current_axes();
 
@@ -7359,7 +7432,6 @@ public:
       ax->hold(matplot::on);
       ax->scatter(X, Y, ".");
       ax->hold(matplot::off);
-      return f;
     } else if constexpr (BSplineCore::parDim_ == 2) {
       matplot::vector_1d X(xi[0].size(0), 0.0);
       matplot::vector_1d Y(xi[0].size(0), 0.0);
@@ -7374,7 +7446,6 @@ public:
       ax->hold(matplot::on);
       ax->scatter3(X, Y, Z, ".");
       ax->hold(matplot::off);
-      return f;
     } else if constexpr (BSplineCore::parDim_ == 3) {
       matplot::vector_1d X(xi[0].size(0), 0.0);
       matplot::vector_1d Y(xi[0].size(0), 0.0);
@@ -7390,9 +7461,14 @@ public:
       ax->hold(matplot::on);
       ax->scatter3(X, Y, Z, ".");
       ax->hold(matplot::off);
-      return f;
     } else
       throw std::runtime_error("Invalid parametric dimension");
+
+    return f;
+#else
+    throw std::runtime_error(
+        "This functions must be compiled with -DIGANET_WITH_MATPLOT turned on");
+#endif
   }
 
   /// Plots the B-spline object colored by another B-spline object
@@ -7405,13 +7481,18 @@ public:
   /// @param[in] json JSON configuration
   ///
   /// @result Plot of the B-spline object
+#ifdef IGANET_WITH_MATPLOT
   template <typename Backend = matplot::backend::gnuplot,
             typename BSplineCoreColor>
+#else
+  template <typename Backend = void, typename BSplineCoreColor>
+#endif
   inline auto plot(const BSplineCommon<BSplineCoreColor> &color,
                    const std::initializer_list<
                        std::array<torch::Tensor, BSplineCore::parDim_>> &xi,
                    const nlohmann::json &json = {}) const {
 
+#ifdef IGANET_WITH_MATPLOT
     auto f = plot<Backend>(color, json);
     auto ax = f->current_axes();
 
@@ -7473,6 +7554,10 @@ public:
         throw std::runtime_error("Invalid parametric dimension");
     }
     return f;
+#else
+    throw std::runtime_error(
+        "This functions must be compiled with -DIGANET_WITH_MATPLOT turned on");
+#endif
   }
 
   /// @brief Returns a string representation of the BSplineCommon object

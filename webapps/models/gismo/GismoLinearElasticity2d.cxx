@@ -1,7 +1,7 @@
 /**
-   @file webapps/models/gismo/GismoPoisson2d.cxx
+   @file webapps/models/gismo/GismoLinearElasticity2d.cxx
 
-   @brief G+Smo Poisson solver in 2d
+   @brief G+Smo Linear elasticity solver in 2d
 
    @author Matthias Moller
 
@@ -15,7 +15,7 @@
 #include <jit.hpp>
 #include <modelmanager.hpp>
 
-#include <GismoPoissonModel.hpp>
+#include <GismoLinearElasticityModel.hpp>
 
 #ifdef _WIN32
 extern "C" __declspec(dllexport)
@@ -29,7 +29,7 @@ extern "C"
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wreturn-type-c-linkage"
 
-  /// @brief Create a G+Smo Poisson solver
+  /// @brief Create a G+Smo Linear elasticity solver
   std::shared_ptr<iganet::Model> create(const nlohmann::json &json) {
     std::array<iganet::short_t, 2> degrees = {1, 1};
     std::array<int64_t, 2> ncoeffs = {4, 4};
@@ -48,8 +48,8 @@ extern "C"
     }
 
     return std::make_shared<
-        iganet::webapp::GismoPoissonModel<2, iganet::real_t>>(degrees, ncoeffs,
-                                                              npatches);
+        iganet::webapp::GismoLinearElasticityModel<2, iganet::real_t>>(
+        degrees, ncoeffs, npatches);
   }
 
 #pragma GCC diagnostic pop

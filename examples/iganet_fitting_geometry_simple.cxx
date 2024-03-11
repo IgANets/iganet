@@ -1,14 +1,16 @@
 /**
-   @file examples/iganet_fitting_simple.cxx
+   @file examples/iganet_fitting_geometry_simple.cxx
 
-   @brief Demonstration of IgANet function fitting
+   @brief Demonstration of IgANet function fitting on a geometry loaded from a
+   file
 
    This example demonstrates how to implement a simple IgANet to fit a
-   given function on a square geometry. In contrast to the example
-   iganet_fitting.cxx this examples does not make use of pre-computed
-   indices and coefficients and might therefore be slower.
+   given function on a geometry loaded from a file. In contrast to the
+   example iganet_fitting_geometry.cxx this examples does not
+   make use of pre-computed indices and coefficients and might
+   therefore be slower.
 
-   @author Matthias Moller
+   @author Veronika Travnikova
 
    @copyright This file is part of the IgANet project
 
@@ -89,8 +91,14 @@ int main() {
   using optimizer_t = torch::optim::Adam;
   using real_t = double;
 
-  // Geometry: Bi-linear B-spline function space S2 (geoDim = 2, p = q = 1)
-  using geometry_t = iganet::S2<iganet::UniformBSpline<real_t, 2, 1, 1>>;
+  // Load XML file
+  pugi::xml_document xml;
+  xml.load_file(IGANET_DATA_DIR "surfaces/2d/geo02.xml");
+
+  // Bivariate uniform B-spline of degree 2 in both directions
+  // the type has to correspond to the respective geometry parameterization in
+  // the input file
+  using geometry_t = iganet::S2<iganet::UniformBSpline<real_t, 2, 2, 2>>;
 
   // Variable: Bi-quadratic B-spline function space S2 (geoDim = 1, p = q = 2)
   using variable_t = iganet::S2<iganet::UniformBSpline<real_t, 1, 2, 2>>;
@@ -105,10 +113,14 @@ int main() {
            {iganet::activation::sigmoid},
            {iganet::activation::sigmoid},
            {iganet::activation::none}},
-          // Number of B-spline coefficients of the geometry, just [0,1] x [0,1]
-          std::tuple(iganet::utils::to_array(2_i64, 2_i64)),
+          // Number of B-spline coefficients of the geometry, has to correspond
+          // to number of coefficients in input file
+          std::tuple(iganet::utils::to_array(25_i64, 25_i64)),
           // Number of B-spline coefficients of the variable
-          std::tuple(iganet::utils::to_array(10_i64, 10_i64)));
+          std::tuple(iganet::utils::to_array(30_i64, 30_i64)));
+
+  // Load geometry parameterization from XML
+  net.G().from_xml(xml);
 
   // Impose solution value for supervised training (not right-hand side)
   net.f().transform([](const std::array<real_t, 2> xi) {
@@ -137,11 +149,19 @@ int main() {
             << " seconds\n";
 
 #ifdef IGANET_WITH_MATPLOT
+  // Evaluate position of collocation points in physical domain
+  auto colPts = net.G().eval(net.collPts().first);
+
   // Plot the solution
-  net.G().plot(net.u(), net.collPts().first, json)->show();
+  net.G()
+      .plot(net.u(), std::array<torch::Tensor, 2>{*colPts[0], *colPts[1]}, json)
+      ->show();
 
   // Plot the difference between the solution and the reference data
-  net.G().plot(net.u().abs_diff(net.f()), net.collPts().first, json)->show();
+  net.G()
+      .plot(net.u().abs_diff(net.f()),
+            std::array<torch::Tensor, 2>{*colPts[0], *colPts[1]}, json)
+      ->show();
 #endif
 
 #ifdef IGANET_WITH_GISMO

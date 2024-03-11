@@ -23,16 +23,14 @@ class IgANet : public iganet::IgANet<Optimizer, GeometryMap, Variable> {
 private:
   using Base = iganet::IgANet<Optimizer, GeometryMap, Variable>;
 
+  typename Base::variable_collPts_type collPts_;
+
 public:
   using iganet::IgANet<Optimizer, GeometryMap, Variable>::IgANet;
 
-  iganet::status epoch(int64_t epoch) override { return iganet::status(0); }
+  bool epoch(int64_t epoch) override { return false; }
 
-  torch::Tensor
-  loss(const torch::Tensor &outputs,
-       const typename Base::geometryMap_collPts_type &geometryMap_collPts,
-       const typename Base::variable_collPts_type &variable_collPts,
-       int64_t epoch, iganet::status status) override {
+  torch::Tensor loss(const torch::Tensor &outputs, int64_t epoch) override {
     return torch::zeros({1});
   }
 };

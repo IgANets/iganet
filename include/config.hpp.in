@@ -14,6 +14,12 @@
 
 #pragma once
 
+/// @brief IgANet version
+#define IGANET_VERSION    "@iganet_VERSION@"
+#define IGANET_MAJOR      @iganet_VERSION_MAJOR@
+#define IGANET_MINOR      @iganet_VERSION_MINOR@
+#define IGANET_PATCH      @iganet_VERSION_PATCH@
+
 /// @brief Compile with G+Smo enabled
 #cmakedefine IGANET_WITH_GISMO
 

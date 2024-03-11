@@ -24,6 +24,9 @@
 #include <omp.h>
 #endif
 
+#include <torch/csrc/api/include/torch/types.h>
+#include <torch/torch.h>
+
 #ifdef IGANET_WITH_GISMO
 #include <gismo.h>
 #endif
@@ -42,8 +45,7 @@
 #endif
 #endif
 
-#include <torch/csrc/api/include/torch/types.h>
-#include <torch/torch.h>
+#include <sysinfo.hpp>
 
 namespace iganet {
 
@@ -85,10 +87,8 @@ inline void init(std::ostream &os = std::clog) {
   // Set number of interop thread pool threads
   at::set_num_interop_threads(getenv("IGANET_INTEROP_NUM_THREADS", 1));
 
-  os << "LibTorch version: " << TORCH_VERSION_MAJOR << "."
-     << TORCH_VERSION_MINOR << "." << TORCH_VERSION_PATCH
-     << " (#intraop threads: " << at::get_num_threads()
-     << ", #interop threads: " << at::get_num_interop_threads() << ")\n";
+  // Output version information
+  os << getVersion();
 }
 
 /// Stream manipulator

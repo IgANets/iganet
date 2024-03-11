@@ -1,16 +1,31 @@
 # Build stage
 FROM ubuntu:22.04 as build-stage
 
+# IgANet components
 ARG IGANET_BUILD_EXAMPLES=OFF
 ARG IGANET_BUILD_PCH=OFF
 ARG IGANET_BUILD_PERFTESTS=OFF
 ARG IGANET_BUILD_UNITTESTS=OFF
 ARG IGANET_BUILD_WEBAPPS=ON
-ARG IGANET_WITH_GISMO=OFF
+
+# IgANet options
+ARG IGANET_WITH_GISMO=ON
 ARG IGANET_WITH_LIBUV=OFF
 ARG IGANET_WITH_MATPLOT=OFF
 ARG IGANET_WITH_OPENMP=ON
 ARG IGANET_WITH_OPENSSL=ON
+
+# IgANet configuration
+ARG IGANET_PERFTESTS_COEFF_TYPE=float
+ARG IGANET_UNITTESTS_COEFF_TYPE=float
+ARG IGANET_WEBAPPS_COEFF_TYPE=double
+
+# Docker configurations
+ARG CMAKE_VERSION=3.27.7
+ARG CMAKE_OS=linux
+ARG CMAKE_ARCH=x86_64
+ARG LIBTORCH_VERSION=2.2.1
+ARG NJOBS=1
 
 # Install dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -26,9 +41,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         unzip
 
 # Install CMake
-ARG CMAKE_VERSION=3.27.7
-ARG CMAKE_OS=linux
-ARG CMAKE_ARCH=x86_64
 WORKDIR /opt
 RUN curl -fsSL --insecure -o cmake-${CMAKE_VERSION}-${CMAKE_OS}-${CMAKE_ARCH}.tar.gz https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-${CMAKE_OS}-${CMAKE_ARCH}.tar.gz \
         && tar xvzf cmake-${CMAKE_VERSION}-${CMAKE_OS}-${CMAKE_ARCH}.tar.gz \
@@ -37,7 +49,7 @@ RUN curl -fsSL --insecure -o cmake-${CMAKE_VERSION}-${CMAKE_OS}-${CMAKE_ARCH}.ta
 ENV PATH="$PATH:/opt/cmake-${CMAKE_VERSION}-${CMAKE_OS}-${CMAKE_ARCH}/bin"
 
 # Install LibTorch
-ARG LIBTORCH_URL=https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.1.0%2Bcpu.zip
+ARG LIBTORCH_URL=https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-${LIBTORCH_VERSION}%2Bcpu.zip
 WORKDIR /opt
 RUN curl -fsSL --insecure -o libtorch.zip ${LIBTORCH_URL} \
         && unzip -q libtorch.zip \
@@ -46,6 +58,11 @@ RUN curl -fsSL --insecure -o libtorch.zip ${LIBTORCH_URL} \
 # Install IgANet
 WORKDIR /opt/iganet
 COPY ./ .
+
+RUN rm -f /opt/iganet/webapps/models/Poisson2d.cxx
+RUN rm -f /opt/iganet/webapps/models/gismo/GismoLinearElasticity2d.cxx
+RUN rm -f /opt/iganet/webapps/models/gismo/GismoLinearElasticity3d.cxx
+
 WORKDIR /opt/iganet/build
 RUN rm -rf * \
         && CC=clang CXX=clang++ cmake /opt/iganet \
@@ -60,7 +77,10 @@ RUN rm -rf * \
         -DIGANET_WITH_MATPLOT=$IGANET_WITH_MATPLOT \
         -DIGANET_WITH_OPENMP=$IGANET_WITH_OPENMP \
         -DIGANET_WITH_OPENSSL=$IGANET_WITH_OPENSSL \
-        && make
+        -DIGANET_PERFTESTS_COEFF_TYPE=$IGANET_PERFTESTS_COEFF_TYPE \
+        -DIGANET_UNITTESTS_COEFF_TYPE=$IGANET_UNITTESTS_COEFF_TYPE \
+        -DIGANET_WEBAPPS_COEFF_TYPE=$IGANET_WEBAPPS_COEFF_TYPE \
+        && make -j ${NJOBS}
 
 # Production stage
 FROM ubuntu:22.04 as production-stage
@@ -80,12 +100,12 @@ COPY --from=build-stage /opt/iganet/build/webapps/*.hpp /opt/iganet/webapps/
 COPY --from=build-stage /opt/iganet/build/webapps/models/*.hpp /opt/iganet/webapps/models/
 COPY --from=build-stage /opt/iganet/build/webapps/models/lib* /opt/iganet/webapps/models/
 COPY --from=build-stage /opt/iganet/build/webapps/server /opt/iganet/webapps/
-COPY --from=build-stage /opt/iganet/include/*.cuh /opt/iganet/include/
 COPY --from=build-stage /opt/iganet/include/*.h /opt/iganet/include/
 COPY --from=build-stage /opt/iganet/include/*.hpp /opt/iganet/include/
 COPY --from=build-stage /opt/iganet/include/utils/*.hpp /opt/iganet/include/utils/
 COPY --from=build-stage /opt/iganet/webapps/*.hpp /opt/iganet/webapps/
 COPY --from=build-stage /opt/iganet/webapps/models/*.hpp /opt/iganet/webapps/models/
+COPY --from=build-stage /opt/iganet/webapps/models/gismo/*.hpp /opt/iganet/webapps/models/gismo
 
 # Copy SSL files and server configuration
 COPY ./cert.pem /opt/iganet/webapps/
@@ -93,5 +113,5 @@ COPY ./key.pem /opt/iganet/webapps/
 COPY ./webapps/config/server.cfg /opt/iganet/webapps/
 
 # Start server
-WORKDIR /opt/iganet
-ENTRYPOINT ["/opt/iganet/webapps/server", "-k", "/opt/iganet/webapps/key.pem", "-c", "/opt/iganet/webapps/cert.pem", "-f", "/opt/iganet/webapps/server.cfg", "-p", "9001"]
+WORKDIR /opt/iganet/webapps
+ENTRYPOINT ["/opt/iganet/webapps/server", "-k", "/opt/iganet/webapps/key.pem", "-c", "/opt/iganet/webapps/cert.pem", "-f", "/opt/iganet/webapps/server.cfg", "-p", "9001", "-t", "1"]

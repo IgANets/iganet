@@ -45,31 +45,31 @@ public:
   std::string getDescription() const override { return "Poisson 2d model"; }
 
   /// @brief Returns the model's options
-  std::string getOptions() const override { return "[]"; }
+  nlohmann::json getOptions() const override { return R"([])"_json; }
 
   /// @brief Returns the model's inputs
-  std::string getInputs() const override { return "[]"; }
+  nlohmann::json getInputs() const override { return R"([])"_json; }
 
   /// @brief Returns the model's outputs
-  std::string getOutputs() const override { return "[]"; }
+  nlohmann::json getOutputs() const override { return R"([])"_json; }
 
   /// @brief Serializes the model to JSON
   nlohmann::json to_json(const std::string &component,
                          const std::string &attribute) const override {
-    return "\"reason\" : \"Not implemented yet\"";
+    return R"({ "reason" : "Not implemented yet" })"_json;
   }
 
   /// @brief Updates the attrbutes of the model
   nlohmann::json updateAttribute(const std::string &component,
                                  const std::string &attribute,
                                  const nlohmann::json &json) override {
-    return "\"reason\" : \"Not implemented yet\"";
+    return R"({ "reason" : "Not implemented yet" })"_json;
   }
 
   /// @brief Evaluates the model
   nlohmann::json eval(const std::string &component,
                       const nlohmann::json &json) const override {
-    return "\"reason\" : \"Not implemented yet\"";
+    return R"({ "reason" : "Not implemented yet" })"_json;
   }
 
   /// @brief Refines the model
@@ -80,7 +80,7 @@ public:
 
   /// @brief Saves model to LibTorch file
   nlohmann::json save() const override {
-    return "\"reason\" : \"Not implemented yet\"";
+    return R"({ "reason" : "Not implemented yet" })"_json;
   }
 
   /// @brief Imports the model from XML (as JSON object)
@@ -93,7 +93,7 @@ public:
 
   /// @brief Exports the model to XML (as JSON object)
   nlohmann::json exportXML(const std::string &component, int id) override {
-    return "\"reason\" : \"Not implemented yet\"";
+    return R"({ "reason" : "Not implemented yet" })"_json;
   }
 
   /// @brief Exports the model to XML (as XML object)
