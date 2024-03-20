@@ -1055,7 +1055,7 @@ public:
       // Update the parameters based on the calculated gradients
       opt_.step(closure);
 
-      Log(log::verbose) << loss.template item<typename Base::value_type>()
+      Log(log::info) << loss.template item<typename Base::value_type>()
                         << std::endl;
 
       if (loss.template item<typename Base::value_type>() <
@@ -1065,6 +1065,11 @@ public:
                        << std::endl;
         break;
       }
+      // Print final loss value upon training end even if it's not 
+      // less than minimal loss
+      Log(log::info) << "Total epochs: " << epoch << ", loss: "
+                       << loss.template item<typename Base::value_type>()
+                       << std::endl;
     }
   }
 
