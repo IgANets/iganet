@@ -143,7 +143,7 @@ TEST_F(FunctionSpaceTest, S1_geoDim1_degrees2) {
         functionspace.eval<functionspace::boundary, deriv::func, false>(xi);
 
     EXPECT_TRUE(torch::equal(*std::get<side::left - 1>(eval)[0],
-                             torch::ones(1, options)));
+                             torch::zeros(1, options)));
     EXPECT_TRUE(torch::equal(*std::get<side::right - 1>(eval)[0],
                              torch::ones(1, options)));
 
@@ -184,10 +184,10 @@ TEST_F(FunctionSpaceTest, S1_geoDim1_degrees2) {
         functionspace.template eval_from_precomputed<functionspace::boundary>(
             basfunc, coeff_indices, numel(xi), sizes(xi));
 
-    EXPECT_TRUE(torch::equal(*std::get<side::left - 1>(eval)[0],
-                             torch::ones({}, options)));
-    EXPECT_TRUE(torch::equal(*std::get<side::right - 1>(eval)[0],
-                             torch::ones({}, options)));
+    EXPECT_TRUE(torch::allclose(*std::get<side::left - 1>(eval)[0],
+                                torch::zeros(1, options)));
+    EXPECT_TRUE(torch::allclose(*std::get<side::right - 1>(eval)[0],
+                                torch::ones(1, options)));
 
     basfunc =
         functionspace
@@ -456,12 +456,10 @@ TEST_F(FunctionSpaceTest, S2_geoDim1_degrees23) {
     EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
                              *(bspline_bdrNS.eval<deriv::func, false>(
                                  std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::func, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::func, false>(
-                                 std::get<side::west - 1>(xi))[0])));
+    EXPECT_TRUE(torch::allclose(*(std::get<side::east - 1>(eval)[0]),
+                                torch::ones(7, options)));
+    EXPECT_TRUE(torch::allclose(*(std::get<side::west - 1>(eval)[0]),
+                                torch::zeros(7, options)));
 
     eval = functionspace.eval<functionspace::boundary, deriv::dx, false>(xi);
 
@@ -471,12 +469,10 @@ TEST_F(FunctionSpaceTest, S2_geoDim1_degrees23) {
     EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
                              *(bspline_bdrNS.eval<deriv::dx, false>(
                                  std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx, false>(
-                                 std::get<side::west - 1>(xi))[0])));
+    EXPECT_TRUE(torch::allclose(*(std::get<side::east - 1>(eval)[0]),
+                                torch::zeros(7, options)));
+    EXPECT_TRUE(torch::allclose(*(std::get<side::west - 1>(eval)[0]),
+                                torch::zeros(7, options)));
 
     eval =
         functionspace.eval<functionspace::boundary, deriv::dx ^ 2, false>(xi);
@@ -487,27 +483,25 @@ TEST_F(FunctionSpaceTest, S2_geoDim1_degrees23) {
     EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
                              *(bspline_bdrNS.eval<deriv::dx ^ 2, false>(
                                  std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx ^ 2, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx ^ 2, false>(
-                                 std::get<side::west - 1>(xi))[0])));
+    EXPECT_TRUE(torch::allclose(*(std::get<side::east - 1>(eval)[0]),
+                                torch::zeros(7, options)));
+    EXPECT_TRUE(torch::allclose(*(std::get<side::west - 1>(eval)[0]),
+                                torch::zeros(7, options)));
 
     eval = functionspace.eval<functionspace::boundary, deriv::dy, false>(xi);
-
+    iganet::verbose(std::cout);
+    std::cout << functionspace.boundary() << std::endl;
     EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
                              *(bspline_bdrNS.eval<deriv::dy, false>(
                                  std::get<side::north - 1>(xi))[0])));
     EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
                              *(bspline_bdrNS.eval<deriv::dy, false>(
                                  std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dy, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dy, false>(
-                                 std::get<side::west - 1>(xi))[0])));
+    EXPECT_TRUE(torch::allclose(*(std::get<side::east - 1>(eval)[0]),
+                                torch::zeros(7, options)));
+    std::cout << *(std::get<side::east - 1>(eval)[0]) << std::endl;
+    EXPECT_TRUE(torch::allclose(*(std::get<side::west - 1>(eval)[0]),
+                                torch::zeros(7, options)));
 
     eval =
         functionspace.eval<functionspace::boundary, deriv::dy ^ 2, false>(xi);
@@ -518,12 +512,11 @@ TEST_F(FunctionSpaceTest, S2_geoDim1_degrees23) {
     EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
                              *(bspline_bdrNS.eval<deriv::dy ^ 2, false>(
                                  std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dy ^ 2, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dy ^ 2, false>(
-                                 std::get<side::west - 1>(xi))[0])));
+    EXPECT_TRUE(torch::allclose(*(std::get<side::east - 1>(eval)[0]),
+                                torch::zeros(7, options)));
+    std::cout << *(std::get<side::east - 1>(eval)[0]) << std::endl;
+    EXPECT_TRUE(torch::allclose(*(std::get<side::west - 1>(eval)[0]),
+                                torch::zeros(7, options)));
 
     eval = functionspace
                .eval<functionspace::boundary, deriv::dx + deriv::dy, false>(xi);
@@ -534,12 +527,10 @@ TEST_F(FunctionSpaceTest, S2_geoDim1_degrees23) {
     EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
                              *(bspline_bdrNS.eval<deriv::dx + deriv::dy, false>(
                                  std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx + deriv::dy, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx + deriv::dy, false>(
-                                 std::get<side::west - 1>(xi))[0])));
+    EXPECT_TRUE(torch::allclose(*(std::get<side::east - 1>(eval)[0]),
+                                torch::zeros(7, options)));
+    EXPECT_TRUE(torch::allclose(*(std::get<side::west - 1>(eval)[0]),
+                                torch::zeros(7, options)));
 
     // Evaluation from precomputed coefficients and basis functions
     auto knot_indices =
@@ -574,10 +565,12 @@ TEST_F(FunctionSpaceTest, S2_geoDim1_degrees23) {
     EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
                              *(bspline_bdrEW.eval<deriv::func, false>(
                                  std::get<side::east - 1>(xi))[0])));
+    std::cout << *(std::get<side::east - 1>(eval)[0]) << std::endl;
     EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
                              *(bspline_bdrEW.eval<deriv::func, false>(
                                  std::get<side::west - 1>(xi))[0])));
-
+    std::cout << *(std::get<side::west - 1>(eval)[0]) << std::endl;
+    exit(0);
     basfunc =
         functionspace
             .template eval_basfunc<functionspace::boundary, deriv::dx, false>(

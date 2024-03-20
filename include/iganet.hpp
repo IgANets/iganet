@@ -725,27 +725,6 @@ public:
     for (auto [layer, activation] : utils::zip(layers_, activations_))
       x = activation->apply(layer->forward(x));
 
-    // Skip connections
-    // x = torch::where(torch::linspace(1, x.size(0), x.size(0)) <= 7,
-    // x_in.index({torch::indexing::Slice(147, torch::indexing::None)}),
-    // x);
-
-    // x.view({7, 7}).index_put_({"...", 0},
-    //                           x_in.index({torch::indexing::Slice(147,
-    //                           154)}));
-    // x.view({7, 7}).index_put_({"...", -1},
-    //                           x_in.index({torch::indexing::Slice(154,
-    //                           161)}));
-    // x.view({7, 7}).index_put_({0, "..."},
-    //                           x_in.index({torch::indexing::Slice(161,
-    //                           168)}));
-    // x.view({7, 7}).index_put_({-1, "..."},
-    //                           x_in.index({torch::indexing::Slice(168,
-    //                           175)}));
-
-    // std::cout << x_in.index({torch::indexing::Slice(147,
-    // torch::indexing::None)});
-
     return x;
   }
 
@@ -912,7 +891,7 @@ public:
   }
 
   inline virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << "(\n";
 
     int i = 0;
@@ -998,9 +977,9 @@ public:
              iganet::Options<typename Base::value_type>{})
       : Base(geometryMap_splines, variable_splines, options),
         // Construct the deep neural network
-        net_(utils::concat(
-                 std::vector<int64_t>{inputs(/* epoch */ 0).size(0)}, layers,
-                 std::vector<int64_t>{Base::u_.as_tensor_size(false)}),
+        net_(utils::concat(std::vector<int64_t>{inputs(/* epoch */ 0).size(0)},
+                           layers,
+                           std::vector<int64_t>{Base::u_.as_tensor_size()}),
              activations),
 
         // Construct the optimizer
@@ -1037,8 +1016,7 @@ public:
   /// behavior can be changed by overriding this virtual function in
   /// a derived class.
   virtual torch::Tensor inputs(int64_t epoch) const {
-    return torch::cat(
-        {Base::G_.as_tensor(/* no boundary */ false), Base::f_.as_tensor()});
+    return torch::cat({Base::G_.as_tensor(), Base::f_.as_tensor()});
   }
 
   /// @brief Initializes epoch
@@ -1071,16 +1049,22 @@ public:
         // Compute gradients of the loss w.r.t. the model parameters
         loss.backward({}, true, false);
 
-        std::clog << loss.template item<typename Base::value_type>()
-                  << std::endl;
         return loss;
       };
 
       // Update the parameters based on the calculated gradients
       opt_.step(closure);
 
-      if (loss.template item<typename Base::value_type>() < options_.min_loss())
+      Log(log::verbose) << loss.template item<typename Base::value_type>()
+                        << std::endl;
+
+      if (loss.template item<typename Base::value_type>() <
+          options_.min_loss()) {
+        Log(log::info) << "Total epochs: " << epoch << ", loss: "
+                       << loss.template item<typename Base::value_type>()
+                       << std::endl;
         break;
+      }
     }
   }
 
@@ -1091,7 +1075,7 @@ public:
 
   /// @brief Returns a string representation of the IgANet object
   inline virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << name() << "(\n"
        << "net = " << net_ << "\n"
        << "G = " << Base::G_ << "\n"

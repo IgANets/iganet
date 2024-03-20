@@ -69,7 +69,7 @@ public:
     // Cast the network output (a raw tensor) into the proper
     // function-space format, i.e. B-spline objects for the interior
     // and boundary parts that can be evaluated.
-    Base::u_.from_tensor(outputs, false);
+    Base::u_.from_tensor(outputs);
 
     // Evaluate the loss function
     return torch::mse_loss(*Base::u_.eval(collPts_.first)[0],
@@ -79,7 +79,7 @@ public:
 
 int main() {
   iganet::init();
-  iganet::verbose(std::cout);
+  iganet::verbose(iganet::Log(iganet::log::info));
 
   nlohmann::json json;
   json["res0"] = 50;
@@ -130,11 +130,11 @@ int main() {
 
   // Stop time measurement
   auto t2 = std::chrono::high_resolution_clock::now();
-  std::cout << "Training took "
-            << std::chrono::duration_cast<std::chrono::duration<double>>(t2 -
-                                                                         t1)
-                   .count()
-            << " seconds\n";
+  iganet::Log(iganet::log::info)
+      << "Training took "
+      << std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1)
+             .count()
+      << " seconds\n";
 
 #ifdef IGANET_WITH_MATPLOT
   // Plot the solution
@@ -163,11 +163,12 @@ int main() {
   // Compute L2- and H2-error
   gsExprEvaluator<real_t> ev(A);
 
-  std::cout << "L2-error : "
-            << gismo::math::sqrt(ev.integral((u - f).sqNorm() * meas(G)))
-            << std::endl;
+  iganet::Log(iganet::log::info)
+      << "L2-error : "
+      << gismo::math::sqrt(ev.integral((u - f).sqNorm() * meas(G)))
+      << std::endl;
 
-  std::cout
+  iganet::Log(iganet::log::info)
       << "H1-error : "
       << gismo::math::sqrt(ev.integral(
              (gismo::expr::igrad(u, G) - gismo::expr::igrad(f, G)).sqNorm() *

@@ -17,31 +17,34 @@
 #include <iganet.h>
 #include <modelmanager.hpp>
 #include <popl.hpp>
-#include <thread>
 
+#include <chrono>
 #include <filesystem>
+#include <thread>
 
 namespace iganet {
 namespace webapp {
 
 /// @brief Enumerator for specifying the status
 enum class status : short_t {
-  success = 0,                  /*!<  request was handled successfully */
-  invalidRequest = 1,           /*!<  invalid request                  */
-  invalidCreateRequest = 2,     /*!<  invalid create request           */
-  invalidRemoveRequest = 3,     /*!<  invalid remove request           */
-  invalidConnectRequest = 4,    /*!<  invalid connect request          */
-  invalidDisconnectRequest = 5, /*!<  invalid disconnect request       */
-  invalidGetRequest = 6,        /*!<  invalid get request              */
-  invalidPutRequest = 7,        /*!<  invalid put request              */
-  invalidEvalRequest = 8,       /*!<  invalid eval request             */
-  invalidRefineRequest = 9,     /*!<  invalid refine request           */
-  invalidElevateRequest = 10,   /*!<  invalid degree elevate request   */
-  invalidIncreaseRequest = 11,  /*!<  invalid degree increase request  */
-  invalidLoadRequest = 12,      /*!<  invalid load request             */
-  invalidSaveRequest = 13,      /*!<  invalid save request             */
-  invalidImportRequest = 14,    /*!<  invalid import request           */
-  invalidExportRequest = 15     /*!<  invalid export request           */
+  success = 0,                       /*!<  request was handled successfully */
+  invalidRequest = 1,                /*!<  invalid request                  */
+  invalidCreateRequest = 2,          /*!<  invalid create request           */
+  invalidRemoveRequest = 3,          /*!<  invalid remove request           */
+  invalidConnectRequest = 4,         /*!<  invalid connect request          */
+  invalidDisconnectRequest = 5,      /*!<  invalid disconnect request       */
+  invalidGetRequest = 6,             /*!<  invalid get request              */
+  invalidPutRequest = 7,             /*!<  invalid put request              */
+  invalidEvalRequest = 8,            /*!<  invalid eval request             */
+  invalidRefineRequest = 9,          /*!<  invalid refine request           */
+  invalidElevateRequest = 10,        /*!<  invalid degree elevate request   */
+  invalidIncreaseRequest = 11,       /*!<  invalid degree increase request  */
+  invalidReparameterizeRequest = 12, /*!<  invalid reparameterize request   */
+  invalidLoadRequest = 13,           /*!<  invalid load request             */
+  invalidSaveRequest = 14,           /*!<  invalid save request             */
+  invalidImportRequest = 15,         /*!<  invalid import request           */
+  invalidExportRequest = 16,         /*!<  invalid export request           */
+  invalidComputeErrorRequest = 17    /*!<  invalid compute error request    */
 };
 
 /// @brief InvalidSessionId exception
@@ -75,14 +78,26 @@ private:
   /// @brief Session UUID
   const std::string uuid;
 
+  /// @brief Hashed password
+  const std::size_t hash;
+
+  /// @brief Creation time stamp
+  std::chrono::system_clock::time_point creation_time;
+
+  /// @brief Access time stamp
+  std::chrono::system_clock::time_point access_time;
+
 public:
   /// @brief Default constructor
-  Session() : uuid(iganet::utils::uuid::create()) {}
+  Session(std::size_t hash)
+      : uuid(iganet::utils::uuid::create()), hash(hash),
+        creation_time(std::chrono::system_clock::now()),
+        access_time(std::chrono::system_clock::now()) {}
 
   /// @brief Returns the UUID
   const std::string &getUUID() const { return uuid; }
 
-  /// Returns the requested model or throws an exception
+  /// @brief Returns the requested model or throws an exception
   std::shared_ptr<Model> getModel(int64_t id) {
     auto it = models.find(id);
     if (it == models.end())
@@ -91,7 +106,7 @@ public:
       return it->second;
   }
 
-  /// Returns the model and removes it from the list of models
+  /// @brief Returns the model and removes it from the list of models
   std::shared_ptr<Model> removeModel(int64_t id) {
     auto it = models.find(id);
     if (it == models.end())
@@ -102,6 +117,9 @@ public:
       return model;
     }
   }
+
+  /// @brief Updates the access time stamp
+  void access() { access_time = std::chrono::system_clock::now(); }
 
   /// @brief List of models
   std::map<int64_t, std::shared_ptr<Model>> models;
@@ -115,8 +133,10 @@ public:
     auto it = sessions.find(uuid);
     if (it == sessions.end())
       throw InvalidSessionIdException();
-    else
+    else {
+      it->second->access();
       return it->second;
+    }
   }
 
   /// @brief Returns the session and removes it from the list of sessions
@@ -477,7 +497,8 @@ int main(int argc, char const *argv[]) {
                                  }
 
                                  else
-                                   throw std::runtime_error("GET");
+                                   throw std::runtime_error(
+                                       "Invalid GET request");
 
                                } catch (...) {
                                  response["status"] =
@@ -570,7 +591,8 @@ int main(int argc, char const *argv[]) {
                                  }
 
                                  else
-                                   throw std::runtime_error("PUT");
+                                   throw std::runtime_error(
+                                       "Invalid PUT request");
 
                                } catch (...) {
                                  response["status"] =
@@ -602,9 +624,9 @@ int main(int argc, char const *argv[]) {
                                    //
 
                                    // Create a new session
-                                   auto session =
-                                       std::make_shared<iganet::webapp::Session<
-                                           iganet::real_t>>();
+                                   auto session = std::make_shared<
+                                       iganet::webapp::Session<iganet::real_t>>(
+                                       0);
                                    std::string uuid = session->getUUID();
                                    ws->getUserData()->sessions[uuid] = session;
                                    response["data"]["id"] = uuid;
@@ -656,7 +678,8 @@ int main(int argc, char const *argv[]) {
                                  }
 
                                  else
-                                   throw std::runtime_error("CREATE");
+                                   throw std::runtime_error(
+                                       "Invalid CREATE request");
 
                                } catch (...) {
                                  response["status"] = iganet::webapp::status::
@@ -728,7 +751,8 @@ int main(int argc, char const *argv[]) {
                                  }
 
                                  else
-                                   throw std::runtime_error("REMOVE");
+                                   throw std::runtime_error(
+                                       "Invalid REMOVE request");
 
                                } catch (...) {
                                  response["status"] = iganet::webapp::status::
@@ -773,7 +797,8 @@ int main(int argc, char const *argv[]) {
                                  }
 
                                  else
-                                   throw std::runtime_error("CONNECT");
+                                   throw std::runtime_error(
+                                       "Invalid CONNECT request");
 
                                } catch (...) {
                                  response["status"] = iganet::webapp::status::
@@ -814,7 +839,8 @@ int main(int argc, char const *argv[]) {
                                  }
 
                                  else
-                                   throw std::runtime_error("DISCONNECT");
+                                   throw std::runtime_error(
+                                       "Invalid DISCONNECT request");
 
                                } catch (...) {
                                  response["status"] = iganet::webapp::status::
@@ -871,7 +897,8 @@ int main(int argc, char const *argv[]) {
                                  }
 
                                  else
-                                   throw std::runtime_error("EVAL");
+                                   throw std::runtime_error(
+                                       "Invalid EVAL request");
 
                                } catch (...) {
                                  response["status"] =
@@ -954,7 +981,8 @@ int main(int argc, char const *argv[]) {
                                  }
 
                                  else
-                                   throw std::runtime_error("LOAD");
+                                   throw std::runtime_error(
+                                       "Invalid LOAD request");
 
                                } catch (...) {
                                  response["status"] =
@@ -1033,7 +1061,8 @@ int main(int argc, char const *argv[]) {
                                  }
 
                                  else
-                                   throw std::runtime_error("SAVE");
+                                   throw std::runtime_error(
+                                       "Invalid SAVE request");
 
                                } catch (...) {
                                  response["status"] =
@@ -1200,7 +1229,8 @@ int main(int argc, char const *argv[]) {
                                  }
 
                                  else
-                                   throw std::runtime_error("IMPORTXML");
+                                   throw std::runtime_error(
+                                       "Invalid IMPORTXML request");
 
                                } catch (...) {
                                  response["status"] = iganet::webapp::status::
@@ -1246,7 +1276,8 @@ int main(int argc, char const *argv[]) {
                                              iganet::ModelXML>(model.second))
                                        xml = m->exportXML(xml, "", model.first);
                                      else
-                                       throw std::runtime_error("EXPORTXML");
+                                       throw std::runtime_error(
+                                           "Invalid EXPORTXML request");
                                    }
                                    std::ostringstream oss;
                                    doc.save(oss);
@@ -1276,7 +1307,8 @@ int main(int argc, char const *argv[]) {
                                      response["data"]["xml"] =
                                          m->exportXML("", stoi(tokens[2]));
                                    else
-                                     throw std::runtime_error("EXPORTXML");
+                                     throw std::runtime_error(
+                                         "Invalid EXPORTXML request");
 
                                    ws->send(response.dump(), uWS::OpCode::TEXT,
                                             true);
@@ -1302,14 +1334,16 @@ int main(int argc, char const *argv[]) {
                                      response["data"]["xml"] = m->exportXML(
                                          tokens[3], stoi(tokens[2]));
                                    else
-                                     throw std::runtime_error("EXPORTXML");
+                                     throw std::runtime_error(
+                                         "Invalid EXPORTXML request");
 
                                    ws->send(response.dump(), uWS::OpCode::TEXT,
                                             true);
                                  }
 
                                  else
-                                   throw std::runtime_error("EXPORTXML");
+                                   throw std::runtime_error(
+                                       "Invalid EXPORTXML request");
 
                                } catch (...) {
                                  response["status"] = iganet::webapp::status::
@@ -1379,7 +1413,8 @@ int main(int argc, char const *argv[]) {
                                  }
 
                                  else
-                                   throw std::runtime_error("REFINE");
+                                   throw std::runtime_error(
+                                       "Invalid REFINE request");
 
                                } catch (...) {
                                  response["status"] = iganet::webapp::status::
@@ -1445,7 +1480,8 @@ int main(int argc, char const *argv[]) {
                                  }
 
                                  else
-                                   throw std::runtime_error("ELEVATE");
+                                   throw std::runtime_error(
+                                       "Invalid ELEVATE request");
 
                                } catch (...) {
                                  response["status"] = iganet::webapp::status::
@@ -1512,7 +1548,8 @@ int main(int argc, char const *argv[]) {
                                  }
 
                                  else
-                                   throw std::runtime_error("INCREASE");
+                                   throw std::runtime_error(
+                                       "Invalid INCREASE request");
 
                                } catch (...) {
                                  response["status"] = iganet::webapp::status::
@@ -1528,6 +1565,76 @@ int main(int argc, char const *argv[]) {
                                }
 
                              } // INCREASE
+
+                             else if (tokens[0] == "reparameterize") {
+                               //
+                               // request: reparameterize/*
+                               //
+
+                               try {
+
+                                 if (tokens.size() == 3) {
+                                   //
+                                   // request:
+                                   // reparameterize/<session-id>/<model-instance>
+                                   //
+
+                                   // Get session
+                                   auto session =
+                                       ws->getUserData()->getSession(tokens[1]);
+
+                                   // Get model
+                                   auto model =
+                                       session->getModel(stoi(tokens[2]));
+
+                                   // Reparameterize an existing model
+                                   if (auto m = std::dynamic_pointer_cast<
+                                           iganet::ModelReparameterize>(model))
+                                     m->reparameterize(request);
+                                   else {
+                                     response["status"] = iganet::webapp::
+                                         status::invalidReparameterizeRequest;
+                                     response["reason"] =
+                                         "Invalid REPARAMETERIZE request. "
+                                         "Valid REPARAMETERIZE "
+                                         "requests are "
+                                         "\"reparameterize/<session-id>/"
+                                         "<model-instance>\"";
+                                   }
+                                   ws->send(response.dump(), uWS::OpCode::TEXT,
+                                            true);
+
+                                   // Broadcast reparameterization of model
+                                   // instance
+                                   nlohmann::json broadcast;
+                                   broadcast["id"] = session->getUUID();
+                                   broadcast["request"] =
+                                       "reparameterization/instance";
+                                   broadcast["data"]["id"] = stoi(tokens[2]);
+                                   ws->publish(session->getUUID(),
+                                               broadcast.dump(),
+                                               uWS::OpCode::TEXT);
+                                 }
+
+                                 else
+                                   throw std::runtime_error(
+                                       "Invalid REPARAMETERIZE request");
+
+                               } catch (...) {
+                                 response["status"] = iganet::webapp::status::
+                                     invalidReparameterizeRequest;
+                                 response["reason"] =
+                                     "Invalid REPARAMETERIZE request. Valid "
+                                     "REPARAMETERIZE "
+                                     "requests "
+                                     "are "
+                                     "\"reparameterize/<session-id>/"
+                                     "<model-instance>\"";
+                                 ws->send(response.dump(), uWS::OpCode::TEXT,
+                                          true);
+                               }
+
+                             } // REPARAMETERIZE
 
                              else {
                                response["status"] =

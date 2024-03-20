@@ -18,8 +18,14 @@ namespace iganet {
 
 /// @brief Enumerator for the collocation point specifier
 enum class collPts : short_t {
-  greville = 0,         /*!< Greville points */
-  greville_interior = 1 /*!< Greville points in the interior */
+  greville = 0,          /*!< Greville points */
+  greville_interior = 1, /*!< Greville points in the interior */
+  greville_ref1 = 2,     /*!< Greville points, once refined */
+  greville_interior_ref1 =
+      3,             /*!< Greville points in the interior, once refined */
+  greville_ref2 = 4, /*!< Greville points, twice refined */
+  greville_interior_ref2 =
+      5, /*!< Greville points in the interior, twice refined */
 };
 
 /// @brief IgA base class
@@ -158,6 +164,62 @@ private:
        ...);
       break;
 
+    case collPts::greville_ref1:
+      // Get Greville abscissae inside the domain and at the boundary
+      ((std::get<Is>(collPts_.first) =
+            std::get<Is>(G_).clone().uniform_refine().greville(
+                /* interior */ false)),
+       ...);
+
+      // Get Greville abscissae at the domain
+      ((std::get<Is>(collPts_.second) =
+            std::get<Is>(G_.boundary()).clone().uniform_refine().greville()),
+       ...);
+      break;
+
+    case collPts::greville_interior_ref1:
+      // Get Greville abscissae inside the domain
+      ((std::get<Is>(collPts_.first) =
+            std::get<Is>(G_).clone().uniform_refine().greville(
+                /* interior */ true)),
+       ...);
+
+      // Get Greville abscissae at the domain
+      ((std::get<Is>(collPts_.second) =
+            std::get<Is>(G_.boundary()).clone().uniform_refine().greville()),
+       ...);
+      break;
+
+    case collPts::greville_ref2:
+      // Get Greville abscissae inside the domain and at the boundary
+      ((std::get<Is>(collPts_.first) =
+            std::get<Is>(G_).clone().uniform_refine(2, -1).greville(
+                /* interior */ false)),
+       ...);
+
+      // Get Greville abscissae at the domain
+      ((std::get<Is>(collPts_.second) = std::get<Is>(G_.boundary())
+                                            .clone()
+                                            .uniform_refine(2, -1)
+                                            .greville()),
+       ...);
+      break;
+
+    case collPts::greville_interior_ref2:
+      // Get Greville abscissae inside the domain
+      ((std::get<Is>(collPts_.first) =
+            std::get<Is>(G_).clone().uniform_refine(2, -1).greville(
+                /* interior */ true)),
+       ...);
+
+      // Get Greville abscissae at the domain
+      ((std::get<Is>(collPts_.second) = std::get<Is>(G_.boundary())
+                                            .clone()
+                                            .uniform_refine(2, -1)
+                                            .greville()),
+       ...);
+      break;
+
     default:
       throw std::runtime_error("Invalid collocation point specifier");
     }
@@ -200,6 +262,62 @@ private:
        ...);
       break;
 
+    case collPts::greville_ref1:
+      // Get Greville abscissae inside the domain and at the boundary
+      ((std::get<Is>(collPts_.first) =
+            std::get<Is>(f_).clone().uniform_refine().greville(
+                /* interior */ false)),
+       ...);
+
+      // Get Greville abscissae at the domain
+      ((std::get<Is>(collPts_.second) =
+            std::get<Is>(f_.boundary()).clone().uniform_refine().greville()),
+       ...);
+      break;
+
+    case collPts::greville_interior_ref1:
+      // Get Greville abscissae inside the domain and at the boundary
+      ((std::get<Is>(collPts_.first) =
+            std::get<Is>(f_).clone().uniform_refine().greville(
+                /* interior */ true)),
+       ...);
+
+      // Get Greville abscissae at the domain
+      ((std::get<Is>(collPts_.second) =
+            std::get<Is>(f_.boundary()).clone().uniform_refine().greville()),
+       ...);
+      break;
+
+    case collPts::greville_ref2:
+      // Get Greville abscissae inside the domain and at the boundary
+      ((std::get<Is>(collPts_.first) =
+            std::get<Is>(f_).clone().uniform_refine(2, -1).greville(
+                /* interior */ false)),
+       ...);
+
+      // Get Greville abscissae at the domain
+      ((std::get<Is>(collPts_.second) = std::get<Is>(f_.boundary())
+                                            .clone()
+                                            .uniform_refine(2, -1)
+                                            .greville()),
+       ...);
+      break;
+
+    case collPts::greville_interior_ref2:
+      // Get Greville abscissae inside the domain and at the boundary
+      ((std::get<Is>(collPts_.first) =
+            std::get<Is>(f_).clone().uniform_refine(2, -1).greville(
+                /* interior */ true)),
+       ...);
+
+      // Get Greville abscissae at the domain
+      ((std::get<Is>(collPts_.second) = std::get<Is>(f_.boundary())
+                                            .clone()
+                                            .uniform_refine(2, -1)
+                                            .greville()),
+       ...);
+      break;
+
     default:
       throw std::runtime_error("Invalid collocation point specifier");
     }
@@ -216,7 +334,7 @@ public:
   /// function in a derived class.
   virtual geometryMap_collPts_type
   geometryMap_collPts(enum collPts collPts) const {
-    if constexpr (GeometryMap::dim() == 1)
+    if constexpr (GeometryMap::nspaces() == 1)
 
       switch (collPts) {
 
@@ -226,13 +344,29 @@ public:
       case collPts::greville_interior:
         return {G_.greville(/* interior */ true), G_.boundary().greville()};
 
+      case collPts::greville_ref1:
+        return {G_.clone().uniform_refine().greville(/* interior */ false),
+                G_.clone().uniform_refine().boundary().greville()};
+
+      case collPts::greville_interior_ref1:
+        return {G_.clone().uniform_refine().greville(/* interior */ true),
+                G_.clone().uniform_refine().boundary().greville()};
+
+      case collPts::greville_ref2:
+        return {G_.clone().uniform_refine(2, -1).greville(/* interior */ false),
+                G_.clone().uniform_refine(2, -1).boundary().greville()};
+
+      case collPts::greville_interior_ref2:
+        return {G_.clone().uniform_refine(2, -1).greville(/* interior */ true),
+                G_.clone().uniform_refine(2, -1).boundary().greville()};
+
       default:
         throw std::runtime_error("Invalid collocation point specifier");
       }
 
     else
       return geometryMap_collPts(
-          collPts, std::make_index_sequence<GeometryMap::dim()>{});
+          collPts, std::make_index_sequence<GeometryMap::nspaces()>{});
   }
 
   /// @brief Returns the variable collocation points
@@ -242,7 +376,7 @@ public:
   /// faces. This behavior can be changed by overriding this virtual
   /// function in a derived class.
   virtual variable_collPts_type variable_collPts(enum collPts collPts) const {
-    if constexpr (Variable::dim() == 1)
+    if constexpr (Variable::nspaces() == 1)
 
       switch (collPts) {
 
@@ -252,13 +386,29 @@ public:
       case collPts::greville_interior:
         return {f_.greville(/* interior */ true), f_.boundary().greville()};
 
+      case collPts::greville_ref1:
+        return {f_.clone().uniform_refine().greville(/* interior */ false),
+                f_.boundary().clone().uniform_refine().greville()};
+
+      case collPts::greville_interior_ref1:
+        return {f_.clone().uniform_refine().greville(/* interior */ true),
+                f_.clone().uniform_refine().boundary().greville()};
+
+      case collPts::greville_ref2:
+        return {f_.clone().uniform_refine(2, -1).greville(/* interior */ false),
+                f_.boundary().clone().uniform_refine(2, -1).greville()};
+
+      case collPts::greville_interior_ref2:
+        return {f_.clone().uniform_refine(2, -1).greville(/* interior */ true),
+                f_.clone().uniform_refine(2, -1).boundary().greville()};
+
       default:
         throw std::runtime_error("Invalid collocation point specifier");
       }
 
     else
       return variable_collPts(collPts,
-                              std::make_index_sequence<Variable::dim()>{});
+                              std::make_index_sequence<Variable::nspaces()>{});
   }
 };
 

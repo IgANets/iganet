@@ -75,7 +75,7 @@ public:
   }
 
   /// @brief Returns a string representation of the memory debugger
-  inline void pretty_print(std::ostream &os = std::cout) const {
+  inline void pretty_print(std::ostream &os = Log(log::info)) const {
     using namespace std::literals;
 
     os << "Memory debugger (ID=" << std::to_string(id) << ")\n";

@@ -2008,7 +2008,7 @@ TEST_F(BoundaryTest, Boundary_requires_grad) {
     // this functions only accepts one tuple as argument whereas here
     // both values and xi need to be passed
     check_requires_grad(
-        std::make_index_sequence<iganet::Boundary<BSpline>::sides()>{}, values,
+        std::make_index_sequence<iganet::Boundary<BSpline>::nsides()>{}, values,
         xi, options);
   }
 
@@ -2043,7 +2043,7 @@ TEST_F(BoundaryTest, Boundary_requires_grad) {
     // this functions only accepts one tuple as argument whereas here
     // both values and xi need to be passed
     check_requires_grad_throw(
-        std::make_index_sequence<iganet::Boundary<BSpline>::sides()>{}, values,
+        std::make_index_sequence<iganet::Boundary<BSpline>::nsides()>{}, values,
         xi, options);
 
     xi = std::tuple{iganet::utils::to_tensorArray<real_t>(
@@ -2070,7 +2070,7 @@ TEST_F(BoundaryTest, Boundary_requires_grad) {
     // this functions only accepts one tuple as argument whereas here
     // both values and xi need to be passed
     check_requires_grad(
-        std::make_index_sequence<iganet::Boundary<BSpline>::sides()>{}, values,
+        std::make_index_sequence<iganet::Boundary<BSpline>::nsides()>{}, values,
         xi, options);
   }
 }

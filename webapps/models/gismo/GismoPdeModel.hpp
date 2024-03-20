@@ -159,7 +159,7 @@ public:
 
     else if constexpr (d == 3)
       return R"([{
-             "name" : "ncoeffs",
+             "name" : "npatches",
              "description" : "Number of patches per spatial dimension",
              "type" : ["int","int","int"],
              "value" : [1,1,1],
@@ -180,7 +180,7 @@ public:
 
     else if constexpr (d == 4)
       return R"([{
-             "name" : "ncoeffs",
+             "name" : "npatches",
              "description" : "Number of patches per spatial dimension",
              "type" : ["int","int","int","int"],
              "value" : [1,1,1,1],

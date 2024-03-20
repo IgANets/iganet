@@ -77,15 +77,19 @@ greville_kernel(torch::PackedTensorAccessor64<real_t, 1> greville,
 
 namespace iganet {
 
+//  clang-format off
 /// @brief Enumerator for specifying the initialization of B-spline coefficients
 enum class init : short_t {
   zeros = 0, /*!< set coefficient values to zero */
   ones = 1,  /*!< set coefficient values to one */
   linear =
       2, /*!< set coefficient values to \f$0,1,\dots \#\text{coeffs}-1\f$ */
-  random = 3,  /*!< set coefficient values to random numbers */
-  greville = 4 /*!< set coefficient values to the Greville abscissae */
+  random = 3,   /*!< set coefficient values to random numbers */
+  greville = 4, /*!< set coefficient values to the Greville abscissae */
+  linspace = 5  /*!< set coefficient values to \f$0,1,\dots\f$ pattern (mostly
+                   for testing) */
 };
+//  clang-format on
 
 /// @brief Enumerator for specifying the derivative of B-spline evaluation
 ///
@@ -621,18 +625,6 @@ private:
     return torch::cat({coeffs_[Is]...});
   }
 
-  /// @brief Sets all coefficients from a single tensor
-  ///
-  /// @result Updates spline object
-  template <std::size_t... Is>
-  inline UniformBSplineCore &from_tensor_(std::index_sequence<Is...>,
-                                          const torch::Tensor &coeffs) {
-    ((coeffs_[Is] = coeffs.index({torch::indexing::Slice(
-          Is * ncumcoeffs(), (Is + 1) * ncumcoeffs())})),
-     ...);
-    return *this;
-  }
-
 public:
   /// @brief Returns all coefficients as a single tensor
   ///
@@ -641,18 +633,34 @@ public:
     return as_tensor_(std::make_index_sequence<geoDim_>{});
   }
 
+private:
+  /// @brief Sets all coefficients from a single tensor
+  ///
+  /// @result Updates spline object
+  template <std::size_t... Is>
+  inline UniformBSplineCore &from_tensor_(std::index_sequence<Is...>,
+                                          const torch::Tensor &tensor) {
+    ((coeffs_[Is] = tensor.index({torch::indexing::Slice(
+          Is * ncumcoeffs(), (Is + 1) * ncumcoeffs())})),
+     ...);
+    return *this;
+  }
+
+public:
+  /// @brief Sets all coefficients from a single tensor
+  ///
+  /// @param[in] tensor Tensor from which to extract the coefficients
+  ///
+  /// @result Updated spline object
+  inline UniformBSplineCore &from_tensor(const torch::Tensor &tensor) {
+    return from_tensor_(std::make_index_sequence<geoDim_>{}, tensor);
+  }
+
   /// @brief Returns the size of the single tensor representation of
   /// all coefficients
   //
   /// @result Size of the tensor
   inline int64_t as_tensor_size() const { return geoDim_ * ncumcoeffs(); }
-
-  /// @brief Sets all coefficients from a single tensor
-  ///
-  /// @result Updated spline object
-  inline UniformBSplineCore &from_tensor(const torch::Tensor &coeffs) {
-    return from_tensor_(std::make_index_sequence<geoDim_>{}, coeffs);
-  }
 
   /// @brief Returns the Greville abscissae
   ///
@@ -2971,6 +2979,17 @@ public:
         if (options_.requires_grad())
           coeffs_[i].retain_grad();
       }
+      break;
+    }
+
+    case (init::linspace): {
+
+      // Fill coefficients with increasing values
+      int64_t size = ncumcoeffs();
+      for (short_t i = 0; i < geoDim_; ++i)
+        coeffs_[i] = torch::linspace(
+            std::pow(10, i) * 0, std::pow(10, i) * (size - 1), size, options_);
+
       break;
     }
 
@@ -7562,7 +7581,7 @@ public:
 
   /// @brief Returns a string representation of the BSplineCommon object
   inline virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << name() << "(\nparDim = " << BSplineCore::parDim_
        << ", geoDim = " << BSplineCore::geoDim_ << ", degrees = ";
 
