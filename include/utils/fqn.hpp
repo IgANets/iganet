@@ -53,7 +53,7 @@ public:
 
   /// @brief Returns a string representation
   inline virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept = 0;
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept = 0;
 
 protected:
   /// @brief String storing the full qualified name of the object

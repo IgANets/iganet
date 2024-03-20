@@ -17,6 +17,8 @@
 #include <config.hpp>
 
 #include <array>
+#include <fstream>
+#include <iostream>
 #include <tuple>
 #include <vector>
 
@@ -59,6 +61,87 @@ inline int32_t operator""_i32(unsigned long long value) { return value; };
 inline int64_t operator""_i64(unsigned long long value) { return value; };
 } // namespace literals
 
+//  clang-format off
+/// @brief Enumerator for specifying the initialization of B-spline coefficients
+enum class log : short_t {
+  none = 0,    /*!< no logging */
+  fatal = 1,   /*!< log fatal errors */
+  error = 2,   /*!< log errors */
+  warning = 3, /*!< log warnings */
+  info = 4,    /*!< log information */
+  debug = 5,   /*!< log debug information */
+  verbose = 6  /*!< log everything */
+};
+//  clang-format on
+
+namespace logging {
+/// @brief Dummy stream buffer
+class NullStreamBuffer : public std::streambuf {
+public:
+  /// @brief Dummy output
+  int overflow(int c) override { return traits_type::not_eof(c); }
+};
+
+/// @brief Dummy output stream
+class NullOStream : public std::ostream {
+public:
+  /// @brief Constructor
+  NullOStream() : std::ostream(&nullStreamBuffer) {}
+
+private:
+  NullStreamBuffer nullStreamBuffer;
+};
+} // namespace logging
+
+/// @brief Logger
+struct {
+private:
+  /// @brief Output stream
+  std::ostream &outputStream = std::cout;
+
+  /// @brief Dummy output stream
+  logging::NullOStream nullStream;
+
+  /// @brief Output file
+  std::ofstream outputFile;
+
+  /// @brief Log level
+  enum log level = log::info;
+
+public:
+  /// @brief Sets the log level
+  void setLogLevel(enum log level) { this->level = level; }
+
+  /// @brief Sets the log file
+  void setLogFile(std::string filename) {
+    outputFile = std::ofstream(filename);
+    outputStream.rdbuf(outputFile.rdbuf());
+  }
+
+  /// @brief Returns the output stream
+  std::ostream &operator()(enum log level = log::info) {
+    if (this->level >= level)
+      switch (level) {
+      case (log::fatal):
+        return outputStream << "[FATAL ERROR] ";
+      case (log::error):
+        return outputStream << "[ERROR] ";
+      case (log::warning):
+        return outputStream << "[WARNING] ";
+      case (log::info):
+        return outputStream << "[INFO] ";
+      case (log::debug):
+        return outputStream << "[DEBUG] ";
+      case (log::verbose):
+        return outputStream << "[VERBOSE] ";
+      default:
+        return nullStream;
+      }
+    else
+      return nullStream;
+  }
+} Log;
+
 /// @brief Get environment variable
 template <typename T>
 inline T getenv(const std::string &variable_name, const T &default_value = {}) {
@@ -73,7 +156,7 @@ inline T getenv(const std::string &variable_name, const T &default_value = {}) {
 }
 
 /// @brief Initializes the library
-inline void init(std::ostream &os = std::clog) {
+inline void init(std::ostream &os = Log(log::info)) {
   torch::manual_seed(1);
 
   // Set number of intraop thread pool threads

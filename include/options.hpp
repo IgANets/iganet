@@ -155,7 +155,7 @@ public:
 
   /// @brief Returns a string representation of the Options object
   inline virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << name() << "(\noptions = " << options_ << "\n)";
   }
 

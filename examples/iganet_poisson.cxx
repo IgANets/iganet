@@ -19,6 +19,8 @@
 #include <iganet.h>
 #include <iostream>
 
+using namespace iganet::literals;
+
 /// @brief Specialization of the abstract IgANet class for Poisson's equation
 template <typename Optimizer, typename GeometryMap, typename Variable>
 class poisson
@@ -28,10 +30,6 @@ class poisson
 private:
   /// @brief Type of the base class
   using Base = iganet::IgANet<Optimizer, GeometryMap, Variable>;
-
-  /// @brief Constructor
-  template <typename... Args>
-  poisson(Args... args) : Base(args...), ref_(Base::u_.clone()) {}
 
   /// @brief Collocation points
   typename Base::variable_collPts_type collPts_;
@@ -58,8 +56,14 @@ private:
       G_coeff_indices_;
 
 public:
-  /// @brief Constructors from the base class
-  using iganet::IgANet<Optimizer, GeometryMap, Variable>::IgANet;
+  /// @brief Constructor
+  template <typename... Args>
+  poisson(std::vector<int64_t> &&layers,
+          std::vector<std::vector<std::any>> &&activations, Args &&...args)
+      : Base(std::forward<std::vector<int64_t>>(layers),
+             std::forward<std::vector<std::vector<std::any>>>(activations),
+             std::forward<Args>(args)...),
+        ref_(iganet::utils::to_array(10_i64, 10_i64)) {}
 
   /// @brief Returns a constant reference to the collocation points
   auto const &collPts() const { return collPts_; }
@@ -83,7 +87,7 @@ public:
     // not change the inputs nor the variable function space.
     if (epoch == 0) {
       Base::inputs(epoch);
-      collPts_ = Base::variable_collPts(iganet::collPts::greville);
+      collPts_ = Base::variable_collPts(iganet::collPts::greville_ref1);
 
       var_knot_indices_ =
           Base::f_.template find_knot_indices<iganet::functionspace::interior>(
@@ -114,7 +118,7 @@ public:
     // Cast the network output (a raw tensor) into the proper
     // function-space format, i.e. B-spline objects for the interior
     // and boundary parts that can be evaluated.
-    Base::u_.from_tensor(outputs, false);
+    Base::u_.from_tensor(outputs);
 
     // Evaluate the Laplacian operator
     auto u_ilapl =
@@ -124,57 +128,31 @@ public:
     auto f =
         Base::f_.eval(collPts_.first, var_knot_indices_, var_coeff_indices_);
 
+    auto u_bdr = Base::u_.template eval<iganet::functionspace::boundary>(
+        collPts_.second);
+
+    auto bdr =
+        ref_.template eval<iganet::functionspace::boundary>(collPts_.second);
+
     // Evaluate the loss function
-    return torch::mse_loss(*u_ilapl[0], *f[0]);
-
-    // auto loss_pde =
-    //     torch::mse_loss(*sol_ilaplace[0] + *sol_ilaplace[3], *rhs[0]);
-
-    // auto rhs = Base::f_.eval(variable_collPts.first);
-
-    // // Evaluate solution at the boundary
-    // auto bdr_pred = Base::u_.template eval<iganet::functionspace::boundary>(
-    //     variable_collPts.second);
-    // auto bdr_cond = Base::f_.template eval<iganet::functionspace::boundary>(
-    //     variable_collPts.second);
-
-    // // Evaluate boundary losses
-    // auto loss_bdr0 =
-    //     torch::mse_loss(*std::get<0>(bdr_pred)[0],
-    //     *std::get<0>(bdr_cond)[0]);
-    // auto loss_bdr1 =
-    //     torch::mse_loss(*std::get<1>(bdr_pred)[0],
-    //     *std::get<1>(bdr_cond)[0]);
-    // auto loss_bdr2 =
-    //     torch::mse_loss(*std::get<2>(bdr_pred)[0],
-    //     *std::get<2>(bdr_cond)[0]);
-    // auto loss_bdr3 =
-    //     torch::mse_loss(*std::get<3>(bdr_pred)[0],
-    //     *std::get<3>(bdr_cond)[0]);
-
-    // return torch::mse_loss(*Base::u_.eval(variable_collPts.first)[0],
-    //                          *rhs[0]) +
-    //          0 * (loss_bdr0 + loss_bdr1 + loss_bdr2 + loss_bdr3);
-
-    // // Evaluate pde loss
-    // auto sol_ilaplace = Base::u_.ihess(Base::G_, variable_collPts.first);
-    // auto loss_pde =
-    //     torch::mse_loss(*sol_ilaplace[0] + *sol_ilaplace[3], *rhs[0]);
-
-    // return loss_pde + 0 * (loss_bdr0 + loss_bdr1 + loss_bdr2 + loss_bdr3);
+    return torch::mse_loss(*u_ilapl[0], *f[0]) +
+           1e1 * torch::mse_loss(*std::get<0>(u_bdr)[0], *std::get<0>(bdr)[0]) +
+           1e1 * torch::mse_loss(*std::get<1>(u_bdr)[0], *std::get<1>(bdr)[0]) +
+           1e1 * torch::mse_loss(*std::get<2>(u_bdr)[0], *std::get<2>(bdr)[0]) +
+           1e1 * torch::mse_loss(*std::get<3>(u_bdr)[0], *std::get<3>(bdr)[0]);
   }
 };
 
 int main() {
   iganet::init();
-  iganet::verbose(std::cout);
+  iganet::verbose(iganet::Log(iganet::log::info));
 
   nlohmann::json json;
   json["res0"] = 50;
   json["res1"] = 50;
 
   using namespace iganet::literals;
-  using optimizer_t = torch::optim::Adam;
+  using optimizer_t = torch::optim::LBFGS;
   using real_t = double;
 
   using geometry_t = iganet::S2<iganet::UniformBSpline<real_t, 2, 1, 1>>;
@@ -182,12 +160,9 @@ int main() {
 
   poisson<optimizer_t, geometry_t, variable_t>
       net( // Number of neurons per layers
-          {50, 50, 50, 50, 50},
+          {120, 120},
           // Activation functions
           {{iganet::activation::sigmoid},
-           {iganet::activation::sigmoid},
-           {iganet::activation::sigmoid},
-           {iganet::activation::sigmoid},
            {iganet::activation::sigmoid},
            {iganet::activation::none}},
           // Number of B-spline coefficients of the geometry, just [0,1] x [0,1]
@@ -207,8 +182,29 @@ int main() {
     return std::array<real_t, 1>{sin(M_PI * xi[0]) * sin(M_PI * xi[1])};
   });
 
+  // Impose boundary conditions
+  net.ref().boundary().template side<1>().transform(
+      [](const std::array<real_t, 1> xi) {
+        return std::array<real_t, 1>{0.0};
+      });
+
+  net.ref().boundary().template side<2>().transform(
+      [](const std::array<real_t, 1> xi) {
+        return std::array<real_t, 1>{0.0};
+      });
+
+  net.ref().boundary().template side<3>().transform(
+      [](const std::array<real_t, 1> xi) {
+        return std::array<real_t, 1>{0.0};
+      });
+
+  net.ref().boundary().template side<4>().transform(
+      [](const std::array<real_t, 1> xi) {
+        return std::array<real_t, 1>{0.0};
+      });
+
   // Set maximum number of epoches
-  net.options().max_epoch(5000);
+  net.options().max_epoch(200);
 
   // Set tolerance for the loss functions
   net.options().min_loss(1e-8);
@@ -221,11 +217,11 @@ int main() {
 
   // Stop time measurement
   auto t2 = std::chrono::high_resolution_clock::now();
-  std::cout << "Training took "
-            << std::chrono::duration_cast<std::chrono::duration<double>>(t2 -
-                                                                         t1)
-                   .count()
-            << " seconds\n";
+  iganet::Log(iganet::log::info)
+      << "Training took "
+      << std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1)
+             .count()
+      << " seconds\n";
 
 #ifdef IGANET_WITH_MATPLOT
   // Plot the solution

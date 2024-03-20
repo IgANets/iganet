@@ -112,18 +112,36 @@ public:
       : bdr_({boundary_spline_type(std::array<int64_t, 0>{}, init, options),
               boundary_spline_type(std::array<int64_t, 0>{}, init, options)}) {}
 
+  /// @brief Sets the coefficients of all spline objects from a
+  /// single tensor that holds both boundary and inner coefficients
+  ///
+  /// @param[in] tensor Tensor from which to extract the coefficients
+  ///
+  /// @result Updates spline object
+  inline auto &from_full_tensor(const torch::Tensor &tensor) {
+
+    auto tensor_view = tensor.view({Spline::geoDim(), -1});
+
+    side<west>().from_tensor(
+        tensor_view.index({torch::indexing::Slice(), 0}).flatten());
+    side<east>().from_tensor(
+        tensor_view.index({torch::indexing::Slice(), -1}).flatten());
+
+    return *this;
+  }
+
   /// @brief Returns the number of sides
-  inline static constexpr short_t sides() { return side::east; }
+  inline static constexpr short_t nsides() { return side::east; }
 
   /// @brief Returns constant reference to side-th Spline
   template <short_t s> inline constexpr auto &side() const {
-    static_assert(s > none && s <= sides());
+    static_assert(s > none && s <= nsides());
     return std::get<s - 1>(bdr_);
   }
 
   /// @brief Returns non-constant reference to side-th Spline
   template <short_t s> inline constexpr auto &side() {
-    static_assert(s > none && s <= sides());
+    static_assert(s > none && s <= nsides());
     return std::get<s - 1>(bdr_);
   }
 
@@ -138,41 +156,40 @@ public:
   /// @brief Returns the total number of coefficients
   inline int64_t ncumcoeffs() const {
     int64_t s = 0;
-    s += std::get<west - 1>(bdr_).ncumcoeffs();
-    s += std::get<east - 1>(bdr_).ncumcoeffs();
+    s += side<west>().ncumcoeffs();
+    s += side<east>().ncumcoeffs();
 
     return s;
   }
 
   /// @brief Returns a string representation of the Boundary object
   inline virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << name() << "(\n"
-       << "west = " << std::get<west - 1>(bdr_) << "\n"
-       << "east = " << std::get<east - 1>(bdr_) << "\n)";
+       << "west = " << side<west>() << "\n"
+       << "east = " << side<east>() << "\n)";
   }
 
   /// @brief Returns the boundary object as JSON object
   inline nlohmann::json to_json() const override {
     nlohmann::json json;
-    json["west"] = std::get<west - 1>(bdr_).to_json();
-    json["east"] = std::get<east - 1>(bdr_).to_json();
+    json["west"] = side<west>().to_json();
+    json["east"] = side<east>().to_json();
 
     return json;
   }
 
   /// @brief Updates the boundary object from JSON object
   inline BoundaryCore &from_json(const nlohmann::json &json) {
-    std::get<west - 1>(bdr_).from_json(json["west"]);
-    std::get<east - 1>(bdr_).from_json(json["east"]);
+    side<west>().from_json(json["west"]);
+    side<east>().from_json(json["east"]);
 
     return *this;
   }
 
   /// @brief Returns the Greville abscissae
   inline eval_type greville() const {
-    return eval_type{std::get<west - 1>(bdr_).greville(),
-                     std::get<east - 1>(bdr_).greville()};
+    return eval_type{side<west>().greville(), side<east>().greville()};
   }
 };
 
@@ -285,18 +302,49 @@ public:
                       {kv[0]}),
                   init, options)}) {}
 
-  /// @brief Returns the number of sides
-  inline static constexpr short_t sides() { return side::north; }
+  /// @brief Sets the coefficients of all spline objects from a
+  /// single tensor that holds both boundary and inner coefficients
+  ///
+  /// @param[in] tensor Tensor from which to extract the coefficients
+  ///
+  /// @result Updates spline object
+  inline auto &from_full_tensor(const torch::Tensor &tensor) {
 
-  /// @brief Returns constant reference to side-th spline
+    auto tensor_view = tensor.view(
+        {Spline::geoDim(), side<west>().ncoeffs(0), side<south>().ncoeffs(0)});
+
+    side<west>().from_tensor(
+        tensor_view
+            .index({torch::indexing::Slice(), torch::indexing::Slice(), 0})
+            .flatten());
+    side<east>().from_tensor(
+        tensor_view
+            .index({torch::indexing::Slice(), torch::indexing::Slice(), -1})
+            .flatten());
+    side<south>().from_tensor(
+        tensor_view
+            .index({torch::indexing::Slice(), 0, torch::indexing::Slice()})
+            .flatten());
+    side<north>().from_tensor(
+        tensor_view
+            .index({torch::indexing::Slice(), -1, torch::indexing::Slice()})
+            .flatten());
+
+    return *this;
+  }
+
+  /// @brief Returns the number of sides
+  inline static constexpr short_t nsides() { return side::north; }
+
+  /// @brief Returns constant reference to the s-th side's spline
   template <short_t s> inline constexpr auto &side() const {
-    static_assert(s > none && s <= sides());
+    static_assert(s > none && s <= nsides());
     return std::get<s - 1>(bdr_);
   }
 
-  /// @brief Returns non-constant reference to side-th spline
+  /// @brief Returns non-constant reference to the s-th side's spline
   template <short_t s> inline constexpr auto &side() {
-    static_assert(s > none && s <= sides());
+    static_assert(s > none && s <= nsides());
     return std::get<s - 1>(bdr_);
   }
 
@@ -311,51 +359,49 @@ public:
   /// @brief Returns the total number of coefficients
   inline int64_t ncumcoeffs() const {
     int64_t s = 0;
-    s += std::get<west - 1>(bdr_).ncumcoeffs();
-    s += std::get<east - 1>(bdr_).ncumcoeffs();
-    s += std::get<south - 1>(bdr_).ncumcoeffs();
-    s += std::get<north - 1>(bdr_).ncumcoeffs();
+    s += side<west>().ncumcoeffs();
+    s += side<east>().ncumcoeffs();
+    s += side<south>().ncumcoeffs();
+    s += side<north>().ncumcoeffs();
 
     return s;
   }
 
   /// @brief Returns a string representation of the Boundary object
   inline virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << name() << "(\n"
-       << "west = " << std::get<west - 1>(bdr_) << "\n"
-       << "east = " << std::get<east - 1>(bdr_) << "\n"
-       << "south = " << std::get<south - 1>(bdr_) << "\n"
-       << "north = " << std::get<north - 1>(bdr_) << "\n)";
+       << "west = " << side<west>() << "\n"
+       << "east = " << side<east>() << "\n"
+       << "south = " << side<south>() << "\n"
+       << "north = " << side<north>() << "\n)";
   }
 
   /// @brief Returns the boundary object as JSON object
   inline nlohmann::json to_json() const override {
     nlohmann::json json;
-    json["west"] = std::get<west - 1>(bdr_).to_json();
-    json["east"] = std::get<east - 1>(bdr_).to_json();
-    json["south"] = std::get<south - 1>(bdr_).to_json();
-    json["north"] = std::get<north - 1>(bdr_).to_json();
+    json["west"] = side<west>().to_json();
+    json["east"] = side<east>().to_json();
+    json["south"] = side<south>().to_json();
+    json["north"] = side<north>().to_json();
 
     return json;
   }
 
   /// @brief Updates the boundary object from JSON object
   inline BoundaryCore &from_json(const nlohmann::json &json) {
-    std::get<west - 1>(bdr_).from_json(json["west"]);
-    std::get<east - 1>(bdr_).from_json(json["east"]);
-    std::get<south - 1>(bdr_).from_json(json["south"]);
-    std::get<north - 1>(bdr_).from_json(json["north"]);
+    side<west>().from_json(json["west"]);
+    side<east>().from_json(json["east"]);
+    side<south>().from_json(json["south"]);
+    side<north>().from_json(json["north"]);
 
     return *this;
   }
 
   /// @brief Returns the Greville abscissae
   inline eval_type greville() const {
-    return eval_type{std::get<west - 1>(bdr_).greville(),
-                     std::get<east - 1>(bdr_).greville(),
-                     std::get<south - 1>(bdr_).greville(),
-                     std::get<north - 1>(bdr_).greville()};
+    return eval_type{side<west>().greville(), side<east>().greville(),
+                     side<south>().greville(), side<north>().greville()};
   }
 };
 
@@ -500,20 +546,68 @@ public:
                       {kv[0], kv[1]}),
                   init, options)}) {}
 
+  /// @brief Sets the coefficients of all spline objects from a
+  /// single tensor that holds both boundary and inner coefficients
+  ///
+  /// @param[in] tensor Tensor from which to extract the coefficients
+  ///
+  /// @result Updates spline object
+  inline auto &from_full_tensor(const torch::Tensor &tensor) {
+
+    auto tensor_view =
+        tensor.view({Spline::geoDim(), side<west>().ncoeffs(1),
+                     side<west>().ncoeffs(0), side<south>().ncoeffs(0)});
+
+    side<west>().from_tensor(
+        tensor_view
+            .index({torch::indexing::Slice(), torch::indexing::Slice(),
+                    torch::indexing::Slice(), 0})
+            .flatten());
+    side<east>().from_tensor(
+        tensor_view
+            .index({torch::indexing::Slice(), torch::indexing::Slice(),
+                    torch::indexing::Slice(), -1})
+            .flatten());
+
+    side<south>().from_tensor(
+        tensor_view
+            .index({torch::indexing::Slice(), torch::indexing::Slice(), 0,
+                    torch::indexing::Slice()})
+            .flatten());
+    side<north>().from_tensor(
+        tensor_view
+            .index({torch::indexing::Slice(), torch::indexing::Slice(), -1,
+                    torch::indexing::Slice()})
+            .flatten());
+
+    side<front>().from_tensor(
+        tensor_view
+            .index({torch::indexing::Slice(), 0, torch::indexing::Slice(),
+                    torch::indexing::Slice()})
+            .flatten());
+    side<back>().from_tensor(
+        tensor_view
+            .index({torch::indexing::Slice(), -1, torch::indexing::Slice(),
+                    torch::indexing::Slice()})
+            .flatten());
+
+    return *this;
+  }
+
+  /// @brief Returns the number of sides
+  inline static constexpr short_t nsides() { return side::back; }
+
   /// @brief Returns constant reference to side-th spline
   template <short_t s> inline constexpr auto &side() const {
-    static_assert(s > none && s <= sides());
+    static_assert(s > none && s <= nsides());
     return std::get<s - 1>(bdr_);
   }
 
   /// @brief Returns non-constant reference to side-th spline
   template <short_t s> inline constexpr auto &side() {
-    static_assert(s > none && s <= sides());
+    static_assert(s > none && s <= nsides());
     return std::get<s - 1>(bdr_);
   }
-
-  /// @brief Returns the number of sides
-  inline static constexpr short_t sides() { return side::back; }
 
   /// @brief Returns a constant reference to the array of
   /// coefficients for all boundary segments.
@@ -526,61 +620,58 @@ public:
   /// @brief Returns the total number of coefficients
   inline int64_t ncumcoeffs() const {
     int64_t s = 0;
-    s += std::get<west - 1>(bdr_).ncumcoeffs();
-    s += std::get<east - 1>(bdr_).ncumcoeffs();
-    s += std::get<south - 1>(bdr_).ncumcoeffs();
-    s += std::get<north - 1>(bdr_).ncumcoeffs();
-    s += std::get<front - 1>(bdr_).ncumcoeffs();
-    s += std::get<back - 1>(bdr_).ncumcoeffs();
+    s += side<west>().ncumcoeffs();
+    s += side<east>().ncumcoeffs();
+    s += side<south>().ncumcoeffs();
+    s += side<north>().ncumcoeffs();
+    s += side<front>().ncumcoeffs();
+    s += side<back>().ncumcoeffs();
 
     return s;
   }
 
   /// @brief Returns a string representation of the Boundary object
   inline virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << name() << "(\n"
-       << "west = " << std::get<west - 1>(bdr_) << "\n"
-       << "east = " << std::get<east - 1>(bdr_) << "\n"
-       << "south = " << std::get<south - 1>(bdr_) << "\n"
-       << "north = " << std::get<north - 1>(bdr_) << "\n"
-       << "front = " << std::get<front - 1>(bdr_) << "\n"
-       << "back = " << std::get<back - 1>(bdr_) << "\n)";
+       << "west = " << side<west>() << "\n"
+       << "east = " << side<east>() << "\n"
+       << "south = " << side<south>() << "\n"
+       << "north = " << side<north>() << "\n"
+       << "front = " << side<front>() << "\n"
+       << "back = " << side<back>() << "\n)";
   }
 
   /// @brief Returns the boundary object as JSON object
   inline nlohmann::json to_json() const override {
     nlohmann::json json;
-    json["west"] = std::get<west - 1>(bdr_).to_json();
-    json["east"] = std::get<east - 1>(bdr_).to_json();
-    json["south"] = std::get<south - 1>(bdr_).to_json();
-    json["north"] = std::get<north - 1>(bdr_).to_json();
-    json["front"] = std::get<front - 1>(bdr_).to_json();
-    json["back"] = std::get<back - 1>(bdr_).to_json();
+    json["west"] = side<west>().to_json();
+    json["east"] = side<east>().to_json();
+    json["south"] = side<south>().to_json();
+    json["north"] = side<north>().to_json();
+    json["front"] = side<front>().to_json();
+    json["back"] = side<back>().to_json();
 
     return json;
   }
 
   /// @brief Updates the boundary object from JSON object
   inline BoundaryCore &from_json(const nlohmann::json &json) {
-    std::get<west - 1>(bdr_).from_json(json["west"]);
-    std::get<east - 1>(bdr_).from_json(json["east"]);
-    std::get<south - 1>(bdr_).from_json(json["south"]);
-    std::get<north - 1>(bdr_).from_json(json["north"]);
-    std::get<front - 1>(bdr_).from_json(json["front"]);
-    std::get<back - 1>(bdr_).from_json(json["back"]);
+    side<west>().from_json(json["west"]);
+    side<east>().from_json(json["east"]);
+    side<south>().from_json(json["south"]);
+    side<north>().from_json(json["north"]);
+    side<front>().from_json(json["front"]);
+    side<back>().from_json(json["back"]);
 
     return *this;
   }
 
   /// @brief Returns the Greville abscissae
   inline eval_type greville() const {
-    return eval_type{std::get<west - 1>(bdr_).greville(),
-                     std::get<east - 1>(bdr_).greville(),
-                     std::get<south - 1>(bdr_).greville(),
-                     std::get<north - 1>(bdr_).greville(),
-                     std::get<front - 1>(bdr_).greville(),
-                     std::get<back - 1>(bdr_).greville()};
+    return eval_type{side<west>().greville(),  side<east>().greville(),
+                     side<south>().greville(), side<north>().greville(),
+                     side<front>().greville(), side<back>().greville()};
   }
 };
 
@@ -755,18 +846,77 @@ public:
                       {kv[0], kv[1], kv[2]}),
                   init, options)}) {}
 
+  /// @brief Sets the coefficients of all spline objects from a
+  /// single tensor that holds both boundary and inner coefficients
+  ///
+  /// @param[in] tensor Tensor from which to extract the coefficients
+  ///
+  /// @result Updates spline object
+  inline auto &from_full_tensor(const torch::Tensor &tensor) {
+
+    auto tensor_view = tensor.view(
+        {Spline::geoDim(), side<west>().ncoeffs(2), side<west>().ncoeffs(1),
+         side<west>().ncoeffs(0), side<south>().ncoeffs(0)});
+
+    side<west>().from_tensor(
+        tensor_view
+            .index({torch::indexing::Slice(), torch::indexing::Slice(),
+                    torch::indexing::Slice(), torch::indexing::Slice(), 0})
+            .flatten());
+    side<east>().from_tensor(
+        tensor_view
+            .index({torch::indexing::Slice(), torch::indexing::Slice(),
+                    torch::indexing::Slice(), torch::indexing::Slice(), -1})
+            .flatten());
+
+    side<south>().from_tensor(
+        tensor_view
+            .index({torch::indexing::Slice(), torch::indexing::Slice(),
+                    torch::indexing::Slice(), 0, torch::indexing::Slice()})
+            .flatten());
+    side<north>().from_tensor(
+        tensor_view
+            .index({torch::indexing::Slice(), torch::indexing::Slice(),
+                    torch::indexing::Slice(), -1, torch::indexing::Slice()})
+            .flatten());
+
+    side<front>().from_tensor(
+        tensor_view
+            .index({torch::indexing::Slice(), torch::indexing::Slice(), 0,
+                    torch::indexing::Slice(), torch::indexing::Slice()})
+            .flatten());
+    side<back>().from_tensor(
+        tensor_view
+            .index({torch::indexing::Slice(), torch::indexing::Slice(), -1,
+                    torch::indexing::Slice(), torch::indexing::Slice()})
+            .flatten());
+
+    side<stime>().from_tensor(
+        tensor_view
+            .index({torch::indexing::Slice(), 0, torch::indexing::Slice(),
+                    torch::indexing::Slice(), torch::indexing::Slice()})
+            .flatten());
+    side<etime>().from_tensor(
+        tensor_view
+            .index({torch::indexing::Slice(), -1, torch::indexing::Slice(),
+                    torch::indexing::Slice(), torch::indexing::Slice()})
+            .flatten());
+
+    return *this;
+  }
+
   /// @brief Returns the number of sides
-  inline static constexpr short_t sides() { return side::etime; }
+  inline static constexpr short_t nsides() { return side::etime; }
 
   /// @brief Returns constant reference to side-th spline
   template <short_t s> inline constexpr auto &side() const {
-    static_assert(s > none && s <= sides());
+    static_assert(s > none && s <= nsides());
     return std::get<s - 1>(bdr_);
   }
 
   /// @brief Returns non-constant reference to side-th spline
   template <short_t s> inline constexpr auto &side() {
-    static_assert(s > none && s <= sides());
+    static_assert(s > none && s <= nsides());
     return std::get<s - 1>(bdr_);
   }
 
@@ -781,71 +931,67 @@ public:
   /// @brief Returns the total number of coefficients
   inline int64_t ncumcoeffs() const {
     int64_t s = 0;
-    s += std::get<west - 1>(bdr_).ncumcoeffs();
-    s += std::get<east - 1>(bdr_).ncumcoeffs();
-    s += std::get<south - 1>(bdr_).ncumcoeffs();
-    s += std::get<north - 1>(bdr_).ncumcoeffs();
-    s += std::get<front - 1>(bdr_).ncumcoeffs();
-    s += std::get<back - 1>(bdr_).ncumcoeffs();
-    s += std::get<stime - 1>(bdr_).ncumcoeffs();
-    s += std::get<etime - 1>(bdr_).ncumcoeffs();
+    s += side<west>().ncumcoeffs();
+    s += side<east>().ncumcoeffs();
+    s += side<south>().ncumcoeffs();
+    s += side<north>().ncumcoeffs();
+    s += side<front>().ncumcoeffs();
+    s += side<back>().ncumcoeffs();
+    s += side<stime>().ncumcoeffs();
+    s += side<etime>().ncumcoeffs();
 
     return s;
   }
 
   /// @brief Returns a string representation of the Boundary object
   inline virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << name() << "(\n"
-       << "west = " << std::get<west - 1>(bdr_) << "\n"
-       << "east = " << std::get<east - 1>(bdr_) << "\n"
-       << "south = " << std::get<south - 1>(bdr_) << "\n"
-       << "north = " << std::get<north - 1>(bdr_) << "\n"
-       << "front = " << std::get<front - 1>(bdr_) << "\n"
-       << "back = " << std::get<back - 1>(bdr_) << "\n"
-       << "stime = " << std::get<stime - 1>(bdr_) << "\n"
-       << "etime = " << std::get<etime - 1>(bdr_) << "\n)";
+       << "west = " << side<west>() << "\n"
+       << "east = " << side<east>() << "\n"
+       << "south = " << side<south>() << "\n"
+       << "north = " << side<north>() << "\n"
+       << "front = " << side<front>() << "\n"
+       << "back = " << side<back>() << "\n"
+       << "stime = " << side<stime>() << "\n"
+       << "etime = " << side<etime>() << "\n)";
   }
 
   /// @brief Returns the boundary object as JSON object
   inline nlohmann::json to_json() const override {
     nlohmann::json json;
-    json["west"] = std::get<west - 1>(bdr_).to_json();
-    json["east"] = std::get<east - 1>(bdr_).to_json();
-    json["south"] = std::get<south - 1>(bdr_).to_json();
-    json["north"] = std::get<north - 1>(bdr_).to_json();
-    json["front"] = std::get<front - 1>(bdr_).to_json();
-    json["back"] = std::get<back - 1>(bdr_).to_json();
-    json["stime"] = std::get<stime - 1>(bdr_).to_json();
-    json["etime"] = std::get<etime - 1>(bdr_).to_json();
+    json["west"] = side<west>().to_json();
+    json["east"] = side<east>().to_json();
+    json["south"] = side<south>().to_json();
+    json["north"] = side<north>().to_json();
+    json["front"] = side<front>().to_json();
+    json["back"] = side<back>().to_json();
+    json["stime"] = side<stime>().to_json();
+    json["etime"] = side<etime>().to_json();
 
     return json;
   }
 
   /// @brief Updates the boundary object from JSON object
   inline BoundaryCore &from_json(const nlohmann::json &json) {
-    std::get<west - 1>(bdr_).from_json(json["west"]);
-    std::get<east - 1>(bdr_).from_json(json["east"]);
-    std::get<south - 1>(bdr_).from_json(json["south"]);
-    std::get<north - 1>(bdr_).from_json(json["north"]);
-    std::get<front - 1>(bdr_).from_json(json["front"]);
-    std::get<back - 1>(bdr_).from_json(json["back"]);
-    std::get<stime - 1>(bdr_).from_json(json["stime"]);
-    std::get<etime - 1>(bdr_).from_json(json["etime"]);
+    side<west>().from_json(json["west"]);
+    side<east>().from_json(json["east"]);
+    side<south>().from_json(json["south"]);
+    side<north>().from_json(json["north"]);
+    side<front>().from_json(json["front"]);
+    side<back>().from_json(json["back"]);
+    side<stime>().from_json(json["stime"]);
+    side<etime>().from_json(json["etime"]);
 
     return *this;
   }
 
   /// @brief Returns the Greville abscissae
   inline eval_type greville() const {
-    return eval_type{std::get<west - 1>(bdr_).greville(),
-                     std::get<east - 1>(bdr_).greville(),
-                     std::get<south - 1>(bdr_).greville(),
-                     std::get<north - 1>(bdr_).greville(),
-                     std::get<front - 1>(bdr_).greville(),
-                     std::get<back - 1>(bdr_).greville(),
-                     std::get<stime - 1>(bdr_).greville(),
-                     std::get<etime - 1>(bdr_).greville()};
+    return eval_type{side<west>().greville(),  side<east>().greville(),
+                     side<south>().greville(), side<north>().greville(),
+                     side<front>().greville(), side<back>().greville(),
+                     side<stime>().greville(), side<etime>().greville()};
   }
 };
 
@@ -856,6 +1002,9 @@ template <typename BoundaryCore> class BoundaryCommon : public BoundaryCore {
 public:
   /// @brief Constructors from the base class
   using BoundaryCore::BoundaryCore;
+
+  /// @brief Returns a clone of the boundary object
+  BoundaryCommon clone() const { return BoundaryCommon(*this); }
 
 private:
   /// @brief Returns all coefficients of all spline objects as a
@@ -873,7 +1022,7 @@ public:
   ///
   /// @result Tensor of coefficients
   inline torch::Tensor as_tensor() const {
-    return as_tensor_(std::make_index_sequence<BoundaryCore::sides()>{});
+    return as_tensor_(std::make_index_sequence<BoundaryCore::nsides()>{});
   }
 
 private:
@@ -894,39 +1043,42 @@ public:
   //
   /// @result Size of the tensor
   inline int64_t as_tensor_size() const {
-    return as_tensor_size_(std::make_index_sequence<BoundaryCore::sides()>{});
+    return as_tensor_size_(std::make_index_sequence<BoundaryCore::nsides()>{});
   }
 
 private:
-  /// @brief Sets all coefficients of all spline objects from a
+  /// @brief Sets the coefficients of all spline objects from a
   /// single tensor
+  ///
+  /// @param[in] tensor Tensor from which to extract the coefficients
   ///
   /// @result Updates spline object
   template <std::size_t... Is>
   inline auto &from_tensor_(std::index_sequence<Is...>,
-                            const torch::Tensor &coeffs) {
-    std::size_t counter(0);
-    auto lambda = [&counter](std::size_t increment) {
-      return counter += increment;
-    };
+                            const torch::Tensor &tensor) {
+
+    std::size_t start(0);
+    auto end = [&start](std::size_t inc) { return start += inc; };
 
     (std::get<Is>(BoundaryCore::bdr_)
-         .from_tensor(coeffs.index({torch::indexing::Slice(
-             counter, lambda(std::get<Is>(BoundaryCore::bdr_).ncumcoeffs() *
-                             std::get<Is>(BoundaryCore::bdr_).geoDim()))})),
+         .from_tensor(tensor.index({torch::indexing::Slice(
+             start, end(std::get<Is>(BoundaryCore::bdr_).ncumcoeffs() *
+                        std::get<Is>(BoundaryCore::bdr_).geoDim()))})),
      ...);
 
     return *this;
   }
 
 public:
-  /// @brief Sets all coefficients of all spline objects from a
+  /// @brief Sets the coefficients of all spline objects from a
   /// single tensor
   ///
+  /// @param[in] tensor Tensor from which to extract the coefficients
+  ///
   /// @result Updated spline objects
-  inline auto &from_tensor(const torch::Tensor &coeffs) {
-    return from_tensor_(std::make_index_sequence<BoundaryCore::sides()>{},
-                        coeffs);
+  inline auto &from_tensor(const torch::Tensor &tensor) {
+    return from_tensor_(std::make_index_sequence<BoundaryCore::nsides()>{},
+                        tensor);
   }
 
 private:
@@ -970,7 +1122,7 @@ public:
             typename... Xi>
   inline auto eval(const std::tuple<Xi...> &xi) const {
     return eval_<deriv, memory_optimized>(
-        std::make_index_sequence<BoundaryCore::sides()>{}, xi);
+        std::make_index_sequence<BoundaryCore::nsides()>{}, xi);
   }
 
   template <deriv deriv = deriv::func, bool memory_optimized = false,
@@ -979,7 +1131,7 @@ public:
                    const std::tuple<Indices...> &indices) const {
     static_assert(sizeof...(Xi) == sizeof...(Indices));
     return eval_<deriv, memory_optimized>(
-        std::make_index_sequence<BoundaryCore::sides()>{}, xi, indices);
+        std::make_index_sequence<BoundaryCore::nsides()>{}, xi, indices);
   }
 
   template <deriv deriv = deriv::func, bool memory_optimized = false,
@@ -990,7 +1142,7 @@ public:
     static_assert(sizeof...(Xi) == sizeof...(Indices) &&
                   sizeof...(Xi) == sizeof...(Coeff_Indices));
     return eval_<deriv, memory_optimized>(
-        std::make_index_sequence<BoundaryCore::sides()>{}, xi, indices,
+        std::make_index_sequence<BoundaryCore::nsides()>{}, xi, indices,
         coeff_indices);
   }
   /// @}
@@ -1042,7 +1194,7 @@ public:
                   sizeof...(Basfunc) == sizeof...(Numeval) &&
                   sizeof...(Basfunc) == sizeof...(Sizes));
     return eval_from_precomputed_(
-        std::make_index_sequence<BoundaryCore::sides()>{}, basfunc,
+        std::make_index_sequence<BoundaryCore::nsides()>{}, basfunc,
         coeff_indices, numeval, sizes);
   }
 
@@ -1054,7 +1206,7 @@ public:
     static_assert(sizeof...(Basfunc) == sizeof...(Coeff_Indices) &&
                   sizeof...(Basfunc) == sizeof...(Xi));
     return eval_from_precomputed_(
-        std::make_index_sequence<BoundaryCore::sides()>{}, basfunc,
+        std::make_index_sequence<BoundaryCore::nsides()>{}, basfunc,
         coeff_indices, xi);
   }
   /// @}
@@ -1073,8 +1225,8 @@ public:
   /// @brief Returns the knot indicies of knot spans containing `xi`
   template <typename... Xi>
   inline auto find_knot_indices(const std::tuple<Xi...> &xi) const {
-    return find_knot_indices_(std::make_index_sequence<BoundaryCore::sides()>{},
-                              xi);
+    return find_knot_indices_(
+        std::make_index_sequence<BoundaryCore::nsides()>{}, xi);
   }
 
 private:
@@ -1108,7 +1260,7 @@ public:
             typename... Xi>
   inline auto eval_basfunc(const std::tuple<Xi...> &xi) const {
     return eval_basfunc_<deriv, memory_optimized>(
-        std::make_index_sequence<BoundaryCore::sides()>{}, xi);
+        std::make_index_sequence<BoundaryCore::nsides()>{}, xi);
   }
 
   template <deriv deriv = deriv::func, bool memory_optimized = false,
@@ -1117,7 +1269,7 @@ public:
                            const std::tuple<Indices...> &indices) const {
     static_assert(sizeof...(Xi) == sizeof...(Indices));
     return eval_basfunc_<deriv, memory_optimized>(
-        std::make_index_sequence<BoundaryCore::sides()>{}, xi, indices);
+        std::make_index_sequence<BoundaryCore::nsides()>{}, xi, indices);
   }
   /// @}
 
@@ -1138,7 +1290,7 @@ public:
   template <bool memory_optimized = false, typename... Indices>
   inline auto find_coeff_indices(const std::tuple<Indices...> &indices) const {
     return find_coeff_indices_<memory_optimized>(
-        std::make_index_sequence<BoundaryCore::sides()>{}, indices);
+        std::make_index_sequence<BoundaryCore::nsides()>{}, indices);
   }
 
 private:
@@ -1155,17 +1307,19 @@ public:
   /// @brief Returns the spline objects with uniformly refined
   /// knot and coefficient vectors
   inline auto &uniform_refine(int numRefine = 1, int dim = -1) {
-    if (dim == -1)
-      uniform_refine_(std::make_index_sequence<BoundaryCore::sides()>{},
-                      numRefine, dim);
-    else if (dim == 0) {
-      if constexpr (BoundaryCore::sides() == 2) {
-      } else if constexpr (BoundaryCore::sides() == 4) {
+    if (dim == -1) {
+      if constexpr (BoundaryCore::spline_type::parDim() > 1)
+        uniform_refine_(std::make_index_sequence<BoundaryCore::nsides()>{},
+                        numRefine, dim);
+    } else if (dim == 0) {
+      if constexpr (BoundaryCore::nsides() == 2) {
+        // We do not refine the boundary of a curve
+      } else if constexpr (BoundaryCore::nsides() == 4) {
         std::get<side::south - 1>(BoundaryCore::bdr_)
             .uniform_refine(numRefine, 0);
         std::get<side::north - 1>(BoundaryCore::bdr_)
             .uniform_refine(numRefine, 0);
-      } else if constexpr (BoundaryCore::sides() == 6) {
+      } else if constexpr (BoundaryCore::nsides() == 6) {
         std::get<side::south - 1>(BoundaryCore::bdr_)
             .uniform_refine(numRefine, 0);
         std::get<side::north - 1>(BoundaryCore::bdr_)
@@ -1174,7 +1328,7 @@ public:
             .uniform_refine(numRefine, 0);
         std::get<side::back - 1>(BoundaryCore::bdr_)
             .uniform_refine(numRefine, 0);
-      } else if constexpr (BoundaryCore::sides() == 8) {
+      } else if constexpr (BoundaryCore::nsides() == 8) {
         std::get<side::south - 1>(BoundaryCore::bdr_)
             .uniform_refine(numRefine, 0);
         std::get<side::north - 1>(BoundaryCore::bdr_)
@@ -1190,12 +1344,12 @@ public:
       } else
         throw std::runtime_error("Invalid dimension");
     } else if (dim == 1) {
-      if constexpr (BoundaryCore::sides() == 4) {
+      if constexpr (BoundaryCore::nsides() == 4) {
         std::get<side::east - 1>(BoundaryCore::bdr_)
             .uniform_refine(numRefine, 0);
         std::get<side::west - 1>(BoundaryCore::bdr_)
             .uniform_refine(numRefine, 0);
-      } else if constexpr (BoundaryCore::sides() == 6) {
+      } else if constexpr (BoundaryCore::nsides() == 6) {
         std::get<side::east - 1>(BoundaryCore::bdr_)
             .uniform_refine(numRefine, 0);
         std::get<side::west - 1>(BoundaryCore::bdr_)
@@ -1205,7 +1359,7 @@ public:
         std::get<side::back - 1>(BoundaryCore::bdr_)
             .uniform_refine(numRefine, 1);
 
-      } else if constexpr (BoundaryCore::sides() == 8) {
+      } else if constexpr (BoundaryCore::nsides() == 8) {
         std::get<side::east - 1>(BoundaryCore::bdr_)
             .uniform_refine(numRefine, 0);
         std::get<side::west - 1>(BoundaryCore::bdr_)
@@ -1221,7 +1375,7 @@ public:
       } else
         throw std::runtime_error("Invalid dimension");
     } else if (dim == 2) {
-      if constexpr (BoundaryCore::sides() == 6) {
+      if constexpr (BoundaryCore::nsides() == 6) {
         std::get<side::east - 1>(BoundaryCore::bdr_)
             .uniform_refine(numRefine, 1);
         std::get<side::west - 1>(BoundaryCore::bdr_)
@@ -1230,7 +1384,7 @@ public:
             .uniform_refine(numRefine, 1);
         std::get<side::south - 1>(BoundaryCore::bdr_)
             .uniform_refine(numRefine, 1);
-      } else if constexpr (BoundaryCore::sides() == 8) {
+      } else if constexpr (BoundaryCore::nsides() == 8) {
         std::get<side::west - 1>(BoundaryCore::bdr_)
             .uniform_refine(numRefine, 1);
         std::get<side::east - 1>(BoundaryCore::bdr_)
@@ -1246,7 +1400,7 @@ public:
       } else
         throw std::runtime_error("Invalid dimension");
     } else if (dim == 3) {
-      if constexpr (BoundaryCore::sides() == 8) {
+      if constexpr (BoundaryCore::nsides() == 8) {
         std::get<side::west - 1>(BoundaryCore::bdr_)
             .uniform_refine(numRefine, 2);
         std::get<side::east - 1>(BoundaryCore::bdr_)
@@ -1292,7 +1446,7 @@ public:
   inline torch::serialize::OutputArchive &
   write(torch::serialize::OutputArchive &archive,
         const std::string &key = "boundary") const {
-    write_(std::make_index_sequence<BoundaryCore::sides()>{}, archive, key);
+    write_(std::make_index_sequence<BoundaryCore::nsides()>{}, archive, key);
     return archive;
   }
 
@@ -1323,7 +1477,7 @@ public:
   inline torch::serialize::InputArchive &
   read(torch::serialize::InputArchive &archive,
        const std::string &key = "boundary") {
-    read_(std::make_index_sequence<BoundaryCore::sides()>{}, archive, key);
+    read_(std::make_index_sequence<BoundaryCore::nsides()>{}, archive, key);
     return archive;
   }
 
@@ -1412,7 +1566,7 @@ public:
   /// @brief Returns true if both boundary objects are the same
   template <typename BoundaryCore_>
   inline bool operator==(const BoundaryCommon<BoundaryCore_> &other) const {
-    return isequal_(std::make_index_sequence<BoundaryCore::sides()>{}, other);
+    return isequal_(std::make_index_sequence<BoundaryCore::nsides()>{}, other);
   }
 
   /// @brief Returns true if both boundary objects are different
@@ -1447,7 +1601,7 @@ public:
               typename BoundaryCore::spline_type::value_type{1e-5},
           typename BoundaryCore::spline_type::value_type atol =
               typename BoundaryCore::spline_type::value_type{1e-8}) const {
-    return isclose_(std::make_index_sequence<BoundaryCore::sides()>{}, other,
+    return isclose_(std::make_index_sequence<BoundaryCore::nsides()>{}, other,
                     rtol, atol);
   }
 
@@ -1488,7 +1642,7 @@ public:                                                                        \
   template <bool memory_optimized = false, typename... Args>                   \
   inline auto name(const Args &...args) const {                                \
     return BOOST_PP_CAT(name, _)<memory_optimized>(                            \
-        std::make_index_sequence<BoundaryCore::sides()>{}, args...);           \
+        std::make_index_sequence<BoundaryCore::nsides()>{}, args...);          \
   }
 
   /// @brief Auto-generated functions
@@ -1538,7 +1692,7 @@ public:                                                                        \
   template <bool memory_optimized = false, typename... Args>                   \
   inline auto name(const Args &...args) const {                                \
     return BOOST_PP_CAT(name, _)<memory_optimized>(                            \
-        std::make_index_sequence<BoundaryCore::sides()>{}, args...);           \
+        std::make_index_sequence<BoundaryCore::nsides()>{}, args...);          \
   }
 
   /// @brief Auto-generated functions

@@ -27,7 +27,8 @@ template <typename T>
 class CreatorCore : protected iganet::utils::FullQualifiedName {
 public:
   /// Returns a string representation of the CreatorCore object
-  virtual void pretty_print(std::ostream &os = std::cout) const noexcept = 0;
+  virtual void
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept = 0;
 };
 
 /// Print (as string) a CreatorCore object
@@ -74,7 +75,7 @@ public:
 
   /// Returns a string representation of the IntervalCreator object
   virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << CreatorCore<T>::name() << "\n"
        << "(x0min = " << x0min_ << ", x0max = " << x0max_
        << "; x1min = " << x1min_ << ", x1max = " << x1max_ << ")";
@@ -130,7 +131,7 @@ public:
 
   /// Returns a string representation of the RectangleCreator object
   virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << CreatorCore<T>::name() << "\n"
        << "(x0min = " << x0min_ << ", x0max = " << x0max_
        << "; x1min = " << x1min_ << ", x1max = " << x1max_

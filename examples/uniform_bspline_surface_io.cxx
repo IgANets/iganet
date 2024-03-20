@@ -16,9 +16,9 @@
 #include <iostream>
 
 int main() {
-  std::cout << iganet::verbose;
-  using real_t = double;
   iganet::init();
+  iganet::verbose(iganet::Log(iganet::log::info));
+  using real_t = double;
 
   nlohmann::json json;
   json["res0"] = 50;
@@ -48,7 +48,7 @@ int main() {
 #endif
 
   // Export B-spline to XML
-  std::cout << bspline.to_xml() << std::endl;
+  bspline.to_xml().save(iganet::Log(iganet::log::info));
 
   return 0;
 }

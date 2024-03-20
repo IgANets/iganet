@@ -601,22 +601,6 @@ std::string getCpuInfo() {
   return "Unknown-CPU";
 }
 
-/// @brief Returns memory information
-std::string getMemoryInfo() {
-  uint64_t memsize = gsSysInfo::getMemoryInBytes();
-  if (memsize > 0) {
-    if (memsize < 1024)
-      return std::to_string(memsize) + " B";
-    else if (memsize < 1024 * 1024)
-      return std::to_string(memsize / 1024) + " KB";
-    else if (memsize < 1024 * 1024 * 1024)
-      return std::to_string(memsize / (1024 * 1024)) + " MB";
-    else
-      return std::to_string(memsize / (1024 * 1024 * 1024)) + " GB";
-  } else
-    return "Unknown-Memory";
-}
-
 /// @brief Returns total system memory in bytes
 uint64_t getMemoryInBytes() {
 #if defined(_WIN32) || defined(_WIN64)
@@ -644,6 +628,22 @@ uint64_t getMemoryInBytes() {
 #endif
 
   return 0;
+}
+
+/// @brief Returns memory information
+std::string getMemoryInfo() {
+  uint64_t memsize = getMemoryInBytes();
+  if (memsize > 0) {
+    if (memsize < 1024)
+      return std::to_string(memsize) + " B";
+    else if (memsize < 1024 * 1024)
+      return std::to_string(memsize / 1024) + " KB";
+    else if (memsize < 1024 * 1024 * 1024)
+      return std::to_string(memsize / (1024 * 1024)) + " MB";
+    else
+      return std::to_string(memsize / (1024 * 1024 * 1024)) + " GB";
+  } else
+    return "Unknown-Memory";
 }
 
 /// @brief Returns version information

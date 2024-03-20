@@ -33,7 +33,7 @@ struct Serializable {
   virtual nlohmann::json to_json() const = 0;
 
   /// @brief Returns a string representation of the object
-  virtual void pretty_print(std::ostream &os = std::cout) const = 0;
+  virtual void pretty_print(std::ostream &os = Log(log::info)) const = 0;
 };
 
 /// @brief Converts a torch::TensorAccessor object to a JSON object

@@ -183,7 +183,7 @@ public:
 
   /// @brief Returns a string representation of the activation function
   inline virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << utils::FullQualifiedName::name() << "(\n  eps=" << options_.eps()
        << ", momentum=" << options_.momentum().value()
        << ", training=" << options_.training();
@@ -280,7 +280,7 @@ public:
 
   /// @brief Returns a string representation of the activation function
   inline virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << utils::FullQualifiedName::name() << "(\n  alpha=" << options_.alpha()
        << ", inplace=" << options_.inplace() << "\n)";
   }
@@ -357,7 +357,7 @@ public:
 
   /// @brief Returns a string representation of the activation function
   inline virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << utils::FullQualifiedName::name() << "(\n  alpha=" << options_.alpha()
        << ", inplace=" << options_.inplace() << "\n)";
   }
@@ -420,7 +420,7 @@ public:
 
   /// @brief Returns a string representation of the activation function
   inline virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << utils::FullQualifiedName::name();
   }
 
@@ -483,7 +483,7 @@ public:
 
   /// @brief Returns a string representation of the activation function
   inline virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << utils::FullQualifiedName::name() << "(\n  dim=" << options_.dim()
        << "\n)";
   }
@@ -556,7 +556,7 @@ public:
 
   /// @brief Returns a string representation of the activation function
   inline virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << utils::FullQualifiedName::name() << "(\n  eps=" << options_.eps();
 
     if (is_verbose(os)) {
@@ -637,7 +637,7 @@ public:
 
   /// @brief Returns a string representation of the activation function
   inline virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << utils::FullQualifiedName::name() << "(\n  tau=" << options_.tau()
        << ", dim=" << options_.dim() << ", hard=" << options_.hard() << "\n)";
   }
@@ -710,7 +710,7 @@ public:
 
   /// @brief Returns a string representation of the activation function
   inline virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << utils::FullQualifiedName::name()
        << "(\n  lambda=" << options_.lambda() << "\n)";
   }
@@ -772,7 +772,7 @@ public:
 
   /// @brief Returns a string representation of the activation function
   inline virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << utils::FullQualifiedName::name();
   }
 
@@ -825,7 +825,7 @@ public:
 
   /// @brief Returns a string representation of the activation function
   inline virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << utils::FullQualifiedName::name();
   }
 
@@ -895,7 +895,7 @@ public:
 
   /// @brief Returns a string representation of the activation function
   inline virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << utils::FullQualifiedName::name()
        << "(\n  min_val=" << options_.min_val()
        << ", max_val=" << options_.max_val()
@@ -987,7 +987,7 @@ public:
 
   /// @brief Returns a string representation of the activation function
   inline virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << utils::FullQualifiedName::name() << "(\n  eps=" << options_.eps()
        << ", momentum=" << options_.momentum()
        << ", use_input_stats=" << options_.use_input_stats();
@@ -1091,7 +1091,7 @@ public:
 
   /// @brief Returns a string representation of the activation function
   inline virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << utils::FullQualifiedName::name() << "(\n  eps=" << options_.eps();
 
     if (is_verbose(os)) {
@@ -1178,7 +1178,7 @@ public:
 
   /// @brief Returns a string representation of the activation function
   inline virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << utils::FullQualifiedName::name()
        << "(\n  negative_slope=" << options_.negative_slope()
        << ", inplace=" << options_.inplace() << "\n)";
@@ -1259,7 +1259,7 @@ public:
 
   /// @brief Returns a string representation of the activation function
   inline virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << utils::FullQualifiedName::name() << "(\n  size=" << options_.size()
        << ", alpha=" << options_.alpha() << ", beta=" << options_.beta()
        << ", k=" << options_.k() << "\n)";
@@ -1329,7 +1329,7 @@ public:
 
   /// @brief Returns a string representation of the activation function
   inline virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << utils::FullQualifiedName::name();
   }
 
@@ -1395,7 +1395,7 @@ public:
 
   /// @brief Returns a string representation of the activation function
   inline virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << utils::FullQualifiedName::name() << "(\n  dim=" << options_.dim()
        << "\n)";
   }
@@ -1447,7 +1447,7 @@ public:
 
   /// @brief Returns a string representation of the activation function
   inline virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << utils::FullQualifiedName::name();
   }
 
@@ -1506,7 +1506,7 @@ public:
 
   /// @brief Returns a string representation of the activation function
   inline virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << utils::FullQualifiedName::name() << "(\n  eps=" << options_.eps()
        << "(\n  p=" << options_.p() << "(\n  dim=" << options_.dim() << "\n)";
   }
@@ -1571,7 +1571,7 @@ public:
 
   /// @brief Returns a string representation of the activation function
   inline virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << utils::FullQualifiedName::name();
 
     if (is_verbose(os))
@@ -1639,7 +1639,7 @@ public:
 
   /// @brief Returns a string representation of the activation function
   inline virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << utils::FullQualifiedName::name()
        << "(\n  inplace=" << options_.inplace() << "\n)";
   }
@@ -1707,7 +1707,7 @@ public:
 
   /// @brief Returns a string representation of the activation function
   inline virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << utils::FullQualifiedName::name()
        << "(\n  inplace=" << options_.inplace() << "\n)";
   }
@@ -1782,7 +1782,7 @@ public:
 
   /// @brief Returns a string representation of the activation function
   inline virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << utils::FullQualifiedName::name() << "(\n  lower=" << options_.lower()
        << ",  upper=" << options_.upper() << ",  inplace=" << options_.inplace()
        << "\n)";
@@ -1862,7 +1862,7 @@ public:
 
   /// @brief Returns a string representation of the activation function
   inline virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << utils::FullQualifiedName::name()
        << "(\n  inplace=" << options_.inplace() << "\n)";
   }
@@ -1914,7 +1914,7 @@ public:
 
   /// @brief Returns a string representation of the activation function
   inline virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << utils::FullQualifiedName::name();
   }
 
@@ -1958,7 +1958,7 @@ public:
 
   /// @brief Returns a string representation of the activation function
   inline virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << utils::FullQualifiedName::name();
   }
 
@@ -2021,7 +2021,7 @@ public:
 
   /// @brief Returns a string representation of the activation function
   inline virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << utils::FullQualifiedName::name() << "(\n  dim=" << options_.dim()
        << "\n)";
   }
@@ -2092,7 +2092,7 @@ public:
 
   /// @brief Returns a string representation of the activation function
   inline virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << utils::FullQualifiedName::name() << "(\n  dim=" << options_.dim()
        << "\n)";
   }
@@ -2165,7 +2165,7 @@ public:
 
   /// @brief Returns a string representation of the activation function
   inline virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << utils::FullQualifiedName::name() << "(\n  beta=" << options_.beta()
        << ",  theshold=" << options_.threshold() << "\n)";
   }
@@ -2246,7 +2246,7 @@ public:
 
   /// @brief Returns a string representation of the activation function
   inline virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << utils::FullQualifiedName::name()
        << "(\n  lambda=" << options_.lambda() << "\n)";
   }
@@ -2299,7 +2299,7 @@ public:
 
   /// @brief Returns a string representation of the activation function
   inline virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << utils::FullQualifiedName::name();
   }
 
@@ -2343,7 +2343,7 @@ public:
 
   /// @brief Returns a string representation of the activation function
   inline virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << utils::FullQualifiedName::name();
   }
 
@@ -2386,7 +2386,7 @@ public:
 
   /// @brief Returns a string representation of the activation function
   inline virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << utils::FullQualifiedName::name();
   }
 
@@ -2453,7 +2453,7 @@ public:
 
   /// @brief Returns a string representation of the activation function
   inline virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << utils::FullQualifiedName::name()
        << "(\n  threshold=" << options_.threshold()
        << ",  value=" << options_.value() << ",  inplace=" << options_.inplace()

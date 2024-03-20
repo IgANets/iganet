@@ -35,7 +35,7 @@ public:
 
   /// @brief Returns a string representation of the IgANet object
   inline virtual void
-  pretty_print(std::ostream &os = std::cout) const noexcept override {
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << name() << "(\n"
        << "G = " << Base::G_ << "\n"
        << "f = " << Base::f_ << "\n"
