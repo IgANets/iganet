@@ -117,18 +117,15 @@ int main() {
 
   fitting<optimizer_t, geometry_t, variable_t>
       net( // Number of neurons per layers
-          {50, 50, 50, 50, 50},
+          {50, 50},
           // Activation functions
           {{iganet::activation::sigmoid},
-           {iganet::activation::sigmoid},
-           {iganet::activation::sigmoid},
-           {iganet::activation::sigmoid},
-           {iganet::activation::sigmoid},
+          {iganet::activation::sigmoid},
            {iganet::activation::none}},
           // Number of B-spline coefficients of the geometry, just [0,1] x [0,1]
-          std::tuple(iganet::utils::to_array(2_i64, 2_i64)),
+          //std::tuple(iganet::utils::to_array(20_i64, 20_i64)),
           // Number of B-spline coefficients of the variable
-          std::tuple(iganet::utils::to_array(10_i64, 10_i64)));
+          std::tuple(iganet::utils::to_array(20_i64, 20_i64)));
 
   // Impose solution value for supervised training (not right-hand side)
   net.f().transform([](const std::array<real_t, 2> xi) {

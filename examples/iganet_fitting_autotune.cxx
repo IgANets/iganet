@@ -182,7 +182,7 @@ int main() {
         A.setIntegrationElements(basis);
 
         auto G = A.getMap(G_gismo);
-        auto u A.getCoeff(u_gismo, G);
+        auto u = A.getCoeff(u_gismo, G);
         auto f = A.getCoeff(f_gismo, G);
 
         // Compute L2- and H2-error
