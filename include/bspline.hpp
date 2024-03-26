@@ -3952,7 +3952,7 @@ public:
         {torch::remainder(std::get<1>(((nnz0.cumsum(1) == 1) & nnz0).max(1)) -
                               1,
                           Base::nknots_[0] - Base::degrees_[0] - 1)
-             .view(xi[0].sizes())});
+             .view(xi[0].sizes()).to(torch::kInt64)});
   }
 
   inline auto find_knot_indices(const utils::TensorArray2 &xi) const {
