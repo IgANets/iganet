@@ -78,8 +78,6 @@ public:
   ///
   /// @param[in] epoch Epoch number
   bool epoch(int64_t epoch) override {
-    std::clog << "Epoch " << std::to_string(epoch) << ": ";
-
     // In the very first epoch we need to generate the sampling points
     // for the inputs and the sampling points in the function space of
     // the variables since otherwise the respective tensors would be
@@ -145,7 +143,7 @@ public:
 
 int main() {
   iganet::init();
-  iganet::verbose(iganet::Log(iganet::log::info));
+  iganet::verbose(std::cout);
 
   nlohmann::json json;
   json["res0"] = 50;
@@ -203,7 +201,7 @@ int main() {
         return std::array<real_t, 1>{0.0};
       });
 
-  // Set maximum number of epoches
+  // Set maximum number of epochs
   net.options().max_epoch(200);
 
   // Set tolerance for the loss functions

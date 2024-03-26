@@ -16,7 +16,7 @@
 #include <iostream>
 
 int main() {
-  iganet::verbose(iganet::Log(iganet::log::info));
+  iganet::verbose(std::cout);
   using real_t = double;
   iganet::init();
 

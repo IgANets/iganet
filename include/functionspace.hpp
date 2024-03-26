@@ -177,11 +177,8 @@ public:
   /// @brief Returns constant reference to all spaces
   inline constexpr Base &space() const { return *this; }
 
-  /// @brief Returns non-constant reference to the s-th space
-  template <short_t s> inline constexpr Base &space() {
-    static_assert(s < nspaces());
-    return std::get<s>(*this);
-  }
+  /// @brief Returns non-constant reference to all spaces
+  inline constexpr Base &space() { return *this; }
 
   /// @brief Returns constant reference to the s-th space
   template <short_t s> inline constexpr auto &space() const {
@@ -295,6 +292,59 @@ public:
   /// @brief Returns the dimension of all bases
   template <functionspace comp = functionspace::interior> int64_t dim() const {
     return dim_<comp>(std::make_index_sequence<FunctionSpace::nspaces()>{});
+  }
+
+private:
+  /// @brief Returns the function space object as XML node
+  template <size_t... Is>
+  inline pugi::xml_node &to_xml_(std::index_sequence<Is...>,
+                                 pugi::xml_node &root, int id = 0,
+                                 std::string label = "") const {
+
+    (std::get<Is>(*this).to_xml(root, id, label, Is), ...);
+    return root;
+  }
+
+public:
+  /// @brief Returns the function space object as XML object
+  inline pugi::xml_document to_xml(int id = 0, std::string label = "") const {
+    pugi::xml_document doc;
+    pugi::xml_node root = doc.append_child("xml");
+    to_xml(root, id, label);
+
+    return doc;
+  }
+
+  /// @brief Returns the B-spline object as XML node
+  inline pugi::xml_node &to_xml(pugi::xml_node &root, int id = 0,
+                                std::string label = "") const {
+    return to_xml_(std::make_index_sequence<FunctionSpace::nspaces()>{}, root,
+                   id, label);
+  }
+
+private:
+  /// @brief Updates the function space object from XML object
+  template <size_t... Is>
+  inline FunctionSpace &from_xml_(std::index_sequence<Is...>,
+                                  const pugi::xml_node &root, int id = 0,
+                                  std::string label = "") {
+
+    (std::get<Is>(*this).from_xml(root, id, label, Is), ...);
+    return *this;
+  }
+
+public:
+  /// @brief Updates the function space object from XML object
+  inline FunctionSpace &from_xml(const pugi::xml_document &doc, int id = 0,
+                                 std::string label = "") {
+    return from_xml(doc.child("xml"), id, label);
+  }
+
+  /// @brief Updates the function space object from XML node
+  inline FunctionSpace &from_xml(const pugi::xml_node &root, int id = 0,
+                                 std::string label = "") {
+    return from_xml_(std::make_index_sequence<FunctionSpace::nspaces()>{}, root,
+                     id, label);
   }
 
 private:
