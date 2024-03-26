@@ -1055,7 +1055,8 @@ public:
       // Update the parameters based on the calculated gradients
       opt_.step(closure);
 
-      Log(log::verbose) << loss.template item<typename Base::value_type>()
+      Log(log::verbose) << "Epoch " << std::to_string(epoch) << ": "
+                        << loss.template item<typename Base::value_type>()
                         << std::endl;
 
       if (loss.template item<typename Base::value_type>() <
@@ -1065,6 +1066,67 @@ public:
                        << std::endl;
         break;
       }
+    }
+  }
+
+  /// @brief Trains the IgANet
+  template <typename DataLoader> void train(DataLoader &loader) {
+    torch::Tensor inputs, outputs, loss;
+
+    // Loop over epochs
+    for (int64_t epoch = 0; epoch != options_.max_epoch(); ++epoch) {
+
+      typename Base::value_type Loss(0);
+
+      for (auto &batch : loader) {
+        inputs = batch.data;
+
+        Base::G_.from_tensor(
+            inputs.slice(1, 0, Base::G_.ncumcoeffs() * Base::G_.geoDim())
+                .flatten());
+        Base::f_.from_tensor(
+            inputs
+                .slice(1, Base::G_.ncumcoeffs() * Base::G_.geoDim(),
+                       Base::G_.ncumcoeffs() * Base::G_.geoDim() +
+                           Base::f_.ncumcoeffs() * Base::f_.geoDim())
+                .flatten());
+
+        this->epoch(epoch);
+
+        auto closure = [&]() {
+          // Reset gradients
+          net_->zero_grad();
+
+          // Execute the model on the inputs
+          outputs = net_->forward(inputs);
+
+          // Compute the loss value
+          loss = this->loss(outputs, epoch);
+
+          // Compute gradients of the loss w.r.t. the model parameters
+          loss.backward({}, true, false);
+
+          return loss;
+        };
+
+        // Update the parameters based on the calculated gradients
+        opt_.step(closure);
+
+        Loss += loss.template item<typename Base::value_type>();
+      }
+
+      Log(log::verbose) << "Epoch " << std::to_string(epoch) << ": " << Loss
+                        << std::endl;
+
+      if (Loss < options_.min_loss()) {
+        Log(log::info) << "Total epochs: " << epoch << ", loss: " << Loss
+                       << std::endl;
+        break;
+      }
+
+      if (epoch == options_.max_epoch() - 1)
+        Log(log::warning) << "Total epochs: " << epoch << ", loss: " << Loss
+                          << std::endl;
     }
   }
 
