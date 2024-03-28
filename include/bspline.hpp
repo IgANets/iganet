@@ -130,6 +130,24 @@ inline constexpr auto operator^(deriv lhs, short_t rhs) {
   return deriv(static_cast<short_t>(lhs) * static_cast<short_t>(rhs));
 }
 
+namespace detail {
+/// @brief Prepends data to a torch::ArrayRef
+template <typename T>
+inline constexpr torch::ArrayRef<T> prepend(torch::ArrayRef<T> array, T data) {
+  std::vector<T> Vec{array.vec()};
+  Vec.insert(Vec.begin(), data);
+  return torch::ArrayRef<T>{Vec};
+}
+
+/// @brief Appends data to a torch::ArrayRef
+template <typename T>
+inline constexpr torch::ArrayRef<T> append(torch::ArrayRef<T> array, T data) {
+  std::vector<T> Vec{array.vec()};
+  Vec.push_back(data);
+  return torch::ArrayRef<T>{Vec};
+}
+} // namespace detail
+
 /// @brief Tensor-product uniform B-spline (core functionality)
 ///
 /// This class implements the core functionality of all B-spline
@@ -968,6 +986,7 @@ public:
       assert(xi[0].sizes() == knot_indices[0].sizes());
 
       if constexpr (memory_optimized) {
+        // memory-optimized
         auto basfunc = eval_basfunc<deriv, memory_optimized>(xi, knot_indices);
         auto coeff_indices = find_coeff_indices<memory_optimized>(knot_indices);
         utils::BlockTensor<torch::Tensor, 1, geoDim_> result;
@@ -979,28 +998,61 @@ public:
                             .view(xi[0].sizes()));
         return result;
       } else {
+        // not memory-optimized
         if constexpr (geoDim_ > 1) {
+          // geoDim > 1
           auto basfunc =
               eval_basfunc<deriv, memory_optimized>(xi, knot_indices);
           auto coeff_indices =
               find_coeff_indices<memory_optimized>(knot_indices);
           utils::BlockTensor<torch::Tensor, 1, geoDim_> result;
-          for (short_t i = 0; i < geoDim_; ++i)
-            result.set(i, utils::dotproduct(basfunc,
-                                            coeffs(i)
-                                                .index_select(0, coeff_indices)
-                                                .view({-1, xi[0].numel()}))
-                              .view(xi[0].sizes()));
+
+          if (coeffs(0).dim() > 1) {
+            // coeffs has extra dimension
+            torch::IntArrayRef sizes =
+                detail::append(xi[0].sizes(), int64_t(-1));
+            for (short_t i = 0; i < geoDim_; ++i)
+              result.set(i,
+                         utils::dotproduct(
+                             basfunc.unsqueeze(-1),
+                             coeffs(i)
+                                 .index_select(0, coeff_indices)
+                                 .view({-1, xi[0].numel(), coeffs(i).size(-1)}))
+                             .view(sizes));
+          } else {
+            // coeffs does not have extra dimension
+            for (short_t i = 0; i < geoDim_; ++i)
+              result.set(i, utils::dotproduct(
+                                basfunc, coeffs(i)
+                                             .index_select(0, coeff_indices)
+                                             .view({-1, xi[0].numel()}))
+                                .view(xi[0].sizes()));
+          }
           return result;
         } else
-          return utils::BlockTensor<torch::Tensor, 1, 1>(
-              utils::dotproduct(
-                  eval_basfunc<deriv, memory_optimized>(xi, knot_indices),
-                  coeffs(0)
-                      .index_select(
-                          0, find_coeff_indices<memory_optimized>(knot_indices))
-                      .view({-1, xi[0].numel()}))
-                  .view(xi[0].sizes()));
+          // geoDim == 1
+          if (coeffs(0).dim() > 1) {
+            // coeffs has extra dimension
+            return utils::BlockTensor<torch::Tensor, 1, 1>(
+                utils::dotproduct(
+                    eval_basfunc<deriv, memory_optimized>(xi, knot_indices)
+                        .unsqueeze(-1),
+                    coeffs(0)
+                        .index_select(0, find_coeff_indices<memory_optimized>(
+                                             knot_indices))
+                        .view({-1, xi[0].numel(), coeffs(0).size(-1)}))
+                    .view(detail::append(xi[0].sizes(), int64_t(-1))));
+          } else {
+            // coeffs does not have extra dimension
+            return utils::BlockTensor<torch::Tensor, 1, 1>(
+                utils::dotproduct(
+                    eval_basfunc<deriv, memory_optimized>(xi, knot_indices),
+                    coeffs(0)
+                        .index_select(0, find_coeff_indices<memory_optimized>(
+                                             knot_indices))
+                        .view({-1, xi[0].numel()}))
+                    .view(xi[0].sizes()));
+          }
       }
     } else
       throw std::runtime_error("Invalid parametric dimension");
@@ -1032,6 +1084,7 @@ public:
       assert(xi[0].sizes() == knot_indices[0].sizes());
 
       if constexpr (memory_optimized) {
+        // memory-optimized
         auto basfunc = eval_basfunc<deriv, memory_optimized>(xi, knot_indices);
         utils::BlockTensor<torch::Tensor, 1, geoDim_> result;
         for (short_t i = 0; i < geoDim_; ++i)
@@ -1042,25 +1095,57 @@ public:
                             .view(xi[0].sizes()));
         return result;
       } else {
+        // not memory-optimized
         if constexpr (geoDim_ > 1) {
+          // geoDim > 1
           auto basfunc =
               eval_basfunc<deriv, memory_optimized>(xi, knot_indices);
           utils::BlockTensor<torch::Tensor, 1, geoDim_> result;
-          for (short_t i = 0; i < geoDim_; ++i)
-            result.set(i, utils::dotproduct(basfunc,
-                                            coeffs(i)
-                                                .index_select(0, coeff_indices)
-                                                .view({-1, xi[0].numel()}))
-                              .view(xi[0].sizes()));
+
+          if (coeffs(0).dim() > 1) {
+            // coeffs has extra dimension
+            torch::IntArrayRef sizes =
+                detail::append(xi[0].sizes(), int64_t(-1));
+            for (short_t i = 0; i < geoDim_; ++i)
+              result.set(i,
+                         utils::dotproduct(
+                             basfunc.unsqueeze(-1),
+                             coeffs(i)
+                                 .index_select(0, coeff_indices)
+                                 .view({-1, xi[0].numel(), coeffs(i).size(-1)}))
+                             .view(sizes));
+          } else {
+            // coeffs does not have extra dimension
+            for (short_t i = 0; i < geoDim_; ++i)
+              result.set(i, utils::dotproduct(
+                                basfunc, coeffs(i)
+                                             .index_select(0, coeff_indices)
+                                             .view({-1, xi[0].numel()}))
+                                .view(xi[0].sizes()));
+          }
           return result;
         } else
-          return utils::BlockTensor<torch::Tensor, 1, 1>(
-              utils::dotproduct(
-                  eval_basfunc<deriv, memory_optimized>(xi, knot_indices),
-                  coeffs(0)
-                      .index_select(0, coeff_indices)
-                      .view({-1, xi[0].numel()}))
-                  .view(xi[0].sizes()));
+          // geoDim == 1
+          if (coeffs(0).dim() > 1) {
+            // coeffs has extra dimension
+            return utils::BlockTensor<torch::Tensor, 1, 1>(
+                utils::dotproduct(
+                    eval_basfunc<deriv, memory_optimized>(xi, knot_indices)
+                        .unsqueeze(-1),
+                    coeffs(0)
+                        .index_select(0, coeff_indices)
+                        .view({-1, xi[0].numel(), coeffs(0).size(-1)}))
+                    .view(detail::append(xi[0].sizes(), int64_t(-1))));
+          } else {
+            // coeffs does not have extra dimension
+            return utils::BlockTensor<torch::Tensor, 1, 1>(
+                utils::dotproduct(
+                    eval_basfunc<deriv, memory_optimized>(xi, knot_indices),
+                    coeffs(0)
+                        .index_select(0, coeff_indices)
+                        .view({-1, xi[0].numel()}))
+                    .view(xi[0].sizes()));
+          }
       }
     } else
       throw std::runtime_error("Invalid parametric dimension");
@@ -1090,6 +1175,7 @@ public:
              xi[0].sizes() == xi[1].sizes());
 
       if constexpr (memory_optimized) {
+        // memory-optimized
         auto basfunc = eval_basfunc<deriv, memory_optimized>(xi, knot_indices);
         auto coeff_indices = find_coeff_indices<memory_optimized>(knot_indices);
         utils::BlockTensor<torch::Tensor, 1, geoDim_> result;
@@ -1104,28 +1190,61 @@ public:
                             .view(xi[0].sizes()));
         return result;
       } else {
+        // not memory-optimized
         if constexpr (geoDim_ > 1) {
+          // geoDim > 1
           auto basfunc =
               eval_basfunc<deriv, memory_optimized>(xi, knot_indices);
           auto coeff_indices =
               find_coeff_indices<memory_optimized>(knot_indices);
           utils::BlockTensor<torch::Tensor, 1, geoDim_> result;
-          for (short_t i = 0; i < geoDim_; ++i)
-            result.set(i, utils::dotproduct(basfunc,
-                                            coeffs(i)
-                                                .index_select(0, coeff_indices)
-                                                .view({-1, xi[0].numel()}))
-                              .view(xi[0].sizes()));
+
+          if (coeffs(0).dim() > 1) {
+            // coeffs has extra dimension
+            torch::IntArrayRef sizes =
+                detail::append(xi[0].sizes(), int64_t(-1));
+            for (short_t i = 0; i < geoDim_; ++i)
+              result.set(i,
+                         utils::dotproduct(
+                             basfunc.unsqueeze(-1),
+                             coeffs(i)
+                                 .index_select(0, coeff_indices)
+                                 .view({-1, xi[0].numel(), coeffs(i).size(-1)}))
+                             .view(sizes));
+          } else {
+            // coeffs does not have extra dimension
+            for (short_t i = 0; i < geoDim_; ++i)
+              result.set(i, utils::dotproduct(
+                                basfunc, coeffs(i)
+                                             .index_select(0, coeff_indices)
+                                             .view({-1, xi[0].numel()}))
+                                .view(xi[0].sizes()));
+          }
           return result;
         } else
-          return utils::BlockTensor<torch::Tensor, 1, 1>(
-              utils::dotproduct(
-                  eval_basfunc<deriv, memory_optimized>(xi, knot_indices),
-                  coeffs(0)
-                      .index_select(
-                          0, find_coeff_indices<memory_optimized>(knot_indices))
-                      .view({-1, xi[0].numel()}))
-                  .view(xi[0].sizes()));
+          // geoDim == 1
+          if (coeffs(0).dim() > 1) {
+            // coeffs has extra dimension
+            return utils::BlockTensor<torch::Tensor, 1, 1>(
+                utils::dotproduct(
+                    eval_basfunc<deriv, memory_optimized>(xi, knot_indices)
+                        .unsqueeze(-1),
+                    coeffs(0)
+                        .index_select(0, find_coeff_indices<memory_optimized>(
+                                             knot_indices))
+                        .view({-1, xi[0].numel(), coeffs(0).size(-1)}))
+                    .view(detail::append(xi[0].sizes(), int64_t(-1))));
+          } else {
+            // coeffs does not have extra dimension
+            return utils::BlockTensor<torch::Tensor, 1, 1>(
+                utils::dotproduct(
+                    eval_basfunc<deriv, memory_optimized>(xi, knot_indices),
+                    coeffs(0)
+                        .index_select(0, find_coeff_indices<memory_optimized>(
+                                             knot_indices))
+                        .view({-1, xi[0].numel()}))
+                    .view(xi[0].sizes()));
+          }
       }
     } else
       throw std::runtime_error("Invalid parametric dimension");
@@ -1159,6 +1278,7 @@ public:
              xi[0].sizes() == xi[1].sizes());
 
       if constexpr (memory_optimized) {
+        // memory-optimized
         auto basfunc = eval_basfunc<deriv, memory_optimized>(xi, knot_indices);
         utils::BlockTensor<torch::Tensor, 1, geoDim_> result;
         for (short_t i = 0; i < geoDim_; ++i)
@@ -1172,25 +1292,57 @@ public:
                             .view(xi[0].sizes()));
         return result;
       } else {
+        // not memory-optimized
         if constexpr (geoDim_ > 1) {
+          // geoDim > 1
           auto basfunc =
               eval_basfunc<deriv, memory_optimized>(xi, knot_indices);
           utils::BlockTensor<torch::Tensor, 1, geoDim_> result;
-          for (short_t i = 0; i < geoDim_; ++i)
-            result.set(i, utils::dotproduct(basfunc,
-                                            coeffs(i)
-                                                .index_select(0, coeff_indices)
-                                                .view({-1, xi[0].numel()}))
-                              .view(xi[0].sizes()));
+
+          if (coeffs(0).dim() > 1) {
+            // coeffs has extra dimension
+            torch::IntArrayRef sizes =
+                detail::append(xi[0].sizes(), int64_t(-1));
+            for (short_t i = 0; i < geoDim_; ++i)
+              result.set(i,
+                         utils::dotproduct(
+                             basfunc.unsqueeze(-1),
+                             coeffs(i)
+                                 .index_select(0, coeff_indices)
+                                 .view({-1, xi[0].numel(), coeffs(i).size(-1)}))
+                             .view(sizes));
+          } else {
+            // coeffs does not have extra dimension
+            for (short_t i = 0; i < geoDim_; ++i)
+              result.set(i, utils::dotproduct(
+                                basfunc, coeffs(i)
+                                             .index_select(0, coeff_indices)
+                                             .view({-1, xi[0].numel()}))
+                                .view(xi[0].sizes()));
+          }
           return result;
         } else
-          return utils::BlockTensor<torch::Tensor, 1, 1>(
-              utils::dotproduct(
-                  eval_basfunc<deriv, memory_optimized>(xi, knot_indices),
-                  coeffs(0)
-                      .index_select(0, coeff_indices)
-                      .view({-1, xi[0].numel()}))
-                  .view(xi[0].sizes()));
+          // geoDim == 1
+          if (coeffs(0).dim() > 1) {
+            // coeffs has extra dimension
+            return utils::BlockTensor<torch::Tensor, 1, 1>(
+                utils::dotproduct(
+                    eval_basfunc<deriv, memory_optimized>(xi, knot_indices)
+                        .unsqueeze(-1),
+                    coeffs(0)
+                        .index_select(0, coeff_indices)
+                        .view({-1, xi[0].numel(), coeffs(0).size(-1)}))
+                    .view(detail::append(xi[0].sizes(), int64_t(-1))));
+          } else {
+            // coeffs does not have extra dimension
+            return utils::BlockTensor<torch::Tensor, 1, 1>(
+                utils::dotproduct(
+                    eval_basfunc<deriv, memory_optimized>(xi, knot_indices),
+                    coeffs(0)
+                        .index_select(0, coeff_indices)
+                        .view({-1, xi[0].numel()}))
+                    .view(xi[0].sizes()));
+          }
       }
     } else
       throw std::runtime_error("Invalid parametric dimension");
@@ -1221,6 +1373,7 @@ public:
              xi[0].sizes() == xi[1].sizes() && xi[1].sizes() == xi[2].sizes());
 
       if constexpr (memory_optimized) {
+        // memory-optimized
         auto basfunc = eval_basfunc<deriv, memory_optimized>(xi, knot_indices);
         auto coeff_indices = find_coeff_indices<memory_optimized>(knot_indices);
         utils::BlockTensor<torch::Tensor, 1, geoDim_> result;
@@ -1239,28 +1392,61 @@ public:
                      .view(xi[0].sizes()));
         return result;
       } else {
+        // not memory-optimized
         if constexpr (geoDim_ > 1) {
+          // geoDim > 1
           auto basfunc =
               eval_basfunc<deriv, memory_optimized>(xi, knot_indices);
           auto coeff_indices =
               find_coeff_indices<memory_optimized>(knot_indices);
           utils::BlockTensor<torch::Tensor, 1, geoDim_> result;
-          for (short_t i = 0; i < geoDim_; ++i)
-            result.set(i, utils::dotproduct(basfunc,
-                                            coeffs(i)
-                                                .index_select(0, coeff_indices)
-                                                .view({-1, xi[0].numel()}))
-                              .view(xi[0].sizes()));
+
+          if (coeffs(0).dim() > 1) {
+            // coeffs has extra dimension
+            torch::IntArrayRef sizes =
+                detail::append(xi[0].sizes(), int64_t(-1));
+            for (short_t i = 0; i < geoDim_; ++i)
+              result.set(i,
+                         utils::dotproduct(
+                             basfunc.unsqueeze(01),
+                             coeffs(i)
+                                 .index_select(0, coeff_indices)
+                                 .view({-1, xi[0].numel(), coeffs(i).size(-1)}))
+                             .view(sizes));
+          } else {
+            // coeffs does not have extra dimension
+            for (short_t i = 0; i < geoDim_; ++i)
+              result.set(i, utils::dotproduct(
+                                basfunc, coeffs(i)
+                                             .index_select(0, coeff_indices)
+                                             .view({-1, xi[0].numel()}))
+                                .view(xi[0].sizes()));
+          }
           return result;
         } else
-          return utils::BlockTensor<torch::Tensor, 1, 1>(
-              utils::dotproduct(
-                  eval_basfunc<deriv, memory_optimized>(xi, knot_indices),
-                  coeffs(0)
-                      .index_select(
-                          0, find_coeff_indices<memory_optimized>(knot_indices))
-                      .view({-1, xi[0].numel()}))
-                  .view(xi[0].sizes()));
+          // geoDim == 1
+          if (coeffs(0).dim() > 1) {
+            // coeffs has extra dimension
+            return utils::BlockTensor<torch::Tensor, 1, 1>(
+                utils::dotproduct(
+                    eval_basfunc<deriv, memory_optimized>(xi, knot_indices)
+                        .unsqueeze(-1),
+                    coeffs(0)
+                        .index_select(0, find_coeff_indices<memory_optimized>(
+                                             knot_indices))
+                        .view({-1, xi[0].numel(), coeffs(0).size(-1)}))
+                    .view(detail::append(xi[0].sizes(), int64_t(-1))));
+          } else {
+            // coeffs does not have extra dimension
+            return utils::BlockTensor<torch::Tensor, 1, 1>(
+                utils::dotproduct(
+                    eval_basfunc<deriv, memory_optimized>(xi, knot_indices),
+                    coeffs(0)
+                        .index_select(0, find_coeff_indices<memory_optimized>(
+                                             knot_indices))
+                        .view({-1, xi[0].numel()}))
+                    .view(xi[0].sizes()));
+          }
       }
     } else
       throw std::runtime_error("Invalid parametric dimension");
@@ -1295,6 +1481,7 @@ public:
              xi[0].sizes() == xi[1].sizes() && xi[1].sizes() == xi[2].sizes());
 
       if constexpr (memory_optimized) {
+        // memory-optimized
         auto basfunc = eval_basfunc<deriv, memory_optimized>(xi, knot_indices);
         auto coeff_indices = find_coeff_indices<memory_optimized>(knot_indices);
         utils::BlockTensor<torch::Tensor, 1, geoDim_> result;
@@ -1313,25 +1500,57 @@ public:
                      .view(xi[0].sizes()));
         return result;
       } else {
+        // non memory-optimized
         if constexpr (geoDim_ > 1) {
+          // geoDim > 1
           auto basfunc =
               eval_basfunc<deriv, memory_optimized>(xi, knot_indices);
           utils::BlockTensor<torch::Tensor, 1, geoDim_> result;
-          for (short_t i = 0; i < geoDim_; ++i)
-            result.set(i, utils::dotproduct(basfunc,
-                                            coeffs(i)
-                                                .index_select(0, coeff_indices)
-                                                .view({-1, xi[0].numel()}))
-                              .view(xi[0].sizes()));
+
+          if (coeffs(0).dim() > 1) {
+            // coeffs has extra dimension
+            torch::IntArrayRef sizes =
+                detail::append(xi[0].sizes(), int64_t(-1));
+            for (short_t i = 0; i < geoDim_; ++i)
+              result.set(i,
+                         utils::dotproduct(
+                             basfunc.unsqueeze(-1),
+                             coeffs(i)
+                                 .index_select(0, coeff_indices)
+                                 .view({-1, xi[0].numel(), coeffs(i).size(-1)}))
+                             .view(sizes));
+          } else {
+            // coeffs does not have extra dimension
+            for (short_t i = 0; i < geoDim_; ++i)
+              result.set(i, utils::dotproduct(
+                                basfunc, coeffs(i)
+                                             .index_select(0, coeff_indices)
+                                             .view({-1, xi[0].numel()}))
+                                .view(xi[0].sizes()));
+          }
           return result;
         } else
-          return utils::BlockTensor<torch::Tensor, 1, 1>(
-              utils::dotproduct(
-                  eval_basfunc<deriv, memory_optimized>(xi, knot_indices),
-                  coeffs(0)
-                      .index_select(0, coeff_indices)
-                      .view({-1, xi[0].numel()}))
-                  .view(xi[0].sizes()));
+          // geoDim == 1
+          if (coeffs(0).dim() > 1) {
+            // coeffs has extra dimension
+            return utils::BlockTensor<torch::Tensor, 1, 1>(
+                utils::dotproduct(
+                    eval_basfunc<deriv, memory_optimized>(xi, knot_indices)
+                        .unsqueeze(-1),
+                    coeffs(0)
+                        .index_select(0, coeff_indices)
+                        .view({-1, xi[0].numel(), coeffs(0).size(-1)}))
+                    .view(detail::append(xi[0].sizes(), int64_t(-1))));
+          } else {
+            // coeffs does not have extra dimension
+            return utils::BlockTensor<torch::Tensor, 1, 1>(
+                utils::dotproduct(
+                    eval_basfunc<deriv, memory_optimized>(xi, knot_indices),
+                    coeffs(0)
+                        .index_select(0, coeff_indices)
+                        .view({-1, xi[0].numel()}))
+                    .view(xi[0].sizes()));
+          }
       }
     } else
       throw std::runtime_error("Invalid parametric dimension");
@@ -1365,6 +1584,7 @@ public:
              xi[2].sizes() == xi[3].sizes());
 
       if constexpr (memory_optimized) {
+        // memory-optimized
         auto basfunc = eval_basfunc<deriv, memory_optimized>(xi, knot_indices);
         auto coeff_indices = find_coeff_indices<memory_optimized>(knot_indices);
         utils::BlockTensor<torch::Tensor, 1, geoDim_> result;
@@ -1387,28 +1607,61 @@ public:
                   .view(xi[0].sizes()));
         return result;
       } else {
+        // non memory-optimized
         if constexpr (geoDim_ > 1) {
+          // geoDim > 1
           auto basfunc =
               eval_basfunc<deriv, memory_optimized>(xi, knot_indices);
           auto coeff_indices =
               find_coeff_indices<memory_optimized>(knot_indices);
           utils::BlockTensor<torch::Tensor, 1, geoDim_> result;
-          for (short_t i = 0; i < geoDim_; ++i)
-            result.set(i, utils::dotproduct(basfunc,
-                                            coeffs(i)
-                                                .index_select(0, coeff_indices)
-                                                .view({-1, xi[0].numel()}))
-                              .view(xi[0].sizes()));
+
+          if (coeffs(0).dim() > 1) {
+            // coeffs has extra dimension
+            torch::IntArrayRef sizes =
+                detail::append(xi[0].sizes(), int64_t(-1));
+            for (short_t i = 0; i < geoDim_; ++i)
+              result.set(i,
+                         utils::dotproduct(
+                             basfunc.unsqueeze(-1),
+                             coeffs(i)
+                                 .index_select(0, coeff_indices)
+                                 .view({-1, xi[0].numel(), coeffs(i).size(-1)}))
+                             .view(sizes));
+          } else {
+            // coeffs does not have extra dimension
+            for (short_t i = 0; i < geoDim_; ++i)
+              result.set(i, utils::dotproduct(
+                                basfunc, coeffs(i)
+                                             .index_select(0, coeff_indices)
+                                             .view({-1, xi[0].numel()}))
+                                .view(xi[0].sizes()));
+          }
           return result;
         } else
-          return utils::BlockTensor<torch::Tensor, 1, 1>(
-              utils::dotproduct(
-                  eval_basfunc<deriv, memory_optimized>(xi, knot_indices),
-                  coeffs(0)
-                      .index_select(
-                          0, find_coeff_indices<memory_optimized>(knot_indices))
-                      .view({-1, xi[0].numel()}))
-                  .view(xi[0].sizes()));
+          // geoDim == 1
+          if (coeffs(0).dim() > 1) {
+            // coeffs has extra dimension
+            return utils::BlockTensor<torch::Tensor, 1, 1>(
+                utils::dotproduct(
+                    eval_basfunc<deriv, memory_optimized>(xi, knot_indices)
+                        .unsqueeze(-1),
+                    coeffs(0)
+                        .index_select(0, find_coeff_indices<memory_optimized>(
+                                             knot_indices))
+                        .view({-1, xi[0].numel(), coeffs(0).size(-1)}))
+                    .view(detail::append(xi[0].sizes(), int64_t(-1))));
+          } else {
+            // coeffs does not have extra dimension
+            return utils::BlockTensor<torch::Tensor, 1, 1>(
+                utils::dotproduct(
+                    eval_basfunc<deriv, memory_optimized>(xi, knot_indices),
+                    coeffs(0)
+                        .index_select(0, find_coeff_indices<memory_optimized>(
+                                             knot_indices))
+                        .view({-1, xi[0].numel()}))
+                    .view(xi[0].sizes()));
+          }
       }
     } else
       throw std::runtime_error("Invalid parametric dimension");
@@ -1446,6 +1699,7 @@ public:
              xi[2].sizes() == xi[3].sizes());
 
       if constexpr (memory_optimized) {
+        // memory-optimized
         auto basfunc = eval_basfunc<deriv, memory_optimized>(xi, knot_indices);
         utils::BlockTensor<torch::Tensor, 1, geoDim_> result;
         for (short_t i = 0; i < geoDim_; ++i)
@@ -1467,25 +1721,57 @@ public:
                   .view(xi[0].sizes()));
         return result;
       } else {
+        // non memory-optimized
         if constexpr (geoDim_ > 1) {
+          // geoDim > 1
           auto basfunc =
               eval_basfunc<deriv, memory_optimized>(xi, knot_indices);
           utils::BlockTensor<torch::Tensor, 1, geoDim_> result;
-          for (short_t i = 0; i < geoDim_; ++i)
-            result.set(i, utils::dotproduct(basfunc,
-                                            coeffs(i)
-                                                .index_select(0, coeff_indices)
-                                                .view({-1, xi[0].numel()}))
-                              .view(xi[0].sizes()));
+
+          if (coeffs(0).dim() > 1) {
+            // coeffs has extra dimension
+            torch::IntArrayRef sizes =
+                detail::append(xi[0].sizes(), int64_t(-1));
+            for (short_t i = 0; i < geoDim_; ++i)
+              result.set(i,
+                         utils::dotproduct(
+                             basfunc.unsqueeze(-1),
+                             coeffs(i)
+                                 .index_select(0, coeff_indices)
+                                 .view({-1, xi[0].numel(), coeffs(i).size(-1)}))
+                             .view(sizes));
+          } else {
+            // coeffs does not have extra dimension
+            for (short_t i = 0; i < geoDim_; ++i)
+              result.set(i, utils::dotproduct(
+                                basfunc, coeffs(i)
+                                             .index_select(0, coeff_indices)
+                                             .view({-1, xi[0].numel()}))
+                                .view(xi[0].sizes()));
+          }
           return result;
         } else
-          return utils::BlockTensor<torch::Tensor, 1, 1>(
-              utils::dotproduct(
-                  eval_basfunc<deriv, memory_optimized>(xi, knot_indices),
-                  coeffs(0)
-                      .index_select(0, coeff_indices)
-                      .view({-1, xi[0].numel()}))
-                  .view(xi[0].sizes()));
+          // geoDim == 1
+          if (coeffs(0).dim() > 1) {
+            // coeffs has extra dimension
+            return utils::BlockTensor<torch::Tensor, 1, 1>(
+                utils::dotproduct(
+                    eval_basfunc<deriv, memory_optimized>(xi, knot_indices)
+                        .unsqueeze(-1),
+                    coeffs(0)
+                        .index_select(0, coeff_indices)
+                        .view({-1, xi[0].numel(), coeffs(0).size(-1)}))
+                    .view(detail::append(xi[0].sizes(), int64_t(-1))));
+          } else {
+            // coeffs does not have extra dimension
+            return utils::BlockTensor<torch::Tensor, 1, 1>(
+                utils::dotproduct(
+                    eval_basfunc<deriv, memory_optimized>(xi, knot_indices),
+                    coeffs(0)
+                        .index_select(0, coeff_indices)
+                        .view({-1, xi[0].numel()}))
+                    .view(xi[0].sizes()));
+          }
       }
     } else
       throw std::runtime_error("Invalid parametric dimension");

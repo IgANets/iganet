@@ -2,10 +2,11 @@
    @file examples/iganet_fitting_autotune.cxx
 
    @brief Demonstration of IgANet function fitting with automatic
-   hyper-parameter tuning
+   hyper-parameter tuning and use of the data loader for the geometry
 
    This example demonstrates how to auto-tune the hyper-parameters of
-   an IgANet for fitting a given function on a square geometry.
+   an IgANet for fitting a given function on a set of geometries that
+   are loaded with the custom data loader
 
    @author Matthias Moller
 
@@ -128,13 +129,12 @@ int main() {
   auto train_size = train_set.size().value();
   auto train_loader =
       torch::data::make_data_loader<torch::data::samplers::SequentialSampler>(
-          std::move(train_set), 1);
+          std::move(train_set),
+          1); // at the moment the batch-size needs to be 1
 
   for (std::vector<std::any> activation :
-       {std::vector<std::any>{iganet::activation::relu},
-        std::vector<std::any>{iganet::activation::sigmoid},
-        std::vector<std::any>{iganet::activation::tanh}}) {
-    for (int64_t nlayers : {5, 6, 7, 8, 9}) {
+       {std::vector<std::any>{iganet::activation::sigmoid}}) {
+    for (int64_t nlayers : {8, 9}) {
       for (int64_t nneurons : {60, 80, 100, 120, 140, 160, 180, 200}) {
 
         iganet::Log(iganet::log::info)
