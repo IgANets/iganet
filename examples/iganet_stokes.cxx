@@ -84,7 +84,7 @@ public:
     // not change the inputs nor the variable function space.
     if (epoch == 0) {
       Base::inputs(epoch);
-      collPts_ = Base::variable_collPts(iganet::collPts::greville_ref1);
+      collPts_ = Base::variable_collPts(iganet::collPts::greville);
 
       var_knot_indices_ =
           Base::f_.template find_knot_indices<iganet::functionspace::interior>(
@@ -104,6 +104,9 @@ public:
     } else
       return false;
   }
+  // define material parameters
+  float_t density{1e3};
+  float_t viscosity{1e-3};
 
   /// @brief Computes the loss function
   ///
@@ -118,8 +121,9 @@ public:
     Base::u_.from_tensor(outputs);
 
     // Evaluate
+
     auto u =
-        Base::G_.hess(collPts_.first, var_knot_indices_, var_coeff_indices_);
+      Base::G_.hess(collPts_.first, var_knot_indices_, var_coeff_indices_);
 
     auto f =
         Base::f_.eval(collPts_.first, var_knot_indices_, var_coeff_indices_);
