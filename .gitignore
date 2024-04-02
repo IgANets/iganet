@@ -2,6 +2,7 @@
 secrets
 cert.pem
 key.pem
+build/
 
 # Editor directories and files
 .idea
