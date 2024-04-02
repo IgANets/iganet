@@ -61,7 +61,7 @@ public:
     // empty. In all further epochs no updates are needed since we do
     // not change the inputs nor the variable function space.
     //    if (epoch == 0) {
-    collPts_ = Base::variable_collPts(iganet::collPts::greville);
+    collPts_ = Base::variable_collPts(iganet::collPts::greville_ref2);
 
     knot_indices_ =
         Base::f_.template find_knot_indices<iganet::functionspace::interior>(
@@ -165,6 +165,9 @@ int main() {
               .count()
       << " seconds\n";
 
+  // Save trained model to file
+  net.save(IGANET_DATA_DIR "trained/2d_quadCircle_variableRadius");
+
 #ifdef IGANET_WITH_GISMO
         // Convert B-spline objects to G+Smo
         auto G_gismo = net.G().to_gismo();
@@ -196,6 +199,52 @@ int main() {
                        .sqNorm() *
                    meas(G)))
             << std::endl;
+#endif
+
+
+// evaluate model for one specific geometry
+// Load XML file
+pugi::xml_document xml;
+xml.load_file(IGANET_DATA_DIR "surfaces/2d_quadCircle_variableRadius/quadCircleR075I02_resultR1E1Fixed.xml");
+net.G().from_xml(xml);
+
+net.eval();
+
+#ifdef IGANET_WITH_MATPLOT
+  // Evaluate position of collocation points in physical domain
+  auto colPts = net.G().eval(net.collPts().first);
+
+  // Plot the solution
+  net.G()
+      .plot(net.u(), json)
+      ->show();
+
+  // Plot the difference between the solution and the reference data
+  net.G()
+      .plot(net.u().abs_diff(net.f()),
+           json)
+      ->show();
+#endif
+
+  // Load XML file
+xml.load_file(IGANET_DATA_DIR "surfaces/2d_quadCircle_variableRadius/quadCircleR125I04_resultR1E1Fixed.xml");
+net.G().from_xml(xml);
+
+net.eval();
+
+#ifdef IGANET_WITH_MATPLOT
+  // Evaluate position of collocation points in physical domain
+
+  // Plot the solution
+  net.G()
+      .plot(net.u(), json)
+      ->show();
+
+  // Plot the difference between the solution and the reference data
+  net.G()
+      .plot(net.u().abs_diff(net.f()),
+           json)
+      ->show();
 #endif
 
   return 0;
