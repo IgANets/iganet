@@ -84,7 +84,11 @@ public:
     // Cast the network output (a raw tensor) into the proper
     // function-space format, i.e. B-spline objects for the interior
     // and boundary parts that can be evaluated.
-    Base::u_.from_tensor(outputs.flatten());
+
+    if (outputs.dim() > 1)
+      Base::u_.from_tensor(outputs.t());
+    else
+      Base::u_.from_tensor(outputs.flatten());
 
     // Evaluate the loss function
     return torch::mse_loss(
@@ -129,13 +133,13 @@ int main() {
   auto train_size = train_set.size().value();
   auto train_loader =
       torch::data::make_data_loader<torch::data::samplers::SequentialSampler>(
-          std::move(train_set),
-          1); // at the moment the batch-size needs to be 1
+          std::move(train_set), iganet::utils::getenv("IGANET_BATCHSIZE", 8));
 
   for (std::vector<std::any> activation :
        {std::vector<std::any>{iganet::activation::sigmoid}}) {
-    for (int64_t nlayers : {8, 9}) {
-      for (int64_t nneurons : {60, 80, 100, 120, 140, 160, 180, 200}) {
+    for (int64_t nlayers : iganet::utils::getenv("IGANET_NLAYERS", {8, 9})) {
+      for (int64_t nneurons : iganet::utils::getenv(
+               "IGANET_NNEURONS", {60, 80, 100, 120, 140, 160, 180, 200})) {
 
         iganet::Log(iganet::log::info)
             << "#layers: " << nlayers << ", #neurons: " << nneurons

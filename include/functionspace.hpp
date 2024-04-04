@@ -1009,7 +1009,6 @@ public:
   inline auto &from_tensor(const torch::Tensor &coeffs) {
     Base::from_tensor(coeffs);
     boundary_.from_full_tensor(coeffs);
-
     return *this;
   }
 

@@ -5186,6 +5186,132 @@ public:
   }
   /// @}
 
+  /// @brief Returns a block-tensor with the curl of the
+  /// B-spline object in the points `xi` with respect to the
+  /// physical variables
+  ///
+  /// @tparam Geometry Type of the geometry B-spline object
+  ///
+  /// @param[in] G B-spline geometry object
+  ///
+  /// @param[in] xi Point(s) where to evaluate the curl
+  ///
+  /// @result Block-tensor with the curl with respect to the
+  /// parametric variables
+  /// \f[
+  ///     \nabla \times {\mathbf{x}} u
+  ///        =
+  ///     \nabla_{\boldsymbol{\xi}} \times u \,
+  ///     \operatorname{det}(\operatorname{det}(J_{\boldsymbol{\xi}}(G))^{-1} \,
+  ///     J_{\boldsymbol{\xi}}(G) , \quad \mathbf{x} = G(\boldsymbol{\xi})
+  /// \f]
+  ///
+  /// @{
+  template <bool memory_optimized = false, typename Geometry>
+  auto icurl(const Geometry &G, const torch::Tensor &xi) const {
+    return icurl<memory_optimized, Geometry>(G, utils::TensorArray1({xi}));
+  }
+
+  template <bool memory_optimized = false, typename Geometry>
+  inline auto
+  icurl(const Geometry &G,
+        const std::array<torch::Tensor, BSplineCore::parDim_> &xi) const {
+    return icurl<memory_optimized, Geometry>(
+        G, xi, BSplineCore::find_knot_indices(xi), G.find_knot_indices(xi));
+  }
+  /// @}
+
+  /// @brief Returns a block-tensor with the curl of the
+  /// B-spline object in the points `xi` with respect to the
+  /// physical variables
+  ///
+  /// @tparam Geometry Type of the geometry B-spline object
+  ///
+  /// @param[in] G B-spline geometry object
+  ///
+  /// @param[in] xi Point(s) where to evaluate the gradient
+  ///
+  /// @param[in] knot_indices Knot indices where to evaluate the gradient
+  ///
+  /// @param[in] knot_indices_G Knot indices where to evaluate Jacobian of `G`
+  ///
+  /// @result Block-tensor with the curl with respect to the
+  /// physical variables
+  /// \f[
+  ///     \nabla \times {\mathbf{x}} u
+  ///        =
+  ///     \nabla_{\boldsymbol{\xi}} \times u \,
+  ///     \operatorname{det}(\operatorname{det}(J_{\boldsymbol{\xi}}(G))^{-1} \,
+  ///     J_{\boldsymbol{\xi}}(G) , \quad \mathbf{x} = G(\boldsymbol{\xi})
+  /// \f]
+  template <bool memory_optimized = false, typename Geometry>
+  inline auto
+  icurl(const Geometry G,
+        const std::array<torch::Tensor, BSplineCore::parDim_> &xi,
+        const std::array<torch::Tensor, BSplineCore::parDim_> &knot_indices,
+        const std::array<torch::Tensor, Geometry::parDim()> &knot_indices_G)
+      const {
+    if constexpr (BSplineCore::parDim_ == 0)
+      return utils::BlockTensor<torch::Tensor, 1, 1>{
+          torch::zeros_like(BSplineCore::coeffs_[0])};
+    else
+      return icurl<memory_optimized, Geometry>(
+          G, xi, knot_indices,
+          BSplineCore::template find_coeff_indices<memory_optimized>(
+              knot_indices),
+          knot_indices_G,
+          G.template find_coeff_indices<memory_optimized>(knot_indices_G));
+  }
+
+  /// @brief Returns a block-tensor with the curl of the
+  /// B-spline object in the points `xi` with respect to the
+  /// physical variables
+  ///
+  /// @tparam Geometry Type of the geometry B-spline object
+  ///
+  /// @param[in] G B-spline geometry object
+  ///
+  /// @param[in] xi Point(s) where to evaluate the gradient
+  ///
+  /// @param[in] knot_indices Knot indices where to evaluate the gradient
+  ///
+  /// @param[in] knot_indices_G Knot indices where to evaluate the Jacobian of
+  /// `G`
+  ///
+  /// @param[in] coeff_indices Coefficient indices where to evaluate the
+  /// gradient
+  ///
+  /// @param[in] coeff_indices_G Coefficient indices where to evaluate the
+  /// Jacobian of `G`
+  ///
+  /// @result Block-tensor with the curl with respect to the
+  /// physical variables
+  /// \f[
+  ///     \nabla \times {\mathbf{x}} u
+  ///        =
+  ///     \nabla_{\boldsymbol{\xi}} \times u \,
+  ///     \operatorname{det}(\operatorname{det}(J_{\boldsymbol{\xi}}(G))^{-1} \,
+  ///     J_{\boldsymbol{\xi}}(G) , \quad \mathbf{x} = G(\boldsymbol{\xi})
+  /// \f]
+  template <bool memory_optimized = false, typename Geometry>
+  inline auto
+  icurl(const Geometry &G,
+        const std::array<torch::Tensor, BSplineCore::parDim_> &xi,
+        const std::array<torch::Tensor, BSplineCore::parDim_> &knot_indices,
+        const torch::Tensor &coeff_indices,
+        const std::array<torch::Tensor, Geometry::parDim()> &knot_indices_G,
+        const torch::Tensor &coeff_indices_G) const {
+
+    utils::BlockTensor<torch::Tensor, 1, 1> det;
+    det[0] = std::make_shared<torch::Tensor>(torch::reciprocal(
+        G.template jac<memory_optimized>(xi, knot_indices_G, coeff_indices_G)
+            .det()));
+
+    return det * (curl<memory_optimized>(xi, knot_indices, coeff_indices) *
+                  G.template jac<memory_optimized>(xi, knot_indices_G,
+                                                   coeff_indices_G));
+  }
+
   /// @brief Returns a block-tensor with the divergence of the
   /// B-spline object with respect to the parametric variables
   ///

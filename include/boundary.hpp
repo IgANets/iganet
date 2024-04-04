@@ -120,13 +120,21 @@ public:
   /// @result Updates spline object
   inline auto &from_full_tensor(const torch::Tensor &tensor) {
 
-    auto tensor_view = tensor.view({Spline::geoDim(), -1});
+    if (tensor.dim() > 1) {
+      auto tensor_view = tensor.view({Spline::geoDim(), -1, tensor.size(-1)});
 
-    side<west>().from_tensor(
-        tensor_view.index({torch::indexing::Slice(), 0}).flatten());
-    side<east>().from_tensor(
-        tensor_view.index({torch::indexing::Slice(), -1}).flatten());
+      side<west>().from_tensor(tensor_view.index({torch::indexing::Slice(), 0})
+                                   .reshape({-1, tensor.size(-1)}));
+      side<east>().from_tensor(tensor_view.index({torch::indexing::Slice(), -1})
+                                   .reshape({-1, tensor.size(-1)}));
+    } else {
+      auto tensor_view = tensor.view({Spline::geoDim(), -1});
 
+      side<west>().from_tensor(
+          tensor_view.index({torch::indexing::Slice(), 0}).flatten());
+      side<east>().from_tensor(
+          tensor_view.index({torch::indexing::Slice(), -1}).flatten());
+    }
     return *this;
   }
 
@@ -310,26 +318,48 @@ public:
   /// @result Updates spline object
   inline auto &from_full_tensor(const torch::Tensor &tensor) {
 
-    auto tensor_view = tensor.view(
-        {Spline::geoDim(), side<west>().ncoeffs(0), side<south>().ncoeffs(0)});
+    if (tensor.dim() > 1) {
+      auto tensor_view =
+          tensor.view({Spline::geoDim(), side<west>().ncoeffs(0),
+                       side<south>().ncoeffs(0), tensor.size(-1)});
 
-    side<west>().from_tensor(
-        tensor_view
-            .index({torch::indexing::Slice(), torch::indexing::Slice(), 0})
-            .flatten());
-    side<east>().from_tensor(
-        tensor_view
-            .index({torch::indexing::Slice(), torch::indexing::Slice(), -1})
-            .flatten());
-    side<south>().from_tensor(
-        tensor_view
-            .index({torch::indexing::Slice(), 0, torch::indexing::Slice()})
-            .flatten());
-    side<north>().from_tensor(
-        tensor_view
-            .index({torch::indexing::Slice(), -1, torch::indexing::Slice()})
-            .flatten());
+      side<west>().from_tensor(
+          tensor_view
+              .index({torch::indexing::Slice(), torch::indexing::Slice(), 0})
+              .reshape({-1, tensor.size(-1)}));
+      side<east>().from_tensor(
+          tensor_view
+              .index({torch::indexing::Slice(), torch::indexing::Slice(), -1})
+              .reshape({-1, tensor.size(-1)}));
+      side<south>().from_tensor(
+          tensor_view
+              .index({torch::indexing::Slice(), 0, torch::indexing::Slice()})
+              .reshape({-1, tensor.size(-1)}));
+      side<north>().from_tensor(
+          tensor_view
+              .index({torch::indexing::Slice(), -1, torch::indexing::Slice()})
+              .reshape({-1, tensor.size(-1)}));
+    } else {
+      auto tensor_view = tensor.view({Spline::geoDim(), side<west>().ncoeffs(0),
+                                      side<south>().ncoeffs(0)});
 
+      side<west>().from_tensor(
+          tensor_view
+              .index({torch::indexing::Slice(), torch::indexing::Slice(), 0})
+              .flatten());
+      side<east>().from_tensor(
+          tensor_view
+              .index({torch::indexing::Slice(), torch::indexing::Slice(), -1})
+              .flatten());
+      side<south>().from_tensor(
+          tensor_view
+              .index({torch::indexing::Slice(), 0, torch::indexing::Slice()})
+              .flatten());
+      side<north>().from_tensor(
+          tensor_view
+              .index({torch::indexing::Slice(), -1, torch::indexing::Slice()})
+              .flatten());
+    }
     return *this;
   }
 
@@ -554,43 +584,79 @@ public:
   /// @result Updates spline object
   inline auto &from_full_tensor(const torch::Tensor &tensor) {
 
-    auto tensor_view =
-        tensor.view({Spline::geoDim(), side<west>().ncoeffs(1),
-                     side<west>().ncoeffs(0), side<south>().ncoeffs(0)});
+    if (tensor.dim() > 1) {
+      auto tensor_view = tensor.view(
+          {Spline::geoDim(), side<west>().ncoeffs(1), side<west>().ncoeffs(0),
+           side<south>().ncoeffs(0), tensor.size(-1)});
 
-    side<west>().from_tensor(
-        tensor_view
-            .index({torch::indexing::Slice(), torch::indexing::Slice(),
-                    torch::indexing::Slice(), 0})
-            .flatten());
-    side<east>().from_tensor(
-        tensor_view
-            .index({torch::indexing::Slice(), torch::indexing::Slice(),
-                    torch::indexing::Slice(), -1})
-            .flatten());
+      side<west>().from_tensor(
+          tensor_view
+              .index({torch::indexing::Slice(), torch::indexing::Slice(),
+                      torch::indexing::Slice(), 0})
+              .reshape({-1, tensor.size(-1)}));
+      side<east>().from_tensor(
+          tensor_view
+              .index({torch::indexing::Slice(), torch::indexing::Slice(),
+                      torch::indexing::Slice(), -1})
+              .reshape({-1, tensor.size(-1)}));
+      side<south>().from_tensor(
+          tensor_view
+              .index({torch::indexing::Slice(), torch::indexing::Slice(), 0,
+                      torch::indexing::Slice()})
+              .reshape({-1, tensor.size(-1)}));
+      side<north>().from_tensor(
+          tensor_view
+              .index({torch::indexing::Slice(), torch::indexing::Slice(), -1,
+                      torch::indexing::Slice()})
+              .reshape({-1, tensor.size(-1)}));
+      side<front>().from_tensor(
+          tensor_view
+              .index({torch::indexing::Slice(), 0, torch::indexing::Slice(),
+                      torch::indexing::Slice()})
+              .reshape({-1, tensor.size(-1)}));
+      side<back>().from_tensor(
+          tensor_view
+              .index({torch::indexing::Slice(), -1, torch::indexing::Slice(),
+                      torch::indexing::Slice()})
+              .reshape({-1, tensor.size(-1)}));
+    } else {
+      auto tensor_view =
+          tensor.view({Spline::geoDim(), side<west>().ncoeffs(1),
+                       side<west>().ncoeffs(0), side<south>().ncoeffs(0)});
 
-    side<south>().from_tensor(
-        tensor_view
-            .index({torch::indexing::Slice(), torch::indexing::Slice(), 0,
-                    torch::indexing::Slice()})
-            .flatten());
-    side<north>().from_tensor(
-        tensor_view
-            .index({torch::indexing::Slice(), torch::indexing::Slice(), -1,
-                    torch::indexing::Slice()})
-            .flatten());
+      side<west>().from_tensor(
+          tensor_view
+              .index({torch::indexing::Slice(), torch::indexing::Slice(),
+                      torch::indexing::Slice(), 0})
+              .flatten());
+      side<east>().from_tensor(
+          tensor_view
+              .index({torch::indexing::Slice(), torch::indexing::Slice(),
+                      torch::indexing::Slice(), -1})
+              .flatten());
 
-    side<front>().from_tensor(
-        tensor_view
-            .index({torch::indexing::Slice(), 0, torch::indexing::Slice(),
-                    torch::indexing::Slice()})
-            .flatten());
-    side<back>().from_tensor(
-        tensor_view
-            .index({torch::indexing::Slice(), -1, torch::indexing::Slice(),
-                    torch::indexing::Slice()})
-            .flatten());
+      side<south>().from_tensor(
+          tensor_view
+              .index({torch::indexing::Slice(), torch::indexing::Slice(), 0,
+                      torch::indexing::Slice()})
+              .flatten());
+      side<north>().from_tensor(
+          tensor_view
+              .index({torch::indexing::Slice(), torch::indexing::Slice(), -1,
+                      torch::indexing::Slice()})
+              .flatten());
 
+      side<front>().from_tensor(
+          tensor_view
+              .index({torch::indexing::Slice(), 0, torch::indexing::Slice(),
+                      torch::indexing::Slice()})
+              .flatten());
+      side<back>().from_tensor(
+          tensor_view
+              .index({torch::indexing::Slice(), -1, torch::indexing::Slice(),
+                      torch::indexing::Slice()})
+              .flatten());
+    }
     return *this;
   }
 
@@ -854,54 +920,100 @@ public:
   /// @result Updates spline object
   inline auto &from_full_tensor(const torch::Tensor &tensor) {
 
-    auto tensor_view = tensor.view(
-        {Spline::geoDim(), side<west>().ncoeffs(2), side<west>().ncoeffs(1),
-         side<west>().ncoeffs(0), side<south>().ncoeffs(0)});
+    if (tensor.dim() > 1) {
+      auto tensor_view = tensor.view(
+          {Spline::geoDim(), side<west>().ncoeffs(2), side<west>().ncoeffs(1),
+           side<west>().ncoeffs(0), side<south>().ncoeffs(0), tensor.size(-1)});
 
-    side<west>().from_tensor(
-        tensor_view
-            .index({torch::indexing::Slice(), torch::indexing::Slice(),
-                    torch::indexing::Slice(), torch::indexing::Slice(), 0})
-            .flatten());
-    side<east>().from_tensor(
-        tensor_view
-            .index({torch::indexing::Slice(), torch::indexing::Slice(),
-                    torch::indexing::Slice(), torch::indexing::Slice(), -1})
-            .flatten());
+      side<west>().from_tensor(
+          tensor_view
+              .index({torch::indexing::Slice(), torch::indexing::Slice(),
+                      torch::indexing::Slice(), torch::indexing::Slice(), 0})
+              .reshape({-1, tensor.size(-1)}));
+      side<east>().from_tensor(
+          tensor_view
+              .index({torch::indexing::Slice(), torch::indexing::Slice(),
+                      torch::indexing::Slice(), torch::indexing::Slice(), -1})
+              .reshape({-1, tensor.size(-1)}));
+      side<south>().from_tensor(
+          tensor_view
+              .index({torch::indexing::Slice(), torch::indexing::Slice(),
+                      torch::indexing::Slice(), 0, torch::indexing::Slice()})
+              .reshape({-1, tensor.size(-1)}));
+      side<north>().from_tensor(
+          tensor_view
+              .index({torch::indexing::Slice(), torch::indexing::Slice(),
+                      torch::indexing::Slice(), -1, torch::indexing::Slice()})
+              .reshape({-1, tensor.size(-1)}));
+      side<front>().from_tensor(
+          tensor_view
+              .index({torch::indexing::Slice(), torch::indexing::Slice(), 0,
+                      torch::indexing::Slice(), torch::indexing::Slice()})
+              .reshape({-1, tensor.size(-1)}));
+      side<back>().from_tensor(
+          tensor_view
+              .index({torch::indexing::Slice(), torch::indexing::Slice(), -1,
+                      torch::indexing::Slice(), torch::indexing::Slice()})
+              .reshape({-1, tensor.size(-1)}));
+      side<stime>().from_tensor(
+          tensor_view
+              .index({torch::indexing::Slice(), 0, torch::indexing::Slice(),
+                      torch::indexing::Slice(), torch::indexing::Slice()})
+              .reshape({-1, tensor.size(-1)}));
+      side<etime>().from_tensor(
+          tensor_view
+              .index({torch::indexing::Slice(), -1, torch::indexing::Slice(),
+                      torch::indexing::Slice(), torch::indexing::Slice()})
+              .reshape({-1, tensor.size(-1)}));
+    } else {
+      auto tensor_view = tensor.view(
+          {Spline::geoDim(), side<west>().ncoeffs(2), side<west>().ncoeffs(1),
+           side<west>().ncoeffs(0), side<south>().ncoeffs(0)});
 
-    side<south>().from_tensor(
-        tensor_view
-            .index({torch::indexing::Slice(), torch::indexing::Slice(),
-                    torch::indexing::Slice(), 0, torch::indexing::Slice()})
-            .flatten());
-    side<north>().from_tensor(
-        tensor_view
-            .index({torch::indexing::Slice(), torch::indexing::Slice(),
-                    torch::indexing::Slice(), -1, torch::indexing::Slice()})
-            .flatten());
+      side<west>().from_tensor(
+          tensor_view
+              .index({torch::indexing::Slice(), torch::indexing::Slice(),
+                      torch::indexing::Slice(), torch::indexing::Slice(), 0})
+              .flatten());
+      side<east>().from_tensor(
+          tensor_view
+              .index({torch::indexing::Slice(), torch::indexing::Slice(),
+                      torch::indexing::Slice(), torch::indexing::Slice(), -1})
+              .flatten());
 
-    side<front>().from_tensor(
-        tensor_view
-            .index({torch::indexing::Slice(), torch::indexing::Slice(), 0,
-                    torch::indexing::Slice(), torch::indexing::Slice()})
-            .flatten());
-    side<back>().from_tensor(
-        tensor_view
-            .index({torch::indexing::Slice(), torch::indexing::Slice(), -1,
-                    torch::indexing::Slice(), torch::indexing::Slice()})
-            .flatten());
+      side<south>().from_tensor(
+          tensor_view
+              .index({torch::indexing::Slice(), torch::indexing::Slice(),
+                      torch::indexing::Slice(), 0, torch::indexing::Slice()})
+              .flatten());
+      side<north>().from_tensor(
+          tensor_view
+              .index({torch::indexing::Slice(), torch::indexing::Slice(),
+                      torch::indexing::Slice(), -1, torch::indexing::Slice()})
+              .flatten());
 
-    side<stime>().from_tensor(
-        tensor_view
-            .index({torch::indexing::Slice(), 0, torch::indexing::Slice(),
-                    torch::indexing::Slice(), torch::indexing::Slice()})
-            .flatten());
-    side<etime>().from_tensor(
-        tensor_view
-            .index({torch::indexing::Slice(), -1, torch::indexing::Slice(),
-                    torch::indexing::Slice(), torch::indexing::Slice()})
-            .flatten());
+      side<front>().from_tensor(
+          tensor_view
+              .index({torch::indexing::Slice(), torch::indexing::Slice(), 0,
+                      torch::indexing::Slice(), torch::indexing::Slice()})
+              .flatten());
+      side<back>().from_tensor(
+          tensor_view
+              .index({torch::indexing::Slice(), torch::indexing::Slice(), -1,
+                      torch::indexing::Slice(), torch::indexing::Slice()})
+              .flatten());
 
+      side<stime>().from_tensor(
+          tensor_view
+              .index({torch::indexing::Slice(), 0, torch::indexing::Slice(),
+                      torch::indexing::Slice(), torch::indexing::Slice()})
+              .flatten());
+      side<etime>().from_tensor(
+          tensor_view
+              .index({torch::indexing::Slice(), -1, torch::indexing::Slice(),
+                      torch::indexing::Slice(), torch::indexing::Slice()})
+              .flatten());
+    }
     return *this;
   }
 

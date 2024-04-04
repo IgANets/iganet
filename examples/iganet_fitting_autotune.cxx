@@ -134,8 +134,10 @@ int main() {
        {std::vector<std::any>{iganet::activation::relu},
         std::vector<std::any>{iganet::activation::sigmoid},
         std::vector<std::any>{iganet::activation::tanh}}) {
-    for (int64_t nlayers : {5, 6, 7, 8, 9}) {
-      for (int64_t nneurons : {60, 80, 100, 120, 140, 160, 180, 200}) {
+    for (int64_t nlayers :
+         iganet::utils::getenv("IGANET_NLAYERS", {5, 6, 7, 8, 9})) {
+      for (int64_t nneurons : iganet::utils::getenv(
+               "IGANET_NNEURONS", {60, 80, 100, 120, 140, 160, 180, 200})) {
 
         iganet::Log(iganet::log::info)
             << "#layers: " << nlayers << ", #neurons: " << nneurons
