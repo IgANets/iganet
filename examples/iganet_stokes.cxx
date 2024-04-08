@@ -118,7 +118,7 @@ public:
     // Cast the network output (a raw tensor) into the proper
     // function-space format, i.e. B-spline objects for the interior
     // and boundary parts that can be evaluated.
-    Base::u_.from_tensor(outputs);
+    Base::u_.from_tensor(outputs.t());
 
     // Evaluate
 
