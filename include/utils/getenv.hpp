@@ -14,6 +14,7 @@
 
 #pragma once
 
+#include <sstream>
 #include <stdlib.h>
 
 namespace iganet {

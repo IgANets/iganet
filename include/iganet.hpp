@@ -51,7 +51,8 @@ public:
   /// @brief Constructor
   explicit IgANetGeneratorImpl(
       const std::vector<int64_t> &layers,
-      const std::vector<std::vector<std::any>> &activations) {
+      const std::vector<std::vector<std::any>> &activations,
+      Options<real_t> options = Options<real_t>{}) {
     assert(layers.size() == activations.size() + 1);
 
     // Generate vector of linear layers and register them as layer[i]
@@ -59,7 +60,7 @@ public:
       layers_.emplace_back(
           register_module("layer[" + std::to_string(i) + "]",
                           torch::nn::Linear(layers[i], layers[i + 1])));
-      layers_.back()->to(dtype<real_t>());
+      layers_.back()->to(options.device(), options.dtype(), true);
 
       torch::nn::init::xavier_uniform_(layers_.back()->weight);
       torch::nn::init::constant_(layers_.back()->bias, 0.0);
@@ -980,7 +981,7 @@ public:
         net_(utils::concat(std::vector<int64_t>{inputs(/* epoch */ 0).size(0)},
                            layers,
                            std::vector<int64_t>{Base::u_.as_tensor_size()}),
-             activations),
+             activations, options),
 
         // Construct the optimizer
         opt_(net_->parameters()),
@@ -1008,7 +1009,6 @@ public:
   /// @brief Returns a non-constant reference to the options structure
   inline auto &options() { return options_; }
 
-public:
   /// @brief Returns the network inputs
   ///
   /// In the default implementation the inputs are the controll
@@ -1026,7 +1026,11 @@ public:
   virtual torch::Tensor loss(const torch::Tensor &, int64_t) = 0;
 
   /// @brief Trains the IgANet
-  virtual void train() {
+  virtual void train(
+#ifdef IGANET_WITH_MPI
+      c10::intrusive_ptr<c10d::ProcessGroupMPI> pg
+#endif
+  ) {
     torch::Tensor inputs, outputs, loss;
 
     // Loop over epochs
@@ -1052,6 +1056,26 @@ public:
         return loss;
       };
 
+#ifdef IGANET_WITH_MPI
+      // Averaging the gradients of the parameters in all the processors
+      // Note: This may lag behind DistributedDataParallel (DDP) in performance
+      // since this synchronizes parameters after backward pass while DDP
+      // overlaps synchronizing parameters and computing gradients in backward
+      // pass
+      std::vector<c10::intrusive_ptr<::c10d::Work>> works;
+      for (auto &param : net_->named_parameters()) {
+        std::vector<torch::Tensor> tmp = {param.value().grad()};
+        works.emplace_back(pg->allreduce(tmp));
+      }
+
+      waitWork(pg, works);
+
+      for (auto &param : net_->named_parameters()) {
+        param.value().grad().data() =
+            param.value().grad().data() / pg->getSize();
+      }
+#endif
+
       // Update the parameters based on the calculated gradients
       opt_.step(closure);
 
@@ -1075,7 +1099,13 @@ public:
   }
 
   /// @brief Trains the IgANet
-  template <typename DataLoader> void train(DataLoader &loader) {
+  template <typename DataLoader>
+  void train(DataLoader &loader
+#ifdef IGANET_WITH_MPI
+             ,
+             c10::intrusive_ptr<c10d::ProcessGroupMPI> pg
+#endif
+  ) {
     torch::Tensor inputs, outputs, loss;
 
     // Loop over epochs
@@ -1243,6 +1273,23 @@ public:
 
   /// @brief Returns true if both IgANet objects are different
   bool operator!=(const IgANet &other) const { return *this != other; }
+
+#ifdef IGANET_WITH_MPI
+private:
+  /// @brief Waits for all work processes
+  static void waitWork(c10::intrusive_ptr<c10d::ProcessGroupMPI> pg,
+                       std::vector<c10::intrusive_ptr<c10d::Work>> works) {
+    for (auto &work : works) {
+      try {
+        work->wait();
+      } catch (const std::exception &ex) {
+        Log(log::error) << "Exception received during waitWork: " << ex.what()
+                        << std::endl;
+        pg->abort();
+      }
+    }
+  }
+#endif
 };
 
 /// @brief Print (as string) a IgANet object

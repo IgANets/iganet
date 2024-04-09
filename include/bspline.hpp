@@ -301,7 +301,7 @@ public:
   int32_t device_index() const noexcept { return options_.device_index(); }
 
   /// @brief Returns the `dtype` property
-  caffe2::TypeMeta dtype() const noexcept { return options_.dtype(); }
+  torch::Dtype dtype() const noexcept { return options_.dtype(); }
 
   /// @brief Returns the `layout` property
   torch::Layout layout() const noexcept { return options_.layout(); }
@@ -344,6 +344,9 @@ public:
 
     return *this;
   }
+
+  /// @brief Returns a constant reference to the B-spline object's options
+  inline const Options<real_t> &options() const { return options_; }
 
   /// @brief Default constructor
   UniformBSplineCore(Options<real_t> options = Options<real_t>{})
@@ -4837,6 +4840,12 @@ public:
       BSplineCommon<typename BSplineCore::template derived_self_type<
           real_t, GeoDim, Degrees...>>;
 
+  /// @brief Deduces the derived self-type when exposed to a
+  /// different class template parameter `real_t`
+  template <typename real_t_>
+  using real_derived_self_type = BSplineCommon<
+      typename BSplineCore::template real_derived_self_type<real_t_>>;
+
   /// @brief Copy constructor
   BSplineCommon(const BSplineCommon &) = default;
 
@@ -4995,6 +5004,122 @@ public:
           torch::abs(BSplineCore::coeffs(dim) - other.coeffs(dim));
 
     return *this;
+  }
+
+  /// @brief Scales the B-spline object by a scalar
+  inline auto scale(typename BSplineCore::value_type s, int dim = -1) {
+    if (dim == -1)
+      for (int i = 0; i < BSplineCore::geoDim(); ++i)
+        BSplineCore::coeffs(i) *= s;
+    else
+      BSplineCore::coeffs(dim) *= s;
+    return *this;
+  }
+
+  /// @brief Scales the B-spline object by a vector
+  inline auto
+  scale(std::array<typename BSplineCore::value_type, BSplineCore::geoDim()> v) {
+    for (int i = 0; i < BSplineCore::geoDim(); ++i)
+      BSplineCore::coeffs(i) *= v[i];
+    return *this;
+  }
+
+  /// @brief Translates the B-spline object by a vector
+  inline auto translate(
+      std::array<typename BSplineCore::value_type, BSplineCore::geoDim()> v) {
+    for (int i = 0; i < BSplineCore::geoDim(); ++i)
+      BSplineCore::coeffs(i) += v[i];
+    return *this;
+  }
+
+  /// @brief Rotates the B-spline object by an angle in 2d
+  inline auto rotate(typename BSplineCore::value_type angle) {
+
+    static_assert(BSplineCore::geoDim() == 2,
+                  "Rotation about one angle is only available in 2D");
+
+    std::array<torch::Tensor, 2> coeffs;
+    coeffs[0] = std::cos(angle) * BSplineCore::coeffs(0) -
+                std::sin(angle) * BSplineCore::coeffs(1);
+    coeffs[1] = std::sin(angle) * BSplineCore::coeffs(0) +
+                std::cos(angle) * BSplineCore::coeffs(1);
+
+    BSplineCore::coeffs().swap(coeffs);
+    return *this;
+  }
+
+  /// @brief Rotates the B-spline object by three angles in 3d
+  inline auto rotate(std::array<typename BSplineCore::value_type, 3> angle) {
+
+    static_assert(BSplineCore::geoDim() == 3,
+                  "Rotation about two angles is only available in 3D");
+
+    std::array<torch::Tensor, 3> coeffs;
+    coeffs[0] =
+        std::cos(angle[0]) * std::cos(angle[1]) * BSplineCore::coeffs(0) +
+        (std::sin(angle[0]) * std::sin(angle[1]) * std::cos(angle[2]) -
+         std::cos(angle[0]) * std::sin(angle[2])) *
+            BSplineCore::coeffs(1) +
+        (std::cos(angle[0]) * std::sin(angle[1]) * std::cos(angle[2]) +
+         std::sin(angle[0]) * std::sin(angle[2])) *
+            BSplineCore::coeffs(2);
+
+    coeffs[1] =
+        std::cos(angle[1]) * std::sin(angle[2]) * BSplineCore::coeffs(0) +
+        (std::sin(angle[0]) * std::sin(angle[1]) * std::sin(angle[2]) +
+         std::cos(angle[0]) * std::cos(angle[2])) *
+            BSplineCore::coeffs(1) +
+        (std::cos(angle[0]) * std::sin(angle[1]) * std::sin(angle[2]) -
+         std::sin(angle[0]) * std::cos(angle[2])) *
+            BSplineCore::coeffs(2);
+
+    coeffs[2] =
+        -std::sin(angle[1]) * BSplineCore::coeffs(0) +
+        std::sin(angle[0]) * std::cos(angle[1]) * BSplineCore::coeffs(1) +
+        std::cos(angle[0]) * std::cos(angle[1]) * BSplineCore::coeffs(2);
+
+    BSplineCore::coeffs().swap(coeffs);
+    return *this;
+  }
+
+  /// @brief Computes the bounding box of the B-spline object
+  inline auto boundingBox() const {
+
+    std::pair<torch::Tensor, torch::Tensor> bbox;
+
+    if constexpr (BSplineCore::geoDim() == 1) {
+
+      bbox.first = BSplineCore::coeffs(0).min();
+      bbox.second = BSplineCore::coeffs(0).max();
+
+    } else if constexpr (BSplineCore::geoDim() == 2) {
+
+      bbox.first = torch::stack(
+          {BSplineCore::coeffs(0).min(), BSplineCore::coeffs(1).min()});
+      bbox.second = torch::stack(
+          {BSplineCore::coeffs(0).max(), BSplineCore::coeffs(1).max()});
+
+    } else if constexpr (BSplineCore::geoDim() == 3) {
+
+      bbox.first = torch::stack({BSplineCore::coeffs(0).min(),
+                                 BSplineCore::coeffs(1).min(),
+                                 BSplineCore::coeffs(2).min()});
+      bbox.second = torch::stack({BSplineCore::coeffs(0).max(),
+                                  BSplineCore::coeffs(1).max(),
+                                  BSplineCore::coeffs(2).max()});
+
+    } else if constexpr (BSplineCore::geoDim() == 4) {
+
+      bbox.first = torch::stack(
+          {BSplineCore::coeffs(0).min(), BSplineCore::coeffs(1).min(),
+           BSplineCore::coeffs(2).min(), BSplineCore::coeffs(3).min()});
+      bbox.second = torch::stack(
+          {BSplineCore::coeffs(0).max(), BSplineCore::coeffs(1).max(),
+           BSplineCore::coeffs(2).max(), BSplineCore::coeffs(3).max()});
+    } else
+      throw std::runtime_error("Unsupported geometric dimension");
+
+    return bbox;
   }
 
   //  clang-format off

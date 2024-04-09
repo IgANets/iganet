@@ -25,3 +25,9 @@
 
 /// @brief Compile with Matplotlib enabled
 #cmakedefine IGANET_WITH_MATPLOT
+
+/// @brief Compile with OpenMP enabled
+#cmakedefine IGANET_WITH_OPENMP
+
+/// @brief Compile with MPI enabled
+#cmakedefine IGANET_WITH_MPI

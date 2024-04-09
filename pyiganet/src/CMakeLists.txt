@@ -29,8 +29,7 @@ if(NOT PYIGANET_COEFF_TYPE)
 endif()
 set_property(CACHE PYIGANET_COEFF_TYPE PROPERTY STRINGS "float" "double")
 
-message("")
-message("Options:")
+message("Pyiganet options:")
 message("PYIGANET_COEFF_TYPE................: ${PYIGANET_COEFF_TYPE}")
 message("")
 

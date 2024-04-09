@@ -98,6 +98,16 @@ public:
 };
 
 int main() {
+
+#ifdef IGANET_WITH_MPI
+  // Creating MPI Process Group
+  auto pg = c10d::ProcessGroupMPI::createProcessGroupMPI();
+
+  // Retrieving MPI environment variables
+  auto size = pg->getSize();
+  auto rank = pg->getRank();
+#endif
+
   iganet::init();
   iganet::verbose(std::cout);
 
@@ -115,26 +125,42 @@ int main() {
   // Variable: Bi-quadratic B-spline function space S2 (geoDim = 1, p = q = 2)
   using variable_t = iganet::S2<iganet::UniformBSpline<real_t, 1, 2, 2>>;
 
-  // Data set for training
-  iganet::IgADataset<> data_set;
-  data_set.add_geometryMap(geometry_t{iganet::utils::to_array(25_i64, 25_i64)},
-                           IGANET_DATA_DIR "surfaces/2d");
+  // Create geometry data set for training
+  iganet::IgADataset<> dataset;
+  dataset.add_geometryMap(geometry_t{iganet::utils::to_array(25_i64, 25_i64)},
+                          IGANET_DATA_DIR "surfaces/2d");
 
   // Impose solution value for supervised training (not right-hand side)
-  data_set.add_referenceData(
-      variable_t{iganet::utils::to_array(30_i64, 30_i64)},
-      [](const std::array<real_t, 2> xi) {
-        return std::array<real_t, 1>{
-            static_cast<real_t>(sin(M_PI * xi[0]) * sin(M_PI * xi[1]))};
-      });
+  dataset.add_referenceData(variable_t{iganet::utils::to_array(30_i64, 30_i64)},
+                            [](const std::array<real_t, 2> xi) {
+                              return std::array<real_t, 1>{static_cast<real_t>(
+                                  sin(M_PI * xi[0]) * sin(M_PI * xi[1]))};
+                            });
 
-  auto train_set = data_set.map(
+  // Create data set
+  auto train_dataset = dataset.map(
       torch::data::transforms::Stack<iganet::IgADataset<>::example_type>());
-  auto train_size = train_set.size().value();
-  auto train_loader =
-      torch::data::make_data_loader<torch::data::samplers::SequentialSampler>(
-          std::move(train_set), iganet::utils::getenv("IGANET_BATCHSIZE", 8));
+  auto train_size = train_dataset.size().value();
 
+#ifdef IGANET_WITH_MPI
+  // Create distributed data loader
+  auto data_sampler = torch::data::samplers::DistributedRandomSampler(
+      train_size, size, rank, false);
+
+  auto train_loader = torch::data::make_data_loader(
+      std::move(train_dataset),
+      iganet::utils::getenv("IGANET_BATCHSIZE", 8) / size);
+
+#else
+  // Create sequential data loader
+  auto data_sampler = torch::data::samplers::SequentialSampler(train_size);
+
+  auto train_loader = torch::data::make_data_loader(
+      std::move(train_dataset), data_sampler,
+      iganet::utils::getenv("IGANET_BATCHSIZE", 8));
+#endif
+
+  // Auto-tuning loop
   for (std::vector<std::any> activation :
        {std::vector<std::any>{iganet::activation::sigmoid}}) {
     for (int64_t nlayers : iganet::utils::getenv("IGANET_NLAYERS", {8, 9})) {
@@ -170,7 +196,11 @@ int main() {
         auto t1 = std::chrono::high_resolution_clock::now();
 
         // Train network
+#ifdef IGANET_WITH_MPI
+        net.train(*train_loader, pg);
+#else
         net.train(*train_loader);
+#endif
 
         // Stop time measurement
         auto t2 = std::chrono::high_resolution_clock::now();

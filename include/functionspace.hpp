@@ -170,6 +170,34 @@ public:
 
     from_full_tensor_(std::make_index_sequence<nspaces()>{});
   }
+
+  explicit FunctionSpace(const Splines &...splines)
+      : Base(std::tuple(splines...)),
+        boundary_({splines.ncoeffs(), init::zeros, splines.options()}...) {
+
+    auto from_full_tensor_ =
+        [this]<std::size_t... Is>(std::index_sequence<Is...>) {
+          (std::get<Is>(boundary_).from_full_tensor(
+               std::get<Is>(*this).as_tensor()),
+           ...);
+        };
+
+    from_full_tensor_(std::make_index_sequence<nspaces()>{});
+  }
+
+  explicit FunctionSpace(Splines &&...splines)
+      : Base(std::tuple(splines...)),
+        boundary_({splines.ncoeffs(), init::zeros, splines.options()}...) {
+
+    auto from_full_tensor_ =
+        [this]<std::size_t... Is>(std::index_sequence<Is...>) {
+          (std::get<Is>(boundary_).from_full_tensor(
+               std::get<Is>(*this).as_tensor()),
+           ...);
+        };
+
+    from_full_tensor_(std::make_index_sequence<nspaces()>{});
+  }
   /// @}
 
   /// @brief Returns the number of spaces
@@ -191,6 +219,12 @@ public:
   template <short_t s> inline constexpr auto &space() {
     static_assert(s < nspaces());
     return std::get<s>(*this);
+  }
+
+  /// @brief Returns a subset of all function spaces
+  template <short_t... s> inline constexpr auto space() const {
+    return FunctionSpace<std::tuple_element_t<s, Base>...>(
+        std::get<s>(*this)...);
   }
 
   /// @brief Returns a clone of the function space
@@ -228,37 +262,34 @@ private:
   /// @brief Sets the coefficients of all spaces from a single tensor
   template <std::size_t... Is>
   inline auto &from_tensor_(std::index_sequence<Is...>,
-                            const torch::Tensor &coeffs) {
-    std::cout << coeffs.sizes() << std::endl;
-    (std::cout << ... << std::get<Is>(*this).coeffs());
-    throw std::runtime_error("from_tensor is not implemented yet");
+                            const torch::Tensor &tensor) {
+
+    // Compute the partial sums of all function spaces
+    std::array<int64_t, sizeof...(Is)> partialSums{0};
+    auto partial_sums = [&partialSums,
+                         this]<std::size_t... Js>(std::index_sequence<Js...>) {
+      ((std::get<Js + 1>(partialSums) =
+            std::get<Js>(partialSums) + std::get<Js>(*this).as_tensor_size()),
+       ...);
+    };
+    partial_sums(std::make_index_sequence<FunctionSpace::nspaces() - 1>{});
+
+    // Call from_tensor for all function spaces
+    ((std::get<Is>(*this).from_tensor(tensor.index(
+         {torch::indexing::Slice(partialSums[Is],
+                                 partialSums[Is] +
+                                     std::get<Is>(*this).as_tensor_size()),
+          "..."}))),
+     ...);
+
     return *this;
   }
 
 public:
   /// @brief Sets the coefficients of all spaces from a single tensor
-  inline auto &from_tensor(const torch::Tensor &coeffs) {
+  inline auto &from_tensor(const torch::Tensor &tensor) {
     return from_tensor_(std::make_index_sequence<FunctionSpace::nspaces()>{},
-                        coeffs);
-  }
-
-private:
-  /// @brief Sets the coefficients of all spline objects from a
-  /// single tensor that holds both boundary and inner coefficients
-  template <std::size_t... Is>
-  inline auto &from_full_tensor_(std::index_sequence<Is...>,
-                                 const torch::Tensor &coeffs) {
-    throw std::runtime_error("from_tensor is not implemented yet");
-    return *this;
-  }
-
-public:
-  /// @brief Sets the coefficients of all spline objects from a
-  /// single tensor that holds both boundary and inner coefficients
-  inline auto &from_full_tensor(const torch::Tensor &coeffs,
-                                bool boundary = true) {
-    return from_full_tensor_(
-        std::make_index_sequence<FunctionSpace::nspaces()>{}, coeffs, boundary);
+                        tensor);
   }
 
   /// @brief Returns a constant reference to the boundary spline object
@@ -662,9 +693,150 @@ public:
   /// @brief Returns the spline objects with uniformly refined
   /// knot and coefficient vectors
   inline auto &uniform_refine(int numRefine = 1, int dimRefine = -1) {
-    uniform_refine_(std::make_index_sequence<FunctionSpace::nspaces()>{},
-                    numRefine, dimRefine);
+    return uniform_refine_(std::make_index_sequence<FunctionSpace::nspaces()>{},
+                           numRefine, dimRefine);
+  }
+
+private:
+  /// @brief Returns a copy of the function space object with settings from
+  /// options
+  template <typename real_t, std::size_t... Is>
+  inline auto to_(std::index_sequence<Is...>, Options<real_t> options) const {
+    return FunctionSpace<
+        typename Splines::template real_derived_self_type<real_t>...>(
+        std::get<Is>(*this).to(options)...);
+  }
+
+public:
+  /// @brief Returns a copy of the function space object with settings from
+  /// options
+  template <typename real_t> inline auto to(Options<real_t> options) const {
+    return to_(std::make_index_sequence<FunctionSpace::nspaces()>{}, options);
+  }
+
+private:
+  /// @brief Returns a copy of the function space object with settings from
+  /// device
+  template <std::size_t... Is>
+  inline auto to_(std::index_sequence<Is...>, torch::Device device) const {
+    return FunctionSpace(std::get<Is>(*this).to(device)...);
+  }
+
+public:
+  /// @brief Returns a copy of the function space object with settings from
+  /// device
+  inline auto to(torch::Device device) const {
+    return to_(std::make_index_sequence<FunctionSpace::nspaces()>{}, device);
+  }
+
+private:
+  /// @brief Returns a copy of the function space object with real_t type
+  template <typename real_t, std::size_t... Is>
+  inline auto to_(std::index_sequence<Is...>) const {
+    return FunctionSpace<
+        typename Splines::template real_derived_self_type<real_t>...>(
+        std::get<Is>(*this).template to<real_t>()...);
+  }
+
+public:
+  /// @brief Returns a copy of the function space object with real_t type
+  template <typename real_t> inline auto to() const {
+    return to_<real_t>(std::make_index_sequence<FunctionSpace::nspaces()>{});
+  }
+
+private:
+  /// @brief Scales the function space object by a scalar
+  template <std::size_t... Is>
+  inline auto scale_(std::index_sequence<Is...>, value_type s, int dim = -1) {
+    (std::get<Is>(*this).scale(s, dim), ...);
+    (std::get<Is>(boundary_).from_full_tensor(std::get<Is>(*this).as_tensor()),
+     ...);
     return *this;
+  }
+
+public:
+  /// @brief Scales the function space object by a scalar
+  inline auto scale(value_type s, int dim = -1) {
+    return scale_(std::make_index_sequence<FunctionSpace::nspaces()>{}, s, dim);
+  }
+
+private:
+  /// @brief Scales the function space object by a vector
+  template <std::size_t N, std::size_t... Is>
+  inline auto scale_(std::index_sequence<Is...>, std::array<value_type, N> v) {
+    (std::get<Is>(*this).scale(v), ...);
+    (std::get<Is>(boundary_).from_full_tensor(std::get<Is>(*this).as_tensor()),
+     ...);
+    return *this;
+  }
+
+public:
+  /// @brief Scales the function space object by a vector
+  template <size_t N> inline auto scale(std::array<value_type, N> v) {
+    return scale_(std::make_index_sequence<FunctionSpace::nspaces()>{}, v);
+  }
+
+private:
+  /// @brief Translates the function space object by a vector
+  template <std::size_t N, std::size_t... Is>
+  inline auto translate_(std::index_sequence<Is...>,
+                         std::array<value_type, N> v) {
+    (std::get<Is>(*this).translate(v), ...);
+    (std::get<Is>(boundary_).from_full_tensor(std::get<Is>(*this).as_tensor()),
+     ...);
+    return *this;
+  }
+
+public:
+  /// @brief Translates the function space object by a vector
+  template <size_t N> inline auto translate(std::array<value_type, N> v) {
+    return translate_(std::make_index_sequence<FunctionSpace::nspaces()>{}, v);
+  }
+
+private:
+  /// @brief Rotates the function space object by an angle in 2d
+  template <std::size_t... Is>
+  inline auto rotate_(std::index_sequence<Is...>, value_type angle) {
+    (std::get<Is>(*this).rotate(angle), ...);
+    (std::get<Is>(boundary_).from_full_tensor(std::get<Is>(*this).as_tensor()),
+     ...);
+    return *this;
+  }
+
+public:
+  /// @brief Rotates the function space object by an angle in 2d
+  inline auto rotate(value_type angle) {
+    return rotate_(std::make_index_sequence<FunctionSpace::nspaces()>{}, angle);
+  }
+
+private:
+  /// @brief Rotates the function space object by three angles in 3d
+  template <std::size_t... Is>
+  inline auto rotate_(std::index_sequence<Is...>,
+                      std::array<value_type, 3> angle) {
+    (std::get<Is>(*this).rotate(angle), ...);
+    (std::get<Is>(boundary_).from_full_tensor(std::get<Is>(*this).as_tensor()),
+     ...);
+    return *this;
+  }
+
+public:
+  /// @brief Rotates the function space object by three angles in 3d
+  inline auto rotate(std::array<value_type, 3> angle) {
+    return rotate_(std::make_index_sequence<FunctionSpace::nspaces()>{}, angle);
+  }
+
+private:
+  /// @brief Computes the bounding boxes of the function space object
+  template <std::size_t... Is>
+  inline auto boundingBox_(std::index_sequence<Is...>) const {
+    return std::tuple(std::get<Is>(*this).boundingBox()...);
+  }
+
+public:
+  /// @brief Computes the bounding boxes of the function space object
+  inline auto boundingBox() const {
+    return boundingBox_(std::make_index_sequence<FunctionSpace::nspaces()>{});
   }
 
 private:
@@ -943,10 +1115,10 @@ public:
   using Base = Spline;
 
   /// @brief Value type
-  using value_type = typename Spline::value_type;
+  using value_type = typename Base::value_type;
 
   /// @brief Evaluation type
-  using eval_type = std::array<torch::Tensor, Spline::parDim()>;
+  using eval_type = std::array<torch::Tensor, Base::parDim()>;
 
   /// @brief Default constructor
   FunctionSpace() = default;
@@ -959,18 +1131,29 @@ public:
 
   /// @brief Constructor
   /// @{
-  FunctionSpace(const std::array<int64_t, Spline::parDim()> &ncoeffs,
+  FunctionSpace(const std::array<int64_t, Base::parDim()> &ncoeffs,
                 enum init init = init::zeros,
                 Options<value_type> options = iganet::Options<value_type>{})
       : Base(ncoeffs, init, options), boundary_(ncoeffs, init, options) {
     boundary_.from_full_tensor(Base::as_tensor());
   }
 
-  FunctionSpace(
-      std::array<std::vector<typename Spline::value_type>, Spline::parDim()> kv,
-      enum init init = init::zeros,
-      Options<value_type> options = iganet::Options<value_type>{})
+  FunctionSpace(std::array<std::vector<value_type>, Base::parDim()> kv,
+                enum init init = init::zeros,
+                Options<value_type> options = iganet::Options<value_type>{})
       : Base(kv, init, options), boundary_(kv, init, options) {
+    boundary_.from_full_tensor(Base::as_tensor());
+  }
+
+  FunctionSpace(const Spline &spline)
+      : Base(spline),
+        boundary_(spline.ncoeffs(), init::zeros, spline.options()) {
+    boundary_.from_full_tensor(Base::as_tensor());
+  }
+
+  FunctionSpace(Spline &&spline)
+      : Base(spline),
+        boundary_(spline.ncoeffs(), init::zeros, spline.options()) {
     boundary_.from_full_tensor(Base::as_tensor());
   }
   /// @}
@@ -1035,7 +1218,7 @@ public:
   /// @brief Returns the dimension of the basis
   template <functionspace comp = functionspace::interior> int64_t dim() const {
     if constexpr (comp == functionspace::interior)
-      return Spline::ncumcoeffs();
+      return Base::ncumcoeffs();
     else if constexpr (comp == functionspace::boundary)
       return boundary_.ncumcoeffs();
   }
@@ -1058,7 +1241,7 @@ private:
                     const std::tuple<Xi...> &xi) const {
     if constexpr (comp == functionspace::interior)
       return std::tuple(
-          Spline::template eval<deriv, memory_optimized>(std::get<Is>(xi))...);
+          Base::template eval<deriv, memory_optimized>(std::get<Is>(xi))...);
     else if constexpr (comp == functionspace::boundary)
       return std::tuple(boundary_.template eval<deriv, memory_optimized>(
           std::get<Is>(xi))...);
@@ -1070,7 +1253,7 @@ private:
   inline auto eval_(std::index_sequence<Is...>, const std::tuple<Xi...> &xi,
                     const std::tuple<Indices...> &indices) const {
     if constexpr (comp == functionspace::interior)
-      return std::tuple(Spline::template eval<deriv, memory_optimized>(
+      return std::tuple(Base::template eval<deriv, memory_optimized>(
           std::get<Is>(xi), std::get<Is>(indices))...);
     else if constexpr (comp == functionspace::boundary)
       return std::tuple(boundary_.template eval<deriv, memory_optimized>(
@@ -1085,7 +1268,7 @@ private:
                     const std::tuple<Indices...> &indices,
                     const std::tuple<Coeff_Indices...> &coeff_indices) const {
     if constexpr (comp == functionspace::interior)
-      return std::tuple(Spline::template eval<deriv, memory_optimized>(
+      return std::tuple(Base::template eval<deriv, memory_optimized>(
           std::get<Is>(xi), std::get<Is>(indices),
           std::get<Is>(coeff_indices))...);
     else if constexpr (comp == functionspace::boundary)
@@ -1106,13 +1289,194 @@ public:
         return eval_<comp, deriv, memory_optimized>(
             std::make_index_sequence<std::tuple_size_v<Arg>>{}, arg, args...);
       else
-        return Spline::template eval<deriv, memory_optimized>(arg, args...);
+        return Base::template eval<deriv, memory_optimized>(arg, args...);
     else if constexpr (comp == functionspace::boundary)
       if constexpr (utils::is_tuple_of_tuples_v<Arg>)
         return eval_<comp, deriv, memory_optimized>(
             std::make_index_sequence<std::tuple_size_v<Arg>>{}, arg, args...);
       else
         return boundary_.template eval<deriv, memory_optimized>(arg, args...);
+  }
+
+  /// @brief Returns the value of the spline object from
+  /// precomputed basis function
+  template <functionspace comp = functionspace::interior, typename... Args>
+  inline auto eval_from_precomputed(const Args &...args) const {
+    if constexpr (comp == functionspace::interior)
+      return Base::eval_from_precomputed(args...);
+    else if constexpr (comp == functionspace::boundary)
+      return boundary_.eval_from_precomputed(args...);
+  }
+
+private:
+  /// @brief Returns the knot indicies of knot spans containing `xi`
+  template <functionspace comp = functionspace::interior, std::size_t... Is,
+            typename Xi>
+  inline auto find_knot_indices_(std::index_sequence<Is...>,
+                                 const Xi &xi) const {
+    if constexpr (comp == functionspace::interior)
+      return std::tuple(Base::find_knot_indices(std::get<Is>(xi))...);
+    else
+      return std::tuple(boundary_.find_knot_indices(std::get<Is>(xi))...);
+  }
+
+public:
+  /// @brief Returns the knot indicies of knot spans containing `xi`
+  template <functionspace comp = functionspace::interior, typename Xi>
+  inline auto find_knot_indices(const Xi &xi) const {
+    if constexpr (comp == functionspace::interior)
+      if constexpr (utils::is_tuple_v<Xi>)
+        return find_knot_indices_<comp>(
+            std::make_index_sequence<std::tuple_size_v<Xi>>{}, xi);
+      else
+        return Base::find_knot_indices(xi);
+    else if constexpr (comp == functionspace::boundary)
+      if constexpr (utils::is_tuple_of_tuples_v<Xi>)
+        return find_knot_indices_<comp>(
+            std::make_index_sequence<std::tuple_size_v<Xi>>{}, xi);
+      else
+        return boundary_.find_knot_indices(xi);
+  }
+
+  /// @brief Returns the values of the spline objects' basis
+  /// functions in the points `xi`
+  template <functionspace comp = functionspace::interior,
+            deriv deriv = deriv::func, bool memory_optimized = false,
+            typename... Args>
+  inline auto eval_basfunc(const Args &...args) const {
+    if constexpr (comp == functionspace::interior)
+      return Base::template eval_basfunc<deriv, memory_optimized>(args...);
+    else if constexpr (comp == functionspace::boundary)
+      return boundary_.template eval_basfunc<deriv, memory_optimized>(args...);
+  }
+
+private:
+  /// @brief Returns the indices of the spline objects'
+  /// coefficients corresponding to the knot indices `indices`
+  template <functionspace comp = functionspace::interior,
+            bool memory_optimized = false, std::size_t... Is, typename Indices>
+  inline auto find_coeff_indices_(std::index_sequence<Is...>,
+                                  const Indices &indices) const {
+    if constexpr (comp == functionspace::interior)
+      return std::tuple(Base::template find_coeff_indices<memory_optimized>(
+          std::get<Is>(indices))...);
+    else
+      return std::tuple(boundary_.template find_coeff_indices<memory_optimized>(
+          std::get<Is>(indices))...);
+  }
+
+public:
+  /// @brief Returns the indices of the spline objects'
+  /// coefficients corresponding to the knot indices `indices`
+  template <functionspace comp = functionspace::interior,
+            bool memory_optimized = false, typename Indices>
+  inline auto find_coeff_indices(const Indices &indices) const {
+    if constexpr (comp == functionspace::interior)
+      if constexpr (utils::is_tuple_v<Indices>)
+        return find_coeff_indices_<comp, memory_optimized>(
+            std::make_index_sequence<std::tuple_size_v<Indices>>{}, indices);
+      else
+        return Base::template find_coeff_indices<memory_optimized>(indices);
+    else if constexpr (comp == functionspace::boundary)
+      if constexpr (utils::is_tuple_of_tuples_v<Indices>)
+        return find_coeff_indices_<comp, memory_optimized>(
+            std::make_index_sequence<std::tuple_size_v<Indices>>{}, indices);
+      else
+        return boundary_.template find_coeff_indices<memory_optimized>(indices);
+  }
+
+  /// @brief Returns the spline objects with uniformly refined
+  /// knot and coefficient vectors
+  inline auto &uniform_refine(int numRefine = 1, int dimRefine = -1) {
+    Base::uniform_refine(numRefine, dimRefine);
+    boundary_.uniform_refine(numRefine, dimRefine);
+    return *this;
+  }
+
+  /// @brief Returns a copy of the function space object with settings from
+  /// options
+  template <typename real_t> inline auto to(Options<real_t> options) const {
+    return FunctionSpace<
+        typename Base::template real_derived_self_type<real_t>>(
+        Base::to(options));
+  }
+
+  /// @brief Returns a copy of the function space object with settings from
+  /// device
+  inline auto to(torch::Device device) const {
+    return FunctionSpace(Base::to(device));
+  }
+
+  /// @brief Returns a copy of the function space object with real_t type
+  template <typename real_t> inline auto to() const {
+    return FunctionSpace<
+        typename Base::template real_derived_self_type<real_t>>(
+        Base::template to<real_t>());
+  }
+
+  /// @brief Scales the function space object by a scalar
+  inline auto scale(value_type s, int dim = -1) {
+    Base::scale(s, dim);
+    boundary_.from_full_tensor(Base::as_tensor());
+    return *this;
+  }
+
+  /// @brief Scales the function space object by a vector
+  template <size_t N> inline auto scale(std::array<value_type, N> v) {
+    Base::scale(v);
+    boundary_.from_full_tensor(Base::as_tensor());
+    return *this;
+  }
+
+  /// @brief Translates the function space object by a vector
+  template <size_t N> inline auto translate(std::array<value_type, N> v) {
+    Base::translate(v);
+    boundary_.from_full_tensor(Base::as_tensor());
+    return *this;
+  }
+
+  /// @brief Rotates the function space object by an angle in 2d
+  inline auto rotate(value_type angle) {
+    Base::rotate(angle);
+    boundary_.from_full_tensor(Base::as_tensor());
+    return *this;
+  }
+
+  /// @brief Rotates the function space object by three angles in 3d
+  inline auto rotate(std::array<value_type, 3> angle) {
+    Base::rotate(angle);
+    boundary_.from_full_tensor(Base::as_tensor());
+    return *this;
+  }
+
+  /// @brief Writes the function space object into a
+  /// torch::serialize::OutputArchive object
+  inline torch::serialize::OutputArchive &
+  write(torch::serialize::OutputArchive &archive,
+        const std::string &key = "functionspace") const {
+    Base::write(archive, key);
+    boundary_.write(archive, key);
+    return archive;
+  }
+
+  /// @brief Loads the function space object from a
+  /// torch::serialize::InputArchive object
+  inline torch::serialize::InputArchive &
+  read(torch::serialize::InputArchive &archive,
+       const std::string &key = "functionspace") {
+    Base::read(archive, key);
+    boundary_.read(archive, key);
+    return archive;
+  }
+
+  /// @brief Returns a string representation of the function space object
+  inline virtual void
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
+    os << Base::name() << "(\ninterior = ";
+    Base::pretty_print(os);
+    os << "\nboundary = ";
+    boundary_.pretty_print(os);
+    os << "\n)";
   }
 
 #define GENERATE_EXPR_MACRO(r, data, name)                                     \
@@ -1123,7 +1487,7 @@ private:                                                                       \
                                     const std::tuple<Xi...> &xi) const {       \
     if constexpr (comp == functionspace::interior)                             \
       return std::tuple(                                                       \
-          Spline::template name<memory_optimized>(std::get<Is>(xi))...);       \
+          Base::template name<memory_optimized>(std::get<Is>(xi))...);         \
     else if constexpr (comp == functionspace::boundary)                        \
       return std::tuple(                                                       \
           boundary_.template name<memory_optimized>(std::get<Is>(xi))...);     \
@@ -1137,7 +1501,7 @@ private:                                                                       \
                                     const std::tuple<Indices...> &indices)     \
       const {                                                                  \
     if constexpr (comp == functionspace::interior)                             \
-      return std::tuple(Spline::template name<memory_optimized>(               \
+      return std::tuple(Base::template name<memory_optimized>(                 \
           std::get<Is>(xi), std::get<Is>(indices))...);                        \
     else if constexpr (comp == functionspace::boundary)                        \
       return std::tuple(boundary_.template name<memory_optimized>(             \
@@ -1152,7 +1516,7 @@ private:                                                                       \
       const std::tuple<Indices...> &indices,                                   \
       const std::tuple<Coeff_Indices...> &coeff_indices) const {               \
     if constexpr (comp == functionspace::interior)                             \
-      return std::tuple(Spline::template name<memory_optimized>(               \
+      return std::tuple(Base::template name<memory_optimized>(                 \
           std::get<Is>(xi), std::get<Is>(indices),                             \
           std::get<Is>(coeff_indices))...);                                    \
     else if constexpr (comp == functionspace::boundary)                        \
@@ -1170,7 +1534,7 @@ public:                                                                        \
         return BOOST_PP_CAT(name, _)<comp, memory_optimized>(                  \
             std::make_index_sequence<std::tuple_size_v<Arg>>{}, arg, args...); \
       else                                                                     \
-        return Spline::template name<memory_optimized>(arg, args...);          \
+        return Base::template name<memory_optimized>(arg, args...);            \
     else if constexpr (comp == functionspace::boundary)                        \
       if constexpr (utils::is_tuple_of_tuples_v<Arg>)                          \
         return BOOST_PP_CAT(name, _)<comp, memory_optimized>(                  \
@@ -1194,7 +1558,7 @@ private:                                                                       \
                                     const Geometry &G,                         \
                                     const std::tuple<Xi...> &xi) const {       \
     if constexpr (comp == functionspace::interior)                             \
-      return std::tuple(Spline::template name<memory_optimized>(               \
+      return std::tuple(Base::template name<memory_optimized>(                 \
           static_cast<typename Geometry::Base::Base>(G),                       \
           std::get<Is>(xi))...);                                               \
     else if constexpr (comp == functionspace::boundary)                        \
@@ -1213,7 +1577,7 @@ private:                                                                       \
       const std::tuple<Xi...> &xi, const std::tuple<Indices...> &indices,      \
       const std::tuple<Indices_G...> &indices_G) const {                       \
     if constexpr (comp == functionspace::interior)                             \
-      return std::tuple(Spline::template name<memory_optimized>(               \
+      return std::tuple(Base::template name<memory_optimized>(                 \
           static_cast<typename Geometry::Base::Base>(G), std::get<Is>(xi),     \
           std::get<Is>(indices), std::get<Is>(indices_G))...);                 \
     else if constexpr (comp == functionspace::boundary)                        \
@@ -1236,7 +1600,7 @@ private:                                                                       \
       const std::tuple<Indices_G...> &indices_G,                               \
       const std::tuple<Coeff_Indices_G...> &coeff_indices_G) const {           \
     if constexpr (comp == functionspace::interior)                             \
-      return std::tuple(Spline::template name<memory_optimized>(               \
+      return std::tuple(Base::template name<memory_optimized>(                 \
           static_cast<typename Geometry::Base::Base>(G), std::get<Is>(xi),     \
           std::get<Is>(indices), std::get<Is>(coeff_indices),                  \
           std::get<Is>(indices_G), std::get<Is>(coeff_indices_G))...);         \
@@ -1261,7 +1625,7 @@ public:                                                                        \
             std::make_index_sequence<std::tuple_size_v<Arg>>{}, G, arg,        \
             args...);                                                          \
       else                                                                     \
-        return Spline::template name<memory_optimized>(                        \
+        return Base::template name<memory_optimized>(                          \
             static_cast<typename Geometry::Base::Base>(G), arg, args...);      \
     else if constexpr (comp == functionspace::boundary)                        \
       if constexpr (utils::is_tuple_of_tuples_v<Arg>)                          \
@@ -1280,132 +1644,7 @@ public:                                                                        \
   BOOST_PP_SEQ_FOR_EACH(GENERATE_IEXPR_MACRO, _, GENERATE_IEXPR_SEQ)
 /// @}
 #undef GENERATE_IEXPR_MACRO
-
-  /// @brief Returns the value of the spline object from
-  /// precomputed basis function
-  template <functionspace comp = functionspace::interior, typename... Args>
-  inline auto eval_from_precomputed(const Args &...args) const {
-    if constexpr (comp == functionspace::interior)
-      return Spline::eval_from_precomputed(args...);
-    else if constexpr (comp == functionspace::boundary)
-      return boundary_.eval_from_precomputed(args...);
-  }
-
-private:
-  /// @brief Returns the knot indicies of knot spans containing `xi`
-  template <functionspace comp = functionspace::interior, std::size_t... Is,
-            typename Xi>
-  inline auto find_knot_indices_(std::index_sequence<Is...>,
-                                 const Xi &xi) const {
-    if constexpr (comp == functionspace::interior)
-      return std::tuple(Spline::find_knot_indices(std::get<Is>(xi))...);
-    else
-      return std::tuple(boundary_.find_knot_indices(std::get<Is>(xi))...);
-  }
-
-public:
-  /// @brief Returns the knot indicies of knot spans containing `xi`
-  template <functionspace comp = functionspace::interior, typename Xi>
-  inline auto find_knot_indices(const Xi &xi) const {
-    if constexpr (comp == functionspace::interior)
-      if constexpr (utils::is_tuple_v<Xi>)
-        return find_knot_indices_<comp>(
-            std::make_index_sequence<std::tuple_size_v<Xi>>{}, xi);
-      else
-        return Spline::find_knot_indices(xi);
-    else if constexpr (comp == functionspace::boundary)
-      if constexpr (utils::is_tuple_of_tuples_v<Xi>)
-        return find_knot_indices_<comp>(
-            std::make_index_sequence<std::tuple_size_v<Xi>>{}, xi);
-      else
-        return boundary_.find_knot_indices(xi);
-  }
-
-  /// @brief Returns the values of the spline objects' basis
-  /// functions in the points `xi`
-  template <functionspace comp = functionspace::interior,
-            deriv deriv = deriv::func, bool memory_optimized = false,
-            typename... Args>
-  inline auto eval_basfunc(const Args &...args) const {
-    if constexpr (comp == functionspace::interior)
-      return Spline::template eval_basfunc<deriv, memory_optimized>(args...);
-    else if constexpr (comp == functionspace::boundary)
-      return boundary_.template eval_basfunc<deriv, memory_optimized>(args...);
-  }
-
-private:
-  /// @brief Returns the indices of the spline objects'
-  /// coefficients corresponding to the knot indices `indices`
-  template <functionspace comp = functionspace::interior,
-            bool memory_optimized = false, std::size_t... Is, typename Indices>
-  inline auto find_coeff_indices_(std::index_sequence<Is...>,
-                                  const Indices &indices) const {
-    if constexpr (comp == functionspace::interior)
-      return std::tuple(Spline::template find_coeff_indices<memory_optimized>(
-          std::get<Is>(indices))...);
-    else
-      return std::tuple(boundary_.template find_coeff_indices<memory_optimized>(
-          std::get<Is>(indices))...);
-  }
-
-public:
-  /// @brief Returns the indices of the spline objects'
-  /// coefficients corresponding to the knot indices `indices`
-  template <functionspace comp = functionspace::interior,
-            bool memory_optimized = false, typename Indices>
-  inline auto find_coeff_indices(const Indices &indices) const {
-    if constexpr (comp == functionspace::interior)
-      if constexpr (utils::is_tuple_v<Indices>)
-        return find_coeff_indices_<comp, memory_optimized>(
-            std::make_index_sequence<std::tuple_size_v<Indices>>{}, indices);
-      else
-        return Spline::template find_coeff_indices<memory_optimized>(indices);
-    else if constexpr (comp == functionspace::boundary)
-      if constexpr (utils::is_tuple_of_tuples_v<Indices>)
-        return find_coeff_indices_<comp, memory_optimized>(
-            std::make_index_sequence<std::tuple_size_v<Indices>>{}, indices);
-      else
-        return boundary_.template find_coeff_indices<memory_optimized>(indices);
-  }
-
-  /// @brief Returns the spline objects with uniformly refined
-  /// knot and coefficient vectors
-  inline auto &uniform_refine(int numRefine = 1, int dimRefine = -1) {
-    Spline::uniform_refine(numRefine, dimRefine);
-    boundary_.uniform_refine(numRefine, dimRefine);
-    return *this;
-  }
-
-  /// @brief Writes the function space object into a
-  /// torch::serialize::OutputArchive object
-  inline torch::serialize::OutputArchive &
-  write(torch::serialize::OutputArchive &archive,
-        const std::string &key = "functionspace") const {
-    Spline::write(archive, key);
-    boundary_.write(archive, key);
-    return archive;
-  }
-
-  /// @brief Loads the function space object from a
-  /// torch::serialize::InputArchive object
-  inline torch::serialize::InputArchive &
-  read(torch::serialize::InputArchive &archive,
-       const std::string &key = "functionspace") {
-    Spline::read(archive, key);
-    boundary_.read(archive, key);
-    return archive;
-  }
-
-  /// @brief Returns a string representation of the function space object
-  inline virtual void
-  pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
-    os << Spline::name() << "(\ninterior = ";
-    Base::pretty_print(os);
-    os << "\nboundary = ";
-    boundary_.pretty_print(os);
-    os << "\n)";
-  }
-}; // namespace detail
+};
 } // namespace detail
 
 template <typename T, typename... Ts>

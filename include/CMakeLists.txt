@@ -36,6 +36,10 @@ if(IGANET_BUILD_PCH AND NOT WIN32 AND NOT ${CMAKE_VERSION} VERSION_LESS "3.16.0"
     target_link_libraries(iganet_pch PUBLIC Matplot++::matplot)
   endif()
 
+  if (IGANET_WITH_MPI)
+    target_link_libraries(iganet_pch PUBLIC MPI::MPI_CXX)
+  endif()
+
   if (IGANET_WITH_OPENMP)
     target_link_libraries(iganet_pch PUBLIC OpenMP::OpenMP_CXX)
   endif()

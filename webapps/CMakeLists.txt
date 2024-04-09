@@ -20,6 +20,10 @@ endif()
 set_property(CACHE IGANET_WEBAPPS_COEFF_TYPE PROPERTY STRINGS
 "float" "double")
 
+message("WebApps options:")
+message("IGANET_WEBAPPS_COEFF_TYPE..........: ${IGANET_WEBAPPS_COEFF_TYPE}")
+message("")
+
 ########################################################################
 # Option list
 ########################################################################

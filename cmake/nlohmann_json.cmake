@@ -23,3 +23,4 @@ FetchContent_Declare(nlohmann_json
 FetchContent_MakeAvailable(nlohmann_json)
 FetchContent_GetProperties(nlohmann_json)
 include_directories(${nlohmann_json_SOURCE_DIR}/single_include)
+add_compile_definitions(JSON_HAS_RANGES=0)

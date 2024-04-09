@@ -20,6 +20,10 @@ endif()
 set_property(CACHE IGANET_UNITTESTS_COEFF_TYPE PROPERTY STRINGS
   "float" "double")
 
+message("UnitTests options:")
+message("IGANET_UNITTESTS_COEFF_TYPE........: ${IGANET_UNITTESTS_COEFF_TYPE}")
+message("")
+
 ########################################################################
 # Config file
 ########################################################################
@@ -100,6 +104,10 @@ foreach(unittest ${UNITTESTS})
 
   if (IGANET_WITH_MATPLOT)
     target_link_libraries(${name} PUBLIC Matplot++::matplot)
+  endif()
+
+  if (IGANET_WITH_MPI)
+    target_link_libraries(${name} PUBLIC MPI::MPI_CXX)
   endif()
 
   if (IGANET_WITH_OPENMP)
