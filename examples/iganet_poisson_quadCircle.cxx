@@ -63,7 +63,7 @@ public:
       : Base(std::forward<std::vector<int64_t>>(layers),
              std::forward<std::vector<std::vector<std::any>>>(activations),
              std::forward<Args>(args)...),
-        ref_(iganet::utils::to_array(10_i64, 10_i64)) {}
+        ref_(iganet::utils::to_array(4_i64, 25_i64)) {}
 
   /// @brief Returns a constant reference to the collocation points
   auto const &collPts() const { return collPts_; }
@@ -174,7 +174,7 @@ int main() {
            {iganet::activation::sigmoid},
            {iganet::activation::none}},
           // Number of B-spline coefficients of the geometry, just [0,1] x [0,1]
-          std::tuple(iganet::utils::to_array(10_i64, 10_i64)));
+          std::tuple(iganet::utils::to_array(4_i64, 25_i64)));
 
   // load geometry from file
   net.G().from_xml(xml);
