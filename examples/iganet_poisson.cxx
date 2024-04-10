@@ -44,14 +44,14 @@ private:
   /// @brief Knot indices of variables
   typename Customizable::variable_interior_knot_indices_type var_knot_indices_;
 
-  /// @broef Coefficient indices of variables
+  /// @brief Coefficient indices of variables
   typename Customizable::variable_interior_coeff_indices_type
       var_coeff_indices_;
 
   /// @brief Knot indices of the geometry map
   typename Customizable::geometryMap_interior_knot_indices_type G_knot_indices_;
 
-  /// @broef Coefficient indices of the geometry map
+  /// @brief Coefficient indices of the geometry map
   typename Customizable::geometryMap_interior_coeff_indices_type
       G_coeff_indices_;
 

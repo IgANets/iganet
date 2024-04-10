@@ -431,7 +431,9 @@ public:
     init_knots();
   }
 
-  /// @brief Constructor for equidistant knot vectors
+  /// @brief Copy constructor
+  ///
+  /// @param[in] other Uniform B-spline object to copy
   ///
   /// @param[in] options Options configuration
   template <typename other_t>
@@ -2027,6 +2029,30 @@ public:
   }
 
   template <deriv deriv = deriv::func, bool memory_optimized = false>
+  inline auto eval_basfunc(const std::array<torch::Tensor, parDim_> &xi) const {
+    if constexpr (parDim_ == 0) {
+      if constexpr (deriv == deriv::func)
+        return torch::ones_like(coeffs_[0]);
+      else
+        return torch::zeros_like(coeffs_[0]);
+    } else
+      return eval_basfunc<deriv, memory_optimized>(xi, find_knot_indices(xi));
+  }
+  /// @}
+
+  /// @brief Returns the vector of multivariate B-spline basis
+  /// functions (or their derivatives) evaluated in the point `xi`
+  ///
+  /// @param[in] xi Point(s) where to evaluate the B-spline object
+  ///
+  /// @param[in] knot_indices Knot indices where to evaluate the univariate
+  /// B-spline object
+  ///
+  /// @result Multivariate B-spline basis functions (or their derivatives)
+  /// evaluated in the point `xi`
+  ///
+  /// @{
+  template <deriv deriv = deriv::func, bool memory_optimized = false>
   inline auto eval_basfunc(const torch::Tensor &xi,
                            const torch::Tensor &knot_indices) const {
     if constexpr (parDim_ == 0) {
@@ -2037,17 +2063,6 @@ public:
     } else
       return eval_basfunc<deriv, memory_optimized>(
           utils::TensorArray1({xi}), utils::TensorArray1({knot_indices}));
-  }
-
-  template <deriv deriv = deriv::func, bool memory_optimized = false>
-  inline auto eval_basfunc(const std::array<torch::Tensor, parDim_> &xi) const {
-    if constexpr (parDim_ == 0) {
-      if constexpr (deriv == deriv::func)
-        return torch::ones_like(coeffs_[0]);
-      else
-        return torch::zeros_like(coeffs_[0]);
-    } else
-      return eval_basfunc<deriv, memory_optimized>(xi, find_knot_indices(xi));
   }
 
   template <deriv deriv = deriv::func, bool memory_optimized = false>

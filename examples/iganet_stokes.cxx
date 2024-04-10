@@ -24,12 +24,14 @@ using namespace iganet::literals;
 /// @brief Specialization of the abstract IgANet class for Stokes's equation
 template <typename Optimizer, typename GeometryMap, typename Variable>
 class stokes
-    : public iganet::IgANet<Optimizer, GeometryMap, Variable>,
+    : public iganet::IgANet<Optimizer, GeometryMap, Variable,
+                            iganet::IgABaseNoRefData>,
       public iganet::IgANetCustomizable<Optimizer, GeometryMap, Variable> {
 
 private:
   /// @brief Type of the base class
-  using Base = iganet::IgANet<Optimizer, GeometryMap, Variable>;
+  using Base = iganet::IgANet<Optimizer, GeometryMap, Variable,
+                              iganet::IgABaseNoRefData>;
 
   /// @brief Collocation points
   typename Base::variable_collPts_type collPts_;
@@ -44,14 +46,14 @@ private:
   /// @brief Knot indices of variables
   typename Customizable::variable_interior_knot_indices_type var_knot_indices_;
 
-  /// @broef Coefficient indices of variables
+  /// @brief Coefficient indices of variables
   typename Customizable::variable_interior_coeff_indices_type
       var_coeff_indices_;
 
   /// @brief Knot indices of the geometry map
   typename Customizable::variable_interior_knot_indices_type G_knot_indices_;
 
-  /// @broef Coefficient indices of the geometry map
+  /// @brief Coefficient indices of the geometry map
   typename Customizable::variable_interior_coeff_indices_type G_coeff_indices_;
 
 public:
@@ -87,10 +89,10 @@ public:
       collPts_ = Base::variable_collPts(iganet::collPts::greville);
 
       var_knot_indices_ =
-          Base::f_.template find_knot_indices<iganet::functionspace::interior>(
+          Base::u_.template find_knot_indices<iganet::functionspace::interior>(
               collPts_.first);
       var_coeff_indices_ =
-          Base::f_.template find_coeff_indices<iganet::functionspace::interior>(
+          Base::u_.template find_coeff_indices<iganet::functionspace::interior>(
               var_knot_indices_);
 
       G_knot_indices_ =
@@ -121,12 +123,9 @@ public:
     Base::u_.from_tensor(outputs.t());
 
     // Evaluate
-
-    auto u =
-      Base::G_.hess(collPts_.first, var_knot_indices_, var_coeff_indices_);
-
-    auto f =
-        Base::f_.eval(collPts_.first, var_knot_indices_, var_coeff_indices_);
+    auto u_ilapl =
+        Base::u_.ilapl(Base::G_, collPts_.first, var_knot_indices_,
+                       var_coeff_indices_, G_knot_indices_, G_coeff_indices_);
 
     auto u_bdr = Base::u_.template eval<iganet::functionspace::boundary>(
         collPts_.second);
@@ -134,14 +133,13 @@ public:
     auto bdr =
         ref_.template eval<iganet::functionspace::boundary>(collPts_.second);
 
+    // Define the MSE loss function with zero target
+    auto mse_loss = [](const torch::Tensor &input) {
+      return torch::mean(torch::square(input));
+    };
+
     // Evaluate the loss function
-    return torch::mse_loss(*std::get<0>(u)[0], *std::get<0>(f)[0]); // +
-    //           1e1 * torch::mse_loss(*std::get<0>(u_bdr)[0],
-    //           *std::get<0>(bdr)[0]) + 1e1 *
-    //           torch::mse_loss(*std::get<1>(u_bdr)[0], *std::get<1>(bdr)[0]) +
-    //           1e1 * torch::mse_loss(*std::get<2>(u_bdr)[0],
-    //           *std::get<2>(bdr)[0]) + 1e1 *
-    //           torch::mse_loss(*std::get<3>(u_bdr)[0], *std::get<3>(bdr)[0]);
+    return mse_loss(*std::get<0>(u_ilapl)[0]);
   }
 };
 
@@ -157,7 +155,7 @@ int main() {
   using optimizer_t = torch::optim::LBFGS;
   using real_t = double;
 
-  using geometry_t = iganet::S2<iganet::UniformBSpline<real_t, 2, 1, 1>>;
+  using geometry_t = iganet::S2<iganet::UniformBSpline<real_t, 2, 2, 3>>;
   using variable_t = iganet::RT2<iganet::UniformBSpline<real_t, 1, 2, 2>>;
 
   stokes<optimizer_t, geometry_t, variable_t>
@@ -168,7 +166,7 @@ int main() {
            {iganet::activation::sigmoid},
            {iganet::activation::none}},
           // Number of B-spline coefficients of the geometry, just [0,1] x [0,1]
-          std::tuple(iganet::utils::to_array(2_i64, 2_i64)),
+          std::tuple(iganet::utils::to_array(4_i64, 25_i64)),
           // Number of B-spline coefficients of the variable
           std::tuple(iganet::utils::to_array(10_i64, 10_i64)));
 

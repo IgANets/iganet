@@ -199,7 +199,7 @@ endif()
 ########################################################################
 if(IGANET_BUILD_DOCS)
   find_package(Sphinx)
-  if(SPHINX_FOUND)
+  if(Sphinx_FOUND)
     set(SPHINX_SOURCE ${PROJECT_SOURCE_DIR}/docs)
     set(SPHINX_BUILD ${PROJECT_BINARY_DIR}/docs/sphinx)
     set(SPHINX_INDEX_FILE ${SPHINX_BUILD}/index.html)

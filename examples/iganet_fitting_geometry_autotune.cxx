@@ -1,11 +1,14 @@
 /**
-   @file examples/iganet_fitting_autotune.cxx
+   @file examples/iganet_fitting_geometry_autotune.cxx
 
-   @brief Demonstration of IgANet function fitting with automatic
-   hyper-parameter tuning
+   @brief Demonstration of IgANet function fitting on a geometry loaded from a
+   file with automatic hyper-parameter tuning
 
    This example demonstrates how to auto-tune the hyper-parameters of
-   an IgANet for fitting a given function on a square geometry.
+   an IgANet for fitting a given function on a geometry loaded from a file. In
+   contrast to the example iganet_fitting_geometry_dataloader_autotone this
+   example does not make use of the dataloader and fits only on a single
+   geometry.
 
    @author Matthias Moller
 
@@ -40,7 +43,7 @@ private:
   /// @brief Knot indices
   typename Customizable::variable_interior_knot_indices_type knot_indices_;
 
-  /// @broef Coefficient indices
+  /// @brief Coefficient indices
   typename Customizable::variable_interior_coeff_indices_type coeff_indices_;
 
 public:
@@ -59,19 +62,19 @@ public:
     // the variables since otherwise the respective tensors would be
     // empty. In all further epochs no updates are needed since we do
     // not change the inputs nor the variable function space.
-    //    if (epoch == 0) {
-    collPts_ = Base::variable_collPts(iganet::collPts::greville);
+    if (epoch == 0) {
+      collPts_ = Base::variable_collPts(iganet::collPts::greville);
 
-    knot_indices_ =
-        Base::f_.template find_knot_indices<iganet::functionspace::interior>(
-            collPts_.first);
-    coeff_indices_ =
-        Base::f_.template find_coeff_indices<iganet::functionspace::interior>(
-            knot_indices_);
+      knot_indices_ =
+          Base::f_.template find_knot_indices<iganet::functionspace::interior>(
+              collPts_.first);
+      coeff_indices_ =
+          Base::f_.template find_coeff_indices<iganet::functionspace::interior>(
+              knot_indices_);
 
-    return true;
-    //} else
-    // return false;
+      return true;
+    } else
+      return false;
   }
 
   /// @brief Computes the loss function
@@ -83,7 +86,7 @@ public:
     // Cast the network output (a raw tensor) into the proper
     // function-space format, i.e. B-spline objects for the interior
     // and boundary parts that can be evaluated.
-    Base::u_.from_tensor(outputs.flatten());
+    Base::u_.from_tensor(outputs);
 
     // Evaluate the loss function
     return torch::mse_loss(
@@ -104,31 +107,17 @@ int main() {
   using optimizer_t = torch::optim::Adam;
   using real_t = double;
 
-  // Geometry: Bi-linear B-spline function space S2 (geoDim = 2, p = q = 1)
+  // Load XML file
+  pugi::xml_document xml;
+  xml.load_file(IGANET_DATA_DIR "surfaces/2d/geo02.xml");
+
+  // Bivariate uniform B-spline of degree 2 in both directions
+  // the type has to correspond to the respective geometry parameterization in
+  // the input file
   using geometry_t = iganet::S2<iganet::UniformBSpline<real_t, 2, 2, 2>>;
 
   // Variable: Bi-quadratic B-spline function space S2 (geoDim = 1, p = q = 2)
   using variable_t = iganet::S2<iganet::UniformBSpline<real_t, 1, 2, 2>>;
-
-  // Data set for training
-  iganet::IgADataset<> data_set;
-  data_set.add_geometryMap(geometry_t{iganet::utils::to_array(25_i64, 25_i64)},
-                           IGANET_DATA_DIR "surfaces/2d");
-
-  // Impose solution value for supervised training (not right-hand side)
-  data_set.add_referenceData(
-      variable_t{iganet::utils::to_array(30_i64, 30_i64)},
-      [](const std::array<real_t, 2> xi) {
-        return std::array<real_t, 1>{
-            static_cast<real_t>(sin(M_PI * xi[0]) * sin(M_PI * xi[1]))};
-      });
-
-  auto train_set = data_set.map(
-      torch::data::transforms::Stack<iganet::IgADataset<>::example_type>());
-  auto train_size = train_set.size().value();
-  auto train_loader =
-      torch::data::make_data_loader<torch::data::samplers::SequentialSampler>(
-          std::move(train_set), 1);
 
   for (std::vector<std::any> activation :
        {std::vector<std::any>{iganet::activation::relu},
@@ -158,8 +147,17 @@ int main() {
                 // Number of B-spline coefficients of the variable
                 std::tuple(iganet::utils::to_array(30_i64, 30_i64)));
 
+        // Load geometry parameterization from XML
+        net.G().from_xml(xml);
+
+        // Impose solution value for supervised training (not right-hand side)
+        net.f().transform([](const std::array<real_t, 2> xi) {
+          return std::array<real_t, 1>{
+              static_cast<real_t>(sin(M_PI * xi[0]) * sin(M_PI * xi[1]))};
+        });
+
         // Set maximum number of epochs
-        net.options().max_epoch(500);
+        net.options().max_epoch(1000);
 
         // Set tolerance for the loss functions
         net.options().min_loss(1e-8);
@@ -168,7 +166,7 @@ int main() {
         auto t1 = std::chrono::high_resolution_clock::now();
 
         // Train network
-        net.train(*train_loader);
+        net.train();
 
         // Stop time measurement
         auto t2 = std::chrono::high_resolution_clock::now();
@@ -178,39 +176,6 @@ int main() {
                                                                          t1)
                    .count()
             << " seconds\n";
-
-#ifdef IGANET_WITH_GISMO
-        // Convert B-spline objects to G+Smo
-        auto G_gismo = net.G().to_gismo();
-        auto u_gismo = net.u().to_gismo();
-        auto f_gismo = net.f().to_gismo();
-
-        // Set up expression assembler
-        gsExprAssembler<real_t> A(1, 1);
-        gsMultiBasis<real_t> basis(u_gismo, true);
-
-        A.setIntegrationElements(basis);
-
-        auto G = A.getMap(G_gismo);
-        auto u = A.getCoeff(u_gismo, G);
-        auto f = A.getCoeff(f_gismo, G);
-
-        // Compute L2- and H2-error
-        gsExprEvaluator<real_t> ev(A);
-
-        iganet::Log(iganet::log::info)
-            << "L2-error : "
-            << gismo::math::sqrt(ev.integral((u - f).sqNorm() * meas(G)))
-            << std::endl;
-
-        iganet::Log(iganet::log::info)
-            << "H1-error : "
-            << gismo::math::sqrt(ev.integral(
-                   (gismo::expr::igrad(u, G) - gismo::expr::igrad(f, G))
-                       .sqNorm() *
-                   meas(G)))
-            << std::endl;
-#endif
       }
     }
   }

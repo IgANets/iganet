@@ -926,7 +926,8 @@ public:
 /// @brief IgANet
 ///
 /// This class implements the core functionality of IgANets
-template <typename Optimizer, typename GeometryMap, typename Variable>
+template <typename Optimizer, typename GeometryMap, typename Variable,
+          template <typename, typename> typename IgABase = ::iganet::IgABase>
 class IgANet : public IgABase<GeometryMap, Variable>,
                utils::Serializable,
                private utils::FullQualifiedName {
@@ -1016,7 +1017,14 @@ public:
   /// behavior can be changed by overriding this virtual function in
   /// a derived class.
   virtual torch::Tensor inputs(int64_t epoch) const {
-    return torch::cat({Base::G_.as_tensor(), Base::f_.as_tensor()});
+    if constexpr (Base::has_GeometryMap && Base::has_RefData)
+      return torch::cat({Base::G_.as_tensor(), Base::f_.as_tensor()});
+    else if constexpr (Base::has_GeometryMap)
+      return Base::G_.as_tensor();
+    else if constexpr (Base::has_RefData)
+      return Base::f_.as_tensor();
+    else
+      return torch::empty({0});
   }
 
   /// @brief Initializes epoch
@@ -1117,25 +1125,37 @@ public:
         inputs = batch.data;
 
         if (inputs.dim() > 0) {
-          Base::G_.from_tensor(
-              inputs.slice(1, 0, Base::G_.ncumcoeffs() * Base::G_.geoDim())
-                  .t());
-          Base::f_.from_tensor(
-              inputs
-                  .slice(1, Base::G_.ncumcoeffs() * Base::G_.geoDim(),
-                         Base::G_.ncumcoeffs() * Base::G_.geoDim() +
-                             Base::f_.ncumcoeffs() * Base::f_.geoDim())
-                  .t());
+          if constexpr (Base::has_GeometryMap)
+            Base::G_.from_tensor(
+                inputs.slice(1, 0, Base::G_.ncumcoeffs() * Base::G_.geoDim())
+                    .t());
+          if constexpr (Base::has_RefData && Base::has_GeometryMap)
+            Base::f_.from_tensor(
+                inputs
+                    .slice(1, Base::G_.ncumcoeffs() * Base::G_.geoDim(),
+                           Base::G_.ncumcoeffs() * Base::G_.geoDim() +
+                               Base::f_.ncumcoeffs() * Base::f_.geoDim())
+                    .t());
+          else if constexpr (Base::has_RefData)
+            Base::f_.from_tensor(
+                inputs.slice(1, 0, Base::f_.ncumcoeffs() * Base::f_.geoDim())
+                    .t());
         } else {
-          Base::G_.from_tensor(
-              inputs.slice(1, 0, Base::G_.ncumcoeffs() * Base::G_.geoDim())
-                  .flatten());
-          Base::f_.from_tensor(
-              inputs
-                  .slice(1, Base::G_.ncumcoeffs() * Base::G_.geoDim(),
-                         Base::G_.ncumcoeffs() * Base::G_.geoDim() +
-                             Base::f_.ncumcoeffs() * Base::f_.geoDim())
-                  .flatten());
+          if constexpr (Base::has_GeometryMap)
+            Base::G_.from_tensor(
+                inputs.slice(1, 0, Base::G_.ncumcoeffs() * Base::G_.geoDim())
+                    .flatten());
+          if constexpr (Base::has_RefData && Base::has_GeometryMap)
+            Base::f_.from_tensor(
+                inputs
+                    .slice(1, Base::G_.ncumcoeffs() * Base::G_.geoDim(),
+                           Base::G_.ncumcoeffs() * Base::G_.geoDim() +
+                               Base::f_.ncumcoeffs() * Base::f_.geoDim())
+                    .flatten());
+          else if constexpr (Base::has_RefData)
+            Base::f_.from_tensor(
+                inputs.slice(1, 0, Base::f_.ncumcoeffs() * Base::f_.geoDim())
+                    .flatten());
         }
 
         this->epoch(epoch);
@@ -1186,10 +1206,13 @@ public:
   inline virtual void
   pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << name() << "(\n"
-       << "net = " << net_ << "\n"
-       << "G = " << Base::G_ << "\n"
-       << "f = " << Base::f_ << "\n"
-       << "u = " << Base::u_ << "\n)";
+       << "net = " << net_ << "\n";
+    if constexpr (Base::has_GeometryMap)
+      os << "G = " << Base::G_ << "\n";
+    if constexpr (Base::has_RefData)
+      os << "f = " << Base::f_ << "\n";
+    if constexpr (Base::has_Solution)
+      os << "u = " << Base::u_ << "\n)";
   }
 
   /// @brief Evaluates the model at given inputs
@@ -1223,9 +1246,12 @@ public:
   inline torch::serialize::OutputArchive &
   write(torch::serialize::OutputArchive &archive,
         const std::string &key = "iganet") const {
-    Base::G_.write(archive, key + ".geo");
-    Base::f_.write(archive, key + ".ref");
-    Base::u_.write(archive, key + ".out");
+    if constexpr (Base::has_GeometryMap)
+      Base::G_.write(archive, key + ".geo");
+    if constexpr (Base::has_RefData)
+      Base::f_.write(archive, key + ".ref");
+    if constexpr (Base::has_Solution)
+      Base::u_.write(archive, key + ".out");
 
     net_->write(archive, key + ".net");
     torch::serialize::OutputArchive archive_net;
@@ -1243,9 +1269,12 @@ public:
   inline torch::serialize::InputArchive &
   read(torch::serialize::InputArchive &archive,
        const std::string &key = "iganet") {
-    Base::G_.read(archive, key + ".geo");
-    Base::f_.read(archive, key + ".ref");
-    Base::u_.read(archive, key + ".out");
+    if constexpr (Base::has_GeometryMap)
+      Base::G_.read(archive, key + ".geo");
+    if constexpr (Base::has_RefData)
+      Base::f_.read(archive, key + ".ref");
+    if constexpr (Base::has_Solution)
+      Base::u_.read(archive, key + ".out");
 
     net_->read(archive, key + ".net");
     torch::serialize::InputArchive archive_net;
@@ -1264,9 +1293,12 @@ public:
   bool operator==(const IgANet &other) const {
     bool result(true);
 
-    result *= (Base::G_ == other.G());
-    result *= (Base::f_ == other.f());
-    result *= (Base::u_ == other.u());
+    if constexpr (Base::has_GeometryMap)
+      result *= (Base::G_ == other.G());
+    if constexpr (Base::has_RefData)
+      result *= (Base::f_ == other.f());
+    if constexpr (Base::has_Solution)
+      result *= (Base::u_ == other.u());
 
     return result;
   }

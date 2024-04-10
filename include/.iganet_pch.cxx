@@ -1,5 +1,5 @@
 /**
-   @file include/.iganet.cxx
+   @file include/.iganet_pch.cxx
 
    @brief Isogeometric analysis network precompiled header generator
 

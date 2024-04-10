@@ -1,5 +1,5 @@
 /**
-   @file examples/iganet_fitting_autotune.cxx
+   @file examples/iganet_fitting_geometry_dataloader_autotune.cxx
 
    @brief Demonstration of IgANet function fitting with automatic
    hyper-parameter tuning and use of the data loader for the geometry
@@ -41,7 +41,7 @@ private:
   /// @brief Knot indices
   typename Customizable::variable_interior_knot_indices_type knot_indices_;
 
-  /// @broef Coefficient indices
+  /// @brief Coefficient indices
   typename Customizable::variable_interior_coeff_indices_type coeff_indices_;
 
 public:
@@ -60,7 +60,6 @@ public:
     // the variables since otherwise the respective tensors would be
     // empty. In all further epochs no updates are needed since we do
     // not change the inputs nor the variable function space.
-    //    if (epoch == 0) {
     collPts_ = Base::variable_collPts(iganet::collPts::greville);
 
     knot_indices_ =
@@ -71,8 +70,6 @@ public:
             knot_indices_);
 
     return true;
-    //} else
-    // return false;
   }
 
   /// @brief Computes the loss function
