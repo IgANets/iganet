@@ -113,7 +113,7 @@ int main() {
 
   // Data set for training
   iganet::IgADataset<> data_set;
-  data_set.add_geometryMap(geometry_t{iganet::utils::to_array(10_i64, 10_i64)},
+  data_set.add_geometryMap(geometry_t{iganet::utils::to_array(4_i64, 25_i64)},
                            IGANET_DATA_DIR "surfaces/2d_quadCircle_variableRadius");
 
   // Impose solution value for supervised training (not right-hand side)
@@ -140,7 +140,7 @@ int main() {
            {iganet::activation::sigmoid},
            {iganet::activation::none}},
           // Number of B-spline coefficients of the geometry
-          std::tuple(iganet::utils::to_array(10_i64, 10_i64)),
+          std::tuple(iganet::utils::to_array(4_i64, 25_i64)),
           // Number of B-spline coefficients of the variable
           std::tuple(iganet::utils::to_array(30_i64, 30_i64)));
 

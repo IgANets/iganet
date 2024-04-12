@@ -63,7 +63,7 @@ public:
       : Base(std::forward<std::vector<int64_t>>(layers),
              std::forward<std::vector<std::vector<std::any>>>(activations),
              std::forward<Args>(args)...),
-        ref_(iganet::utils::to_array(4_i64, 25_i64)) {}
+        ref_(iganet::utils::to_array(4_i64, 33_i64)) {}
 
   /// @brief Returns a constant reference to the collocation points
   auto const &collPts() const { return collPts_; }
@@ -125,7 +125,7 @@ public:
     //    Base::u_.ilapl(Base::G_, collPts_.first, var_knot_indices_,
     //                   var_coeff_indices_, G_knot_indices_, G_coeff_indices_);
 
-    auto u_ilapl = Base::u_.igrad(Base::G_, collPts_.first, var_knot_indices_,
+    auto u_ilapl = Base::u_.ilapl(Base::G_, collPts_.first, var_knot_indices_,
                        var_coeff_indices_, G_knot_indices_, G_coeff_indices_);
     auto f =
         Base::f_.eval(collPts_.first, var_knot_indices_, var_coeff_indices_);
@@ -161,24 +161,28 @@ int main() {
   
    // Load XML file
   pugi::xml_document xml;
-  xml.load_file(IGANET_DATA_DIR "surfaces/2d/quadCircleNUB_ref.xml");
+  xml.load_file(IGANET_DATA_DIR "surfaces/2d_quadCircleImp/quadCircleIMP_R1I04_resultR1E1Fixed.xml");
 
   using geometry_t = iganet::S2<iganet::NonUniformBSpline<real_t, 2, 2, 3>>;
-  using variable_t = iganet::S2<iganet::UniformBSpline<real_t, 1, 2, 3>>;
+  using variable_t = iganet::S2<iganet::UniformBSpline<real_t, 1, 2, 2>>;
 
   poisson<optimizer_t, geometry_t, variable_t>
       net( // Number of neurons per layers
-          {120, 120},
+          {300, 300, 300, 300},
           // Activation functions
           {{iganet::activation::sigmoid},
            {iganet::activation::sigmoid},
+           {iganet::activation::sigmoid},
+           {iganet::activation::sigmoid},
            {iganet::activation::none}},
           // Number of B-spline coefficients of the geometry, just [0,1] x [0,1]
-          std::tuple(iganet::utils::to_array(4_i64, 25_i64)));
+          std::tuple(iganet::utils::to_array(4_i64, 33_i64)));
 
   // load geometry from file
   net.G().from_xml(xml);
-  
+  net.G().uniform_refine(2, 0);
+  net.f().uniform_refine(2, 0);
+
   // Impose the negative of the second derivative of sin(M_PI*x) *
   // sin(M_PI*y) as right-hand side vector (manufactured solution)
   net.f().transform([](const std::array<real_t, 2> xi) {
@@ -213,7 +217,7 @@ int main() {
       });
 
   // Set maximum number of epoches
-  net.options().max_epoch(200);
+  net.options().max_epoch(1);
 
   // Set tolerance for the loss functions
   net.options().min_loss(1e-8);
@@ -233,11 +237,17 @@ int main() {
       << " seconds\n";
 
 #ifdef IGANET_WITH_MATPLOT
+auto colPts = net.G().eval(net.collPts().first);
   // Plot the solution
-  net.G().plot(net.u(), net.collPts().first, json)->show();
+    net.G()
+      .plot(net.u(), std::array<torch::Tensor, 2>{*colPts[0], *colPts[1]}, json)
+      ->show();
 
   // Plot the difference between the exact and predicted solutions
-  net.G().plot(net.ref().abs_diff(net.u()), net.collPts().first, json)->show();
+  net.G()
+      .plot(net.u().abs_diff(net.ref()), std::array<torch::Tensor, 2>{*colPts[0], *colPts[1]},
+           json)
+      ->show();
 #endif
 
   return 0;
