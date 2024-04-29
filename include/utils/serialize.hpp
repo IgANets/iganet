@@ -373,7 +373,7 @@ inline pugi::xml_node &to_xml(const torch::Tensor &tensor, pugi::xml_node &root,
 template <typename T, std::size_t N, std::size_t M>
 inline pugi::xml_document to_xml(const std::array<torch::Tensor, M> &tensors,
                                  std::string tag = "Matrix", int id = 0,
-                                 std::string label = "") {
+                                 std::string label = "", int index = -1) {
   pugi::xml_document doc;
   pugi::xml_node root = doc.append_child("xml");
   to_xml<T, N>(tensors, root, id, label, index);

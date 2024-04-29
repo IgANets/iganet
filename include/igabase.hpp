@@ -30,10 +30,11 @@ enum class collPts : short_t {
       5, /*!< Greville points in the interior, twice refined */
 };
 
-/// @brief IgA base class
+/// @brief IgA base class (no reference data)
 ///
-/// This class implements the base functionality of IgA solvers and nets
-template <typename GeometryMap, typename Variable> class IgABase {
+/// This class implements the base functionality of IgA solvers and nets for the
+/// case that no reference solution is required
+template <typename GeometryMap, typename Variable> class IgABaseNoRefData {
 public:
   /// @brief Value type
   using value_type =
@@ -56,12 +57,18 @@ public:
       std::pair<typename Variable::eval_type,
                 typename Variable::boundary_eval_type>;
 
+  /// @brief Indicates whether this class provides a geometry map
+  bool static constexpr has_GeometryMap = true;
+
+  /// @brief Indicates whether this class provides reference data
+  bool static constexpr has_RefData = false;
+
+  /// @brief Indicates whether this class provides a solution
+  bool static constexpr has_Solution = true;
+
 protected:
   /// @brief Spline representation of the geometry map
   GeometryMap G_;
-
-  /// @brief Spline representation of the reference data
-  Variable f_;
 
   /// @brief Spline representation of the solution
   Variable u_;
@@ -71,40 +78,42 @@ private:
   /// and Variable types)
   template <typename... GeometryMapSplines, size_t... Is,
             typename... VariableSplines, size_t... Js>
-  IgABase(std::tuple<GeometryMapSplines...> geometryMap_splines,
-          std::index_sequence<Is...>,
-          std::tuple<VariableSplines...> variable_splines,
-          std::index_sequence<Js...>,
-          iganet::Options<value_type> options = iganet::Options<value_type>{})
+  IgABaseNoRefData(
+      std::tuple<GeometryMapSplines...> geometryMap_splines,
+      std::index_sequence<Is...>,
+      std::tuple<VariableSplines...> variable_splines,
+      std::index_sequence<Js...>,
+      iganet::Options<value_type> options = iganet::Options<value_type>{})
       : // Construct the different spline objects individually
         G_(std::get<Is>(geometryMap_splines)..., init::greville, options),
-        f_(std::get<Js>(variable_splines)..., init::zeros, options),
         u_(std::get<Js>(variable_splines)..., init::random, options) {}
 
 public:
   /// @brief Default constructor
-  explicit IgABase(
+  explicit IgABaseNoRefData(
       iganet::Options<value_type> options = iganet::Options<value_type>{})
-      : G_(), f_(), u_() {}
+      : G_(), u_() {}
 
   /// @brief Constructor: number of spline coefficients (same for geometry map
   /// and variables)
   template <typename... Splines>
-  IgABase(std::tuple<Splines...> splines,
-          iganet::Options<value_type> options = iganet::Options<value_type>{})
-      : IgABase(splines, splines, options) {}
+  IgABaseNoRefData(
+      std::tuple<Splines...> splines,
+      iganet::Options<value_type> options = iganet::Options<value_type>{})
+      : IgABaseNoRefData(splines, splines, options) {}
 
   /// @brief Constructor: number of spline coefficients (different for
   /// geometry map and variables)
   template <typename... GeometryMapSplines, typename... VariableSplines>
-  IgABase(std::tuple<GeometryMapSplines...> geometryMap_splines,
-          std::tuple<VariableSplines...> variable_splines,
-          iganet::Options<value_type> options = iganet::Options<value_type>{})
-      : IgABase(geometryMap_splines,
-                std::make_index_sequence<sizeof...(GeometryMapSplines)>{},
-                variable_splines,
-                std::make_index_sequence<sizeof...(VariableSplines)>{},
-                options) {}
+  IgABaseNoRefData(
+      std::tuple<GeometryMapSplines...> geometryMap_splines,
+      std::tuple<VariableSplines...> variable_splines,
+      iganet::Options<value_type> options = iganet::Options<value_type>{})
+      : IgABaseNoRefData(
+            geometryMap_splines,
+            std::make_index_sequence<sizeof...(GeometryMapSplines)>{},
+            variable_splines,
+            std::make_index_sequence<sizeof...(VariableSplines)>{}, options) {}
 
   /// @brief Returns a constant reference to the spline
   /// representation of the geometry map
@@ -113,14 +122,6 @@ public:
   /// @brief Returns a non-constant reference to the spline
   /// representation of the geometry map
   inline GeometryMap &G() { return G_; }
-
-  /// @brief Returns a constant reference to the spline
-  /// representation of the reference data
-  inline const Variable &f() const { return f_; }
-
-  /// @brief Returns a non-constant reference to the spline
-  /// representation of the reference data
-  inline Variable &f() { return f_; }
 
   /// @brief Returns a constant reference to the spline
   /// representation of the solution
@@ -245,60 +246,60 @@ private:
     case collPts::greville:
       // Get Greville abscissae inside the domain and at the boundary
       ((std::get<Is>(collPts_.first) =
-            std::get<Is>(f_).greville(/* interior */ false)),
+            std::get<Is>(u_).greville(/* interior */ false)),
        ...);
 
       // Get Greville abscissae at the domain
-      ((std::get<Is>(collPts_.second) = std::get<Is>(f_.boundary()).greville()),
+      ((std::get<Is>(collPts_.second) = std::get<Is>(u_.boundary()).greville()),
        ...);
       break;
 
     case collPts::greville_interior:
       // Get Greville abscissae inside the domain and at the boundary
       ((std::get<Is>(collPts_.first) =
-            std::get<Is>(f_).greville(/* interior */ true)),
+            std::get<Is>(u_).greville(/* interior */ true)),
        ...);
 
       // Get Greville abscissae at the domain
-      ((std::get<Is>(collPts_.second) = std::get<Is>(f_.boundary()).greville()),
+      ((std::get<Is>(collPts_.second) = std::get<Is>(u_.boundary()).greville()),
        ...);
       break;
 
     case collPts::greville_ref1:
       // Get Greville abscissae inside the domain and at the boundary
       ((std::get<Is>(collPts_.first) =
-            std::get<Is>(f_).clone().uniform_refine().greville(
+            std::get<Is>(u_).clone().uniform_refine().greville(
                 /* interior */ false)),
        ...);
 
       // Get Greville abscissae at the domain
       ((std::get<Is>(collPts_.second) =
-            std::get<Is>(f_.boundary()).clone().uniform_refine().greville()),
+            std::get<Is>(u_.boundary()).clone().uniform_refine().greville()),
        ...);
       break;
 
     case collPts::greville_interior_ref1:
       // Get Greville abscissae inside the domain and at the boundary
       ((std::get<Is>(collPts_.first) =
-            std::get<Is>(f_).clone().uniform_refine().greville(
+            std::get<Is>(u_).clone().uniform_refine().greville(
                 /* interior */ true)),
        ...);
 
       // Get Greville abscissae at the domain
       ((std::get<Is>(collPts_.second) =
-            std::get<Is>(f_.boundary()).clone().uniform_refine().greville()),
+            std::get<Is>(u_.boundary()).clone().uniform_refine().greville()),
        ...);
       break;
 
     case collPts::greville_ref2:
       // Get Greville abscissae inside the domain and at the boundary
       ((std::get<Is>(collPts_.first) =
-            std::get<Is>(f_).clone().uniform_refine(2, -1).greville(
+            std::get<Is>(u_).clone().uniform_refine(2, -1).greville(
                 /* interior */ false)),
        ...);
 
       // Get Greville abscissae at the domain
-      ((std::get<Is>(collPts_.second) = std::get<Is>(f_.boundary())
+      ((std::get<Is>(collPts_.second) = std::get<Is>(u_.boundary())
                                             .clone()
                                             .uniform_refine(2, -1)
                                             .greville()),
@@ -308,12 +309,12 @@ private:
     case collPts::greville_interior_ref2:
       // Get Greville abscissae inside the domain and at the boundary
       ((std::get<Is>(collPts_.first) =
-            std::get<Is>(f_).clone().uniform_refine(2, -1).greville(
+            std::get<Is>(u_).clone().uniform_refine(2, -1).greville(
                 /* interior */ true)),
        ...);
 
       // Get Greville abscissae at the domain
-      ((std::get<Is>(collPts_.second) = std::get<Is>(f_.boundary())
+      ((std::get<Is>(collPts_.second) = std::get<Is>(u_.boundary())
                                             .clone()
                                             .uniform_refine(2, -1)
                                             .greville()),
@@ -383,26 +384,26 @@ public:
       switch (collPts) {
 
       case collPts::greville:
-        return {f_.greville(/* interior */ false), f_.boundary().greville()};
+        return {u_.greville(/* interior */ false), u_.boundary().greville()};
 
       case collPts::greville_interior:
-        return {f_.greville(/* interior */ true), f_.boundary().greville()};
+        return {u_.greville(/* interior */ true), u_.boundary().greville()};
 
       case collPts::greville_ref1:
-        return {f_.clone().uniform_refine().greville(/* interior */ false),
-                f_.boundary().clone().uniform_refine().greville()};
+        return {u_.clone().uniform_refine().greville(/* interior */ false),
+                u_.boundary().clone().uniform_refine().greville()};
 
       case collPts::greville_interior_ref1:
-        return {f_.clone().uniform_refine().greville(/* interior */ true),
-                f_.clone().uniform_refine().boundary().greville()};
+        return {u_.clone().uniform_refine().greville(/* interior */ true),
+                u_.clone().uniform_refine().boundary().greville()};
 
       case collPts::greville_ref2:
-        return {f_.clone().uniform_refine(2, -1).greville(/* interior */ false),
-                f_.boundary().clone().uniform_refine(2, -1).greville()};
+        return {u_.clone().uniform_refine(2, -1).greville(/* interior */ false),
+                u_.boundary().clone().uniform_refine(2, -1).greville()};
 
       case collPts::greville_interior_ref2:
-        return {f_.clone().uniform_refine(2, -1).greville(/* interior */ true),
-                f_.clone().uniform_refine(2, -1).boundary().greville()};
+        return {u_.clone().uniform_refine(2, -1).greville(/* interior */ true),
+                u_.clone().uniform_refine(2, -1).boundary().greville()};
 
       default:
         throw std::runtime_error("Invalid collocation point specifier");
@@ -412,6 +413,91 @@ public:
       return variable_collPts(collPts,
                               std::make_index_sequence<Variable::nspaces()>{});
   }
+};
+
+/// @brief IgA base class
+///
+/// This class implements the base functionality of IgA solvers and nets
+template <typename GeometryMap, typename Variable>
+class IgABase : public IgABaseNoRefData<GeometryMap, Variable> {
+public:
+  /// @brief Base type
+  using Base = IgABaseNoRefData<GeometryMap, Variable>;
+
+  /// @brief Value type
+  using value_type = typename Base::value_type;
+
+  /// @brief Type of the geometry map function space(s)
+  using geometryMap_type = GeometryMap;
+
+  /// @brief Type of the variable function space(s)
+  using variable_type = Variable;
+
+  /// @brief Type of the geometry map collocation points
+  using geometryMap_collPts_type = typename Base::geometryMap_collPts_type;
+
+  /// @brief Type of the variable collocation points
+  using variable_collPts_type = typename Base::variable_collPts_type;
+
+  /// @brief Indicates whether this class provides a geometry map
+  bool static constexpr has_GeometryMap = true;
+
+  /// @brief Indicates whether this class provides a reference solution
+  bool static constexpr has_RefData = true;
+
+  /// @brief Indicates whether this class provides a solution
+  bool static constexpr has_Solution = true;
+
+protected:
+  /// @brief Spline representation of the reference data
+  Variable f_;
+
+private:
+  /// @brief Constructor: number of spline coefficients (different for Geometry
+  /// and Variable types)
+  template <typename... GeometryMapSplines, size_t... Is,
+            typename... VariableSplines, size_t... Js>
+  IgABase(std::tuple<GeometryMapSplines...> geometryMap_splines,
+          std::index_sequence<Is...>,
+          std::tuple<VariableSplines...> variable_splines,
+          std::index_sequence<Js...>,
+          iganet::Options<value_type> options = iganet::Options<value_type>{})
+      : // Construct the different spline objects individually
+        Base(geometryMap_splines, variable_splines, options),
+        f_(std::get<Js>(variable_splines)..., init::zeros, options) {}
+
+public:
+  /// @brief Default constructor
+  explicit IgABase(
+      iganet::Options<value_type> options = iganet::Options<value_type>{})
+      : Base::G_(), f_(), Base::u_() {}
+
+  /// @brief Constructor: number of spline coefficients (same for geometry map
+  /// and variables)
+  template <typename... Splines>
+  IgABase(std::tuple<Splines...> splines,
+          iganet::Options<value_type> options = iganet::Options<value_type>{})
+      : IgABase(splines, splines, options) {}
+
+  /// @brief Constructor: number of spline coefficients (different for
+  /// geometry map and variables)
+  template <typename... GeometryMapSplines, typename... VariableSplines>
+  IgABase(std::tuple<GeometryMapSplines...> geometryMap_splines,
+          std::tuple<VariableSplines...> variable_splines,
+          iganet::Options<value_type> options = iganet::Options<value_type>{})
+      : IgABase(geometryMap_splines,
+                std::make_index_sequence<sizeof...(GeometryMapSplines)>{},
+                variable_splines,
+                std::make_index_sequence<sizeof...(VariableSplines)>{},
+                options) {}
+
+  /// @brief Returns a constant reference to the spline
+  /// representation of the reference data
+  inline const Variable &f() const { return f_; }
+
+  /// @brief Returns a non-constant reference to the spline
+  /// representation of the reference data
+  inline Variable &f() { return f_; }
 };
 
 /// @brief IgA dataset base class

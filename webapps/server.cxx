@@ -165,7 +165,8 @@ public:
   inline static std::map<std::string, std::shared_ptr<Session<T>>> sessions;
 
   /// @brief List of models
-  inline static ModelManager models = ModelManager("webapps/models");
+  inline static ModelManager models =
+      ModelManager(iganet::webapp::tokenize("webapps/models,models", ","));
 };
 
 } // namespace webapp

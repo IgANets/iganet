@@ -1,16 +1,14 @@
 /**
-   @file examples/iganet_fitting_geometry.cxx
+   @file examples/iganet_fitting_geometry_autotune.cxx
 
    @brief Demonstration of IgANet function fitting on a geometry loaded from a
-   file
+   file with automatic hyper-parameter tuning
 
-   @author Veronika Travnikova
-
-   This example demonstrates how to implement an IgANet to fit a given
-   function on a geometry loaded from a file. In contrast to the
-   example iganet_fitting_geometry_simple.cxx this examples makes use
-   of pre-computed indices and coefficients and should therefore be
-   faster.
+   This example demonstrates how to auto-tune the hyper-parameters of
+   an IgANet for fitting a given function on a geometry loaded from a file. In
+   contrast to the example iganet_fitting_geometry_dataloader_autotone this
+   example does not make use of the dataloader and fits only on a single
+   geometry.
 
    @author Matthias Moller
 
@@ -63,7 +61,6 @@ public:
     // empty. In all further epochs no updates are needed since we do
     // not change the inputs nor the variable function space.
     if (epoch == 0) {
-      Base::inputs(epoch);
       collPts_ = Base::variable_collPts(iganet::collPts::greville);
 
       knot_indices_ =
@@ -84,7 +81,6 @@ public:
   ///
   /// @param[in] epoch Epoch number
   torch::Tensor loss(const torch::Tensor &outputs, int64_t epoch) override {
-
     // Cast the network output (a raw tensor) into the proper
     // function-space format, i.e. B-spline objects for the interior
     // and boundary parts that can be evaluated.
@@ -121,95 +117,66 @@ int main() {
   // Variable: Bi-quadratic B-spline function space S2 (geoDim = 1, p = q = 2)
   using variable_t = iganet::S2<iganet::UniformBSpline<real_t, 1, 2, 2>>;
 
-  fitting<optimizer_t, geometry_t, variable_t>
-      net( // Number of neurons per layers
-          {50, 50},
-          // Activation functions
-          {{iganet::activation::sigmoid},
-           {iganet::activation::sigmoid},
-           {iganet::activation::none}},
-          // Number of B-spline coefficients of the geometry, has to correspond
-          // to number of coefficients in input file
-          std::tuple(iganet::utils::to_array(25_i64, 25_i64)),
-          // Number of B-spline coefficients of the variable
-          std::tuple(iganet::utils::to_array(30_i64, 30_i64)));
+  for (std::vector<std::any> activation :
+       {std::vector<std::any>{iganet::activation::relu},
+        std::vector<std::any>{iganet::activation::sigmoid},
+        std::vector<std::any>{iganet::activation::tanh}}) {
+    for (int64_t nlayers :
+         iganet::utils::getenv("IGANET_NLAYERS", {5, 6, 7, 8, 9})) {
+      for (int64_t nneurons : iganet::utils::getenv(
+               "IGANET_NNEURONS", {60, 80, 100, 120, 140, 160, 180, 200})) {
 
-  // Load geometry parameterization from XML
-  net.G().from_xml(xml);
+        iganet::Log(iganet::log::info)
+            << "#layers: " << nlayers << ", #neurons: " << nneurons
+            << std::endl;
 
-  // Impose solution value for supervised training (not right-hand side)
-  net.f().transform([](const std::array<real_t, 2> xi) {
-    return std::array<real_t, 1>{
-        static_cast<real_t>(sin(M_PI * xi[0]) * sin(M_PI * xi[1]))};
-  });
+        std::vector<int64_t> layers(nlayers, nneurons);
+        std::vector<std::vector<std::any>> activations(nlayers, activation);
+        activations.emplace_back(
+            std::vector<std::any>{iganet::activation::none});
 
-  // Set maximum number of epochs
-  net.options().max_epoch(1000);
+        fitting<optimizer_t, geometry_t, variable_t>
+            net( // Number of neurons per layers
+                layers,
+                // Activation functions
+                activations,
+                // Number of B-spline coefficients of the geometry
+                std::tuple(iganet::utils::to_array(25_i64, 25_i64)),
+                // Number of B-spline coefficients of the variable
+                std::tuple(iganet::utils::to_array(30_i64, 30_i64)));
 
-  // Set tolerance for the loss functions
-  net.options().min_loss(1e-8);
+        // Load geometry parameterization from XML
+        net.G().from_xml(xml);
 
-  // Start time measurement
-  auto t1 = std::chrono::high_resolution_clock::now();
+        // Impose solution value for supervised training (not right-hand side)
+        net.f().transform([](const std::array<real_t, 2> xi) {
+          return std::array<real_t, 1>{
+              static_cast<real_t>(sin(M_PI * xi[0]) * sin(M_PI * xi[1]))};
+        });
 
-  // Train network
-  net.train();
+        // Set maximum number of epochs
+        net.options().max_epoch(1000);
 
-  // Stop time measurement
-  auto t2 = std::chrono::high_resolution_clock::now();
-  iganet::Log(iganet::log::info)
-      << "Training took "
-      << std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1)
-             .count()
-      << " seconds\n";
+        // Set tolerance for the loss functions
+        net.options().min_loss(1e-8);
 
-#ifdef IGANET_WITH_MATPLOT
-  // Evaluate position of collocation points in physical domain
-  auto colPts = net.G().eval(net.collPts().first);
+        // Start time measurement
+        auto t1 = std::chrono::high_resolution_clock::now();
 
-  // Plot the solution
-  net.G()
-      .plot(net.u(), std::array<torch::Tensor, 2>{*colPts[0], *colPts[1]}, json)
-      ->show();
+        // Train network
+        net.train();
 
-  // Plot the difference between the solution and the reference data
-  net.G()
-      .plot(net.u().abs_diff(net.f()),
-            std::array<torch::Tensor, 2>{*colPts[0], *colPts[1]}, json)
-      ->show();
-#endif
-
-#ifdef IGANET_WITH_GISMO
-  // Convert B-spline objects to G+Smo
-  auto G_gismo = net.G().to_gismo();
-  auto u_gismo = net.u().to_gismo();
-  auto f_gismo = net.f().to_gismo();
-
-  // Set up expression assembler
-  gsExprAssembler<real_t> A(1, 1);
-  gsMultiBasis<real_t> basis(u_gismo, true);
-
-  A.setIntegrationElements(basis);
-
-  auto G = A.getMap(G_gismo);
-  auto u = A.getCoeff(u_gismo, G);
-  auto f = A.getCoeff(f_gismo, G);
-
-  // Compute L2- and H2-error
-  gsExprEvaluator<real_t> ev(A);
-
-  iganet::Log(iganet::log::info)
-      << "L2-error : "
-      << gismo::math::sqrt(ev.integral((u - f).sqNorm() * meas(G)))
-      << std::endl;
-
-  iganet::Log(iganet::log::info)
-      << "H1-error : "
-      << gismo::math::sqrt(ev.integral(
-             (gismo::expr::igrad(u, G) - gismo::expr::igrad(f, G)).sqNorm() *
-             meas(G)))
-      << std::endl;
-#endif
+        // Stop time measurement
+        auto t2 = std::chrono::high_resolution_clock::now();
+        iganet::Log(iganet::log::info)
+            << "Training took "
+            << std::chrono::duration_cast<std::chrono::duration<double>>(t2 -
+                                                                         t1)
+                   .count()
+            << " seconds\n";
+      }
+    }
+  }
 
   return 0;
 }

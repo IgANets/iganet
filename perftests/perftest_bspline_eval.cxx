@@ -623,9 +623,11 @@ void make_test_UniformBSpline_parDim1() {
 
   std::cout << std::scientific << std::setprecision(3);
 
-  for (int64_t ncoeffs : {10, 100, 1000}) {
-    for (int64_t nsamples : {1, 10, 100, 1000, 10000, 25000, 50000, 100000,
-                             250000, 500000, 1000000}) {
+  for (int64_t ncoeffs :
+       iganet::utils::getenv("IGANET_NCOEFFS", {10, 100, 1000})) {
+    for (int64_t nsamples : iganet::utils::getenv(
+             "IGANET_NSAMPLES", {1, 10, 100, 1000, 10000, 25000, 50000, 100000,
+                                 250000, 500000, 1000000})) {
 
       std::cout << std::right << std::setw(8) << ncoeffs << "\t" << std::right
                 << std::setw(8) << nsamples << "\t";
@@ -668,9 +670,11 @@ void make_test_NonUniformBSpline_parDim1() {
 
   std::cout << std::scientific << std::setprecision(3);
 
-  for (int64_t ncoeffs : {10, 100, 1000}) {
-    for (int64_t nsamples : {1, 10, 100, 1000, 10000, 25000, 50000, 100000,
-                             250000, 500000, 1000000}) {
+  for (int64_t ncoeffs :
+       iganet::utils::getenv("IGANET_NCOEFFS", {10, 100, 1000})) {
+    for (int64_t nsamples : iganet::utils::getenv(
+             "IGANET_NSAMPLES", {1, 10, 100, 1000, 10000, 25000, 50000, 100000,
+                                 250000, 500000, 1000000})) {
 
       std::cout << std::right << std::setw(8) << ncoeffs << "\t" << std::right
                 << std::setw(8) << nsamples << "\t";
@@ -713,9 +717,11 @@ void make_test_UniformBSpline_parDim2() {
 
   std::cout << std::scientific << std::setprecision(3);
 
-  for (int64_t ncoeffs : {10, 100, 1000}) {
-    for (int64_t nsamples : {1, 10, 100, 1000, 10000, 25000, 50000, 100000,
-                             250000, 500000, 1000000}) {
+  for (int64_t ncoeffs :
+       iganet::utils::getenv("IGANET_NCOEFFS", {10, 100, 1000})) {
+    for (int64_t nsamples : iganet::utils::getenv(
+             "IGANET_NSAMPLES", {1, 10, 100, 1000, 10000, 25000, 50000, 100000,
+                                 250000, 500000, 1000000})) {
 
       std::cout << std::right << std::setw(8) << ncoeffs << "\t" << std::right
                 << std::setw(8) << nsamples << "\t";
@@ -758,9 +764,11 @@ void make_test_NonUniformBSpline_parDim2() {
 
   std::cout << std::scientific << std::setprecision(3);
 
-  for (int64_t ncoeffs : {10, 100, 1000}) {
-    for (int64_t nsamples : {1, 10, 100, 1000, 10000, 25000, 50000, 100000,
-                             250000, 500000, 1000000}) {
+  for (int64_t ncoeffs :
+       iganet::utils::getenv("IGANET_NCOEFFS", {10, 100, 1000})) {
+    for (int64_t nsamples : iganet::utils::getenv(
+             "IGANET_NSAMPLES", {1, 10, 100, 1000, 10000, 25000, 50000, 100000,
+                                 250000, 500000, 1000000})) {
 
       std::cout << std::right << std::setw(8) << ncoeffs << "\t" << std::right
                 << std::setw(8) << nsamples << "\t";
@@ -803,9 +811,11 @@ void make_test_UniformBSpline_parDim3() {
 
   std::cout << std::scientific << std::setprecision(3);
 
-  for (int64_t ncoeffs : {10, 100, 1000}) {
-    for (int64_t nsamples : {1, 10, 100, 1000, 10000, 25000, 50000, 100000,
-                             250000, 500000, 1000000}) {
+  for (int64_t ncoeffs :
+       iganet::utils::getenv("IGANET_NCOEFFS", {10, 100, 1000})) {
+    for (int64_t nsamples : iganet::utils::getenv(
+             "IGANET_NSAMPLES", {1, 10, 100, 1000, 10000, 25000, 50000, 100000,
+                                 250000, 500000, 1000000})) {
 
       std::cout << std::right << std::setw(8) << ncoeffs << "\t" << std::right
                 << std::setw(8) << nsamples << "\t";
@@ -848,9 +858,11 @@ void make_test_NonUniformBSpline_parDim3() {
 
   std::cout << std::scientific << std::setprecision(3);
 
-  for (int64_t ncoeffs : {10, 100, 1000}) {
-    for (int64_t nsamples : {1, 10, 100, 1000, 10000, 25000, 50000, 100000,
-                             250000, 500000, 1000000}) {
+  for (int64_t ncoeffs :
+       iganet::utils::getenv("IGANET_NCOEFFS", {10, 100, 1000})) {
+    for (int64_t nsamples : iganet::utils::getenv(
+             "IGANET_NSAMPLES", {1, 10, 100, 1000, 10000, 25000, 50000, 100000,
+                                 250000, 500000, 1000000})) {
 
       std::cout << std::right << std::setw(8) << ncoeffs << "\t" << std::right
                 << std::setw(8) << nsamples << "\t";

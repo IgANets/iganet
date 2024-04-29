@@ -492,8 +492,12 @@ std::string getExtraLibsVersion() {
   std::string s("");
 
   // CUDA
-
-  // Intel Pytorch Extension library
+#if defined(CUDA_VERSION)
+  if (!s.empty())
+    s += ", ";
+  s += "CUDA " + std::to_string(CUDA_VERSION / 1000) + "." +
+       std::to_string((CUDA_VERSION % 100) / 10);
+#endif
 
   // Intel MKL library
 #if defined(INTEL_MKL_VERSION)
@@ -515,6 +519,13 @@ std::string getExtraLibsVersion() {
 #endif
 
   // ROCm
+#if defined(ROCM_VERSION_MAJOR)
+  if (!s.empty())
+    s += ", ";
+  s += "ROCm " + std::to_string(ROCM_VERSION_MAJOR) + "." +
+       std::to_string(ROCM_VERSION_MINOR) + "." +
+       std::to_string(ROCM_VERSION_PATCH);
+#endif
 
   return s;
 }

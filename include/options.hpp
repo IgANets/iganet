@@ -16,6 +16,7 @@
 
 #include <core.hpp>
 #include <utils/fqn.hpp>
+#include <utils/getenv.hpp>
 
 #include <torch/torch.h>
 
@@ -29,34 +30,55 @@ struct half {};
 ///
 /// @result Torch type corresponding to the C++ type
 /// @{
-template <typename T> inline constexpr c10::ScalarType dtype() {
-  return caffe2::TypeMeta::Make<T>().toScalarType();
+template <typename T> inline constexpr torch::Dtype dtype();
+
+template <> inline constexpr torch::Dtype dtype<bool>() { return torch::kBool; }
+
+template <> inline constexpr torch::Dtype dtype<char>() { return torch::kChar; }
+
+template <> inline constexpr torch::Dtype dtype<short>() {
+  return torch::kShort;
 }
 
-template <> inline constexpr c10::ScalarType dtype<half>() {
-  return torch::kHalf;
+template <> inline constexpr torch::Dtype dtype<int>() { return torch::kInt; }
+
+template <> inline constexpr torch::Dtype dtype<long>() { return torch::kLong; }
+
+template <> inline constexpr torch::Dtype dtype<half>() { return torch::kHalf; }
+
+template <> inline constexpr torch::Dtype dtype<float>() {
+  return torch::kFloat;
 }
 
-template <> inline constexpr c10::ScalarType dtype<long>() {
-  return torch::kLong;
+template <> inline constexpr torch::Dtype dtype<double>() {
+  return torch::kDouble;
 }
 
-template <> inline constexpr c10::ScalarType dtype<char>() {
-  return torch::kChar;
+template <> inline constexpr torch::Dtype dtype<std::complex<half>>() {
+  return at::kComplexHalf;
 }
 
-template <> inline constexpr c10::ScalarType dtype<std::complex<double>>() {
-  return at::kComplexDouble;
-}
-
-template <> inline constexpr c10::ScalarType dtype<std::complex<float>>() {
+template <> inline constexpr torch::Dtype dtype<std::complex<float>>() {
   return at::kComplexFloat;
 }
 
-template <> inline constexpr c10::ScalarType dtype<std::complex<half>>() {
-  return at::kComplexHalf;
+template <> inline constexpr torch::Dtype dtype<std::complex<double>>() {
+  return at::kComplexDouble;
 }
 /// @}
+
+int guess_device_index() {
+#ifdef IGANET_WITH_MPI
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  return rank %
+         utils::getenv("IGANET_DEVICE_COUNT", torch::cuda::is_available
+                                                  ? torch::cuda::device_count()
+                                                  : 1);
+#else
+  return 0;
+#endif
+}
 
 /// @brief The Options class handles the automated determination of
 /// dtype from the template argument and the selection of the device
@@ -70,18 +92,23 @@ public:
       : options_(
             torch::TensorOptions()
                 .dtype(::iganet::dtype<real_t>())
-                .device((getenv("IGANET_DEVICE", std::string{}) == "CPU")
-                            ? torch::kCPU
-                        : (getenv("IGANET_DEVICE", std::string{}) == "CUDA")
-                            ? torch::kCUDA
-                        : (getenv("IGANET_DEVICE", std::string{}) == "HIP")
-                            ? torch::kHIP
-                        : (getenv("IGANET_DEVICE", std::string{}) == "MPS")
-                            ? torch::kMPS
-                        : (getenv("IGANET_DEVICE", std::string{}) == "XLA")
-                            ? torch::kXLA
-                        : torch::cuda::is_available() ? torch::kCUDA
-                                                      : torch::kCPU)) {}
+                .device_index(utils::getenv("IGANET_DEVICE_INDEX",
+                                            iganet::guess_device_index()))
+                .device(
+                    (utils::getenv("IGANET_DEVICE", std::string{}) == "CPU")
+                        ? torch::kCPU
+                    : (utils::getenv("IGANET_DEVICE", std::string{}) == "CUDA")
+                        ? torch::kCUDA
+                    : (utils::getenv("IGANET_DEVICE", std::string{}) == "HIP")
+                        ? torch::kHIP
+                    : (utils::getenv("IGANET_DEVICE", std::string{}) == "MPS")
+                        ? torch::kMPS
+                    : (utils::getenv("IGANET_DEVICE", std::string{}) == "XLA")
+                        ? torch::kXLA
+                    : (utils::getenv("IGANET_DEVICE", std::string{}) == "XPU")
+                        ? torch::kXPU
+                        : (torch::cuda::is_available() ? torch::kCUDA
+                                                       : torch::kCPU))) {}
 
   /// Constructor from torch::TensorOptions
   explicit Options(torch::TensorOptions &&options) : options_(options) {}
@@ -96,7 +123,7 @@ public:
   int32_t device_index() const noexcept { return options_.device_index(); }
 
   /// @brief Returns the `dtype` property
-  caffe2::TypeMeta dtype() const noexcept { return options_.dtype(); }
+  torch::Dtype dtype() const noexcept { return ::iganet::dtype<real_t>(); }
 
   /// @brief Returns the `layout` property
   torch::Layout layout() const noexcept { return options_.layout(); }

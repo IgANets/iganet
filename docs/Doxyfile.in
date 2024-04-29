@@ -54,7 +54,7 @@ PROJECT_NUMBER         = @CMAKE_PROJECT_VERSION@
 # for a project that appears at the top of each page and should give viewer a
 # quick idea about the purpose of the project. Keep the description short.
 
-PROJECT_BRIEF          = "IgANet - Isogeometric Analysis Networks"
+PROJECT_BRIEF          = "IgANets - Isogeometric Analysis Networks"
 
 # With the PROJECT_LOGO tag one can specify a logo or an icon that is included
 # in the documentation. The maximum height of the logo should not exceed 55
@@ -941,9 +941,13 @@ WARN_LOGFILE           =
 
 INPUT                  = @PROJECT_SOURCE_DIR@/docs/README.md \
                          @PROJECT_SOURCE_DIR@/include \
+                         @PROJECT_SOURCE_DIR@/examples/README.md \
                          @PROJECT_SOURCE_DIR@/examples \
+                         @PROJECT_SOURCE_DIR@/perftests/README.md \
                          @PROJECT_SOURCE_DIR@/perftests \
+                         @PROJECT_SOURCE_DIR@/unittests/README.md \
                          @PROJECT_SOURCE_DIR@/unittests \
+                         @PROJECT_SOURCE_DIR@/webapps/README.md \
                          @PROJECT_SOURCE_DIR@/webapps \
                          @PROJECT_SOURCE_DIR@/webapps/models
 
@@ -1036,7 +1040,7 @@ EXCLUDE_SYMBOLS        =
 # that contain example code fragments that are included (see the \include
 # command).
 
-EXAMPLE_PATH           =
+EXAMPLE_PATH           = @PROJECT_SOURCE_DIR@/examples
 
 # If the value of the EXAMPLE_PATH tag contains directories, you can use the
 # EXAMPLE_PATTERNS tag to specify one or more wildcard pattern (like *.cpp and

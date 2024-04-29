@@ -14,6 +14,8 @@
 
 #pragma once
 
+#include <core.hpp>
+
 #include <torch/csrc/api/include/torch/types.h>
 #include <torch/torch.h>
 

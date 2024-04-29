@@ -51,7 +51,8 @@ public:
   /// @brief Constructor
   explicit IgANetGeneratorImpl(
       const std::vector<int64_t> &layers,
-      const std::vector<std::vector<std::any>> &activations) {
+      const std::vector<std::vector<std::any>> &activations,
+      Options<real_t> options = Options<real_t>{}) {
     assert(layers.size() == activations.size() + 1);
 
     // Generate vector of linear layers and register them as layer[i]
@@ -59,7 +60,7 @@ public:
       layers_.emplace_back(
           register_module("layer[" + std::to_string(i) + "]",
                           torch::nn::Linear(layers[i], layers[i + 1])));
-      layers_.back()->to(dtype<real_t>());
+      layers_.back()->to(options.device(), options.dtype(), true);
 
       torch::nn::init::xavier_uniform_(layers_.back()->weight);
       torch::nn::init::constant_(layers_.back()->bias, 0.0);
@@ -925,7 +926,8 @@ public:
 /// @brief IgANet
 ///
 /// This class implements the core functionality of IgANets
-template <typename Optimizer, typename GeometryMap, typename Variable>
+template <typename Optimizer, typename GeometryMap, typename Variable,
+          template <typename, typename> typename IgABase = ::iganet::IgABase>
 class IgANet : public IgABase<GeometryMap, Variable>,
                utils::Serializable,
                private utils::FullQualifiedName {
@@ -980,7 +982,7 @@ public:
         net_(utils::concat(std::vector<int64_t>{inputs(/* epoch */ 0).size(0)},
                            layers,
                            std::vector<int64_t>{Base::u_.as_tensor_size()}),
-             activations),
+             activations, options),
 
         // Construct the optimizer
         opt_(net_->parameters()),
@@ -1008,7 +1010,6 @@ public:
   /// @brief Returns a non-constant reference to the options structure
   inline auto &options() { return options_; }
 
-public:
   /// @brief Returns the network inputs
   ///
   /// In the default implementation the inputs are the controll
@@ -1016,7 +1017,14 @@ public:
   /// behavior can be changed by overriding this virtual function in
   /// a derived class.
   virtual torch::Tensor inputs(int64_t epoch) const {
-    return torch::cat({Base::G_.as_tensor(), Base::f_.as_tensor()});
+    if constexpr (Base::has_GeometryMap && Base::has_RefData)
+      return torch::cat({Base::G_.as_tensor(), Base::f_.as_tensor()});
+    else if constexpr (Base::has_GeometryMap)
+      return Base::G_.as_tensor();
+    else if constexpr (Base::has_RefData)
+      return Base::f_.as_tensor();
+    else
+      return torch::empty({0});
   }
 
   /// @brief Initializes epoch
@@ -1026,7 +1034,11 @@ public:
   virtual torch::Tensor loss(const torch::Tensor &, int64_t) = 0;
 
   /// @brief Trains the IgANet
-  virtual void train() {
+  virtual void train(
+#ifdef IGANET_WITH_MPI
+      c10::intrusive_ptr<c10d::ProcessGroupMPI> pg
+#endif
+  ) {
     torch::Tensor inputs, outputs, loss;
 
     // Loop over epochs
@@ -1052,6 +1064,26 @@ public:
         return loss;
       };
 
+#ifdef IGANET_WITH_MPI
+      // Averaging the gradients of the parameters in all the processors
+      // Note: This may lag behind DistributedDataParallel (DDP) in performance
+      // since this synchronizes parameters after backward pass while DDP
+      // overlaps synchronizing parameters and computing gradients in backward
+      // pass
+      std::vector<c10::intrusive_ptr<::c10d::Work>> works;
+      for (auto &param : net_->named_parameters()) {
+        std::vector<torch::Tensor> tmp = {param.value().grad()};
+        works.emplace_back(pg->allreduce(tmp));
+      }
+
+      waitWork(pg, works);
+
+      for (auto &param : net_->named_parameters()) {
+        param.value().grad().data() =
+            param.value().grad().data() / pg->getSize();
+      }
+#endif
+
       // Update the parameters based on the calculated gradients
       opt_.step(closure);
 
@@ -1070,7 +1102,13 @@ public:
   }
 
   /// @brief Trains the IgANet
-  template <typename DataLoader> void train(DataLoader &loader) {
+  template <typename DataLoader>
+  void train(DataLoader &loader
+#ifdef IGANET_WITH_MPI
+             ,
+             c10::intrusive_ptr<c10d::ProcessGroupMPI> pg
+#endif
+  ) {
     torch::Tensor inputs, outputs, loss;
 
     // Loop over epochs
@@ -1081,15 +1119,39 @@ public:
       for (auto &batch : loader) {
         inputs = batch.data;
 
-        Base::G_.from_tensor(
-            inputs.slice(1, 0, Base::G_.ncumcoeffs() * Base::G_.geoDim())
-                .flatten());
-        Base::f_.from_tensor(
-            inputs
-                .slice(1, Base::G_.ncumcoeffs() * Base::G_.geoDim(),
-                       Base::G_.ncumcoeffs() * Base::G_.geoDim() +
-                           Base::f_.ncumcoeffs() * Base::f_.geoDim())
-                .flatten());
+        if (inputs.dim() > 0) {
+          if constexpr (Base::has_GeometryMap)
+            Base::G_.from_tensor(
+                inputs.slice(1, 0, Base::G_.ncumcoeffs() * Base::G_.geoDim())
+                    .t());
+          if constexpr (Base::has_RefData && Base::has_GeometryMap)
+            Base::f_.from_tensor(
+                inputs
+                    .slice(1, Base::G_.ncumcoeffs() * Base::G_.geoDim(),
+                           Base::G_.ncumcoeffs() * Base::G_.geoDim() +
+                               Base::f_.ncumcoeffs() * Base::f_.geoDim())
+                    .t());
+          else if constexpr (Base::has_RefData)
+            Base::f_.from_tensor(
+                inputs.slice(1, 0, Base::f_.ncumcoeffs() * Base::f_.geoDim())
+                    .t());
+        } else {
+          if constexpr (Base::has_GeometryMap)
+            Base::G_.from_tensor(
+                inputs.slice(1, 0, Base::G_.ncumcoeffs() * Base::G_.geoDim())
+                    .flatten());
+          if constexpr (Base::has_RefData && Base::has_GeometryMap)
+            Base::f_.from_tensor(
+                inputs
+                    .slice(1, Base::G_.ncumcoeffs() * Base::G_.geoDim(),
+                           Base::G_.ncumcoeffs() * Base::G_.geoDim() +
+                               Base::f_.ncumcoeffs() * Base::f_.geoDim())
+                    .flatten());
+          else if constexpr (Base::has_RefData)
+            Base::f_.from_tensor(
+                inputs.slice(1, 0, Base::f_.ncumcoeffs() * Base::f_.geoDim())
+                    .flatten());
+        }
 
         this->epoch(epoch);
 
@@ -1139,10 +1201,13 @@ public:
   inline virtual void
   pretty_print(std::ostream &os = Log(log::info)) const noexcept override {
     os << name() << "(\n"
-       << "net = " << net_ << "\n"
-       << "G = " << Base::G_ << "\n"
-       << "f = " << Base::f_ << "\n"
-       << "u = " << Base::u_ << "\n)";
+       << "net = " << net_ << "\n";
+    if constexpr (Base::has_GeometryMap)
+      os << "G = " << Base::G_ << "\n";
+    if constexpr (Base::has_RefData)
+      os << "f = " << Base::f_ << "\n";
+    if constexpr (Base::has_Solution)
+      os << "u = " << Base::u_ << "\n)";
   }
 
   /// @brief Saves the IgANet to file
@@ -1164,9 +1229,12 @@ public:
   inline torch::serialize::OutputArchive &
   write(torch::serialize::OutputArchive &archive,
         const std::string &key = "iganet") const {
-    Base::G_.write(archive, key + ".geo");
-    Base::f_.write(archive, key + ".ref");
-    Base::u_.write(archive, key + ".out");
+    if constexpr (Base::has_GeometryMap)
+      Base::G_.write(archive, key + ".geo");
+    if constexpr (Base::has_RefData)
+      Base::f_.write(archive, key + ".ref");
+    if constexpr (Base::has_Solution)
+      Base::u_.write(archive, key + ".out");
 
     net_->write(archive, key + ".net");
     torch::serialize::OutputArchive archive_net;
@@ -1184,9 +1252,12 @@ public:
   inline torch::serialize::InputArchive &
   read(torch::serialize::InputArchive &archive,
        const std::string &key = "iganet") {
-    Base::G_.read(archive, key + ".geo");
-    Base::f_.read(archive, key + ".ref");
-    Base::u_.read(archive, key + ".out");
+    if constexpr (Base::has_GeometryMap)
+      Base::G_.read(archive, key + ".geo");
+    if constexpr (Base::has_RefData)
+      Base::f_.read(archive, key + ".ref");
+    if constexpr (Base::has_Solution)
+      Base::u_.read(archive, key + ".out");
 
     net_->read(archive, key + ".net");
     torch::serialize::InputArchive archive_net;
@@ -1205,15 +1276,35 @@ public:
   bool operator==(const IgANet &other) const {
     bool result(true);
 
-    result *= (Base::G_ == other.G());
-    result *= (Base::f_ == other.f());
-    result *= (Base::u_ == other.u());
+    if constexpr (Base::has_GeometryMap)
+      result *= (Base::G_ == other.G());
+    if constexpr (Base::has_RefData)
+      result *= (Base::f_ == other.f());
+    if constexpr (Base::has_Solution)
+      result *= (Base::u_ == other.u());
 
     return result;
   }
 
   /// @brief Returns true if both IgANet objects are different
   bool operator!=(const IgANet &other) const { return *this != other; }
+
+#ifdef IGANET_WITH_MPI
+private:
+  /// @brief Waits for all work processes
+  static void waitWork(c10::intrusive_ptr<c10d::ProcessGroupMPI> pg,
+                       std::vector<c10::intrusive_ptr<c10d::Work>> works) {
+    for (auto &work : works) {
+      try {
+        work->wait();
+      } catch (const std::exception &ex) {
+        Log(log::error) << "Exception received during waitWork: " << ex.what()
+                        << std::endl;
+        pg->abort();
+      }
+    }
+  }
+#endif
 };
 
 /// @brief Print (as string) a IgANet object
@@ -1230,8 +1321,7 @@ operator<<(std::ostream &os,
 /// This class implements a customizable variant of IgANets that
 /// provides types and attributes for precomputing indices and basis
 /// functions
-template <typename Optimizer, typename GeometryMap, typename Variable>
-class IgANetCustomizable {
+template <typename GeometryMap, typename Variable> class IgANetCustomizable {
 public:
   /// @brief Type of the knot indices of the geometry map in the interior
   using geometryMap_interior_knot_indices_type =

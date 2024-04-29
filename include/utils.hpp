@@ -17,6 +17,7 @@
 #include <utils/blocktensor.hpp>
 #include <utils/concat.hpp>
 #include <utils/fqn.hpp>
+#include <utils/getenv.hpp>
 #include <utils/integer_pow.hpp>
 #include <utils/linalg.hpp>
 #include <utils/serialize.hpp>

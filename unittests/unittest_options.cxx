@@ -21,7 +21,7 @@
 TEST(Options, Options_default) {
   iganet::Options<double> options;
 
-  EXPECT_EQ(options.dtype(), c10::ScalarType::Double);
+  EXPECT_EQ(options.dtype(), torch::kDouble);
   EXPECT_EQ(options.device(),
             torch::cuda::is_available() ? torch::kCUDA : torch::kCPU);
   EXPECT_EQ(options.layout(), torch::kStrided);
@@ -36,7 +36,7 @@ TEST(Options, Options_nondefault) {
                      .layout(torch::kSparse)
                      .requires_grad(true);
 
-  EXPECT_EQ(options.dtype(), c10::ScalarType::Float);
+  EXPECT_EQ(options.dtype(), torch::kFloat);
   EXPECT_EQ(options.device(), torch::kCPU);
   EXPECT_EQ(options.layout(), torch::kSparse);
   EXPECT_TRUE(options.requires_grad());
@@ -45,21 +45,21 @@ TEST(Options, Options_nondefault) {
 }
 
 TEST(Options, Options_dtype) {
-  EXPECT_EQ(iganet::Options<double>{}.dtype(), c10::ScalarType::Double);
-  EXPECT_EQ(iganet::Options<float>{}.dtype(), c10::ScalarType::Float);
-  EXPECT_EQ(iganet::Options<iganet::half>{}.dtype(), c10::ScalarType::Half);
-  EXPECT_EQ(iganet::Options<long>{}.dtype(), c10::ScalarType::Long);
-  EXPECT_EQ(iganet::Options<int>{}.dtype(), c10::ScalarType::Int);
-  EXPECT_EQ(iganet::Options<short>{}.dtype(), c10::ScalarType::Short);
-  EXPECT_EQ(iganet::Options<char>{}.dtype(), c10::ScalarType::Char);
-  EXPECT_EQ(iganet::Options<bool>{}.dtype(), c10::ScalarType::Bool);
+  EXPECT_EQ(iganet::Options<double>{}.dtype(), torch::kDouble);
+  EXPECT_EQ(iganet::Options<float>{}.dtype(), torch::kFloat);
+  EXPECT_EQ(iganet::Options<iganet::half>{}.dtype(), torch::kHalf);
+  EXPECT_EQ(iganet::Options<long>{}.dtype(), torch::kLong);
+  EXPECT_EQ(iganet::Options<int>{}.dtype(), torch::kInt);
+  EXPECT_EQ(iganet::Options<short>{}.dtype(), torch::kShort);
+  EXPECT_EQ(iganet::Options<char>{}.dtype(), torch::kChar);
+  EXPECT_EQ(iganet::Options<bool>{}.dtype(), torch::kBool);
 
   EXPECT_EQ(iganet::Options<std::complex<double>>{}.dtype(),
-            c10::ScalarType::ComplexDouble);
+            torch::kComplexDouble);
   EXPECT_EQ(iganet::Options<std::complex<float>>{}.dtype(),
-            c10::ScalarType::ComplexFloat);
+            torch::kComplexFloat);
   EXPECT_EQ(iganet::Options<std::complex<iganet::half>>{}.dtype(),
-            c10::ScalarType::ComplexHalf);
+            torch::kComplexHalf);
 }
 
 TEST(Options, Options_clone) {
@@ -70,7 +70,7 @@ TEST(Options, Options_clone) {
 
   auto options_clone(options);
 
-  EXPECT_EQ(options_clone.dtype(), c10::ScalarType::Float);
+  EXPECT_EQ(options_clone.dtype(), torch::kFloat);
   EXPECT_EQ(options_clone.device(), torch::kCPU);
   EXPECT_EQ(options_clone.layout(), torch::kSparse);
   EXPECT_FALSE(options_clone.requires_grad());
@@ -86,7 +86,7 @@ TEST(Options, Options_conversion) {
 
   torch::TensorOptions tensorOptions(options);
 
-  EXPECT_EQ(tensorOptions.dtype(), c10::ScalarType::Float);
+  EXPECT_EQ(tensorOptions.dtype(), torch::kFloat);
   EXPECT_EQ(tensorOptions.device(), torch::kCPU);
   EXPECT_EQ(tensorOptions.layout(), torch::kSparse);
   EXPECT_TRUE(tensorOptions.requires_grad());

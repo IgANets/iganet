@@ -22,6 +22,7 @@
 #
 # IGANET_WITH_GISMO
 # IGANET_WITH_MATPLOT
+# IGANET_WITH_MPI
 # IGANET_WITH_OPENMP
 #
 ########################################################################
@@ -29,8 +30,8 @@
 ########################################################################
 # IgANet version number
 ########################################################################
-set(iganet_VERSION_MAJOR 23) #year
-set(iganet_VERSION_MINOR 12) #month
+set(iganet_VERSION_MAJOR 24) #year
+set(iganet_VERSION_MINOR 04) #month
 set(iganet_VERSION_PATCH 0 ) #patch
 set(iganet_VERSION
   "${iganet_VERSION_MAJOR}.${iganet_VERSION_MINOR}.${iganet_VERSION_PATCH}" CACHE INTERNAL "iganet version number")
@@ -41,7 +42,7 @@ set(IGANET_VERSION "${iganet_VERSION}" CACHE INTERNAL "IgANet version number")
 ########################################################################
 cmake_minimum_required (VERSION 3.24)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -109,6 +110,7 @@ option(IGANET_BUILD_UNITTESTS   "Build unittests"           OFF)
 option(IGANET_BUILD_WEBAPPS     "Build WebApps"             OFF)
 option(IGANET_WITH_GISMO        "With G+Smo support"        OFF)
 option(IGANET_WITH_MATPLOT      "With Matplot support"      OFF)
+option(IGANET_WITH_MPI          "With MPI support"          OFF)
 option(IGANET_WITH_OPENMP       "With OpenMP support"       ON )
 
 ########################################################################
@@ -133,6 +135,13 @@ endif()
 
 if (IGANET_WITH_MATPLOT)
   include(Matplot++)
+endif()
+
+########################################################################
+# Enable MPI support
+########################################################################
+if (IGANET_WITH_MPI)
+  find_package(MPI REQUIRED)
 endif()
 
 ########################################################################
@@ -190,7 +199,7 @@ endif()
 ########################################################################
 if(IGANET_BUILD_DOCS)
   find_package(Sphinx)
-  if(SPHINX_FOUND)
+  if(Sphinx_FOUND)
     set(SPHINX_SOURCE ${PROJECT_SOURCE_DIR}/docs)
     set(SPHINX_BUILD ${PROJECT_BINARY_DIR}/docs/sphinx)
     set(SPHINX_INDEX_FILE ${SPHINX_BUILD}/index.html)
@@ -286,6 +295,7 @@ message("")
 message("Features:")
 message("IGANET_WITH_GISMO..................: ${IGANET_WITH_GISMO}")
 message("IGANET_WITH_MATPLOT................: ${IGANET_WITH_MATPLOT}")
+message("IGANET_WITH_MPI....................: ${IGANET_WITH_MPI}")
 message("IGANET_WITH_OPENMP.................: ${IGANET_WITH_OPENMP}")
 message("")
 

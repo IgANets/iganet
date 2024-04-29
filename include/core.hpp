@@ -22,8 +22,17 @@
 #include <tuple>
 #include <vector>
 
-#if _OPENMP
+#include <utils/getenv.hpp>
+
+#ifdef IGANET_WITH_OPENMP
 #include <omp.h>
+#endif
+
+#ifdef IGANET_WITH_MPI
+#ifndef USE_C10D_MPI
+#error "Torch must be compiled with USE_DISTRIBUTED=1, USE_MPI=1, USE_C10_MPI=1"
+#endif
+#include <torch/csrc/distributed/c10d/ProcessGroupMPI.hpp>
 #endif
 
 #include <torch/csrc/api/include/torch/types.h>
@@ -54,11 +63,15 @@ namespace iganet {
 using short_t = short int;
 
 namespace literals {
+
+/// @brief User-defined literals for integer values
+/// @{
 inline short_t operator""_s(unsigned long long value) { return value; };
 inline int8_t operator""_i8(unsigned long long value) { return value; };
 inline int16_t operator""_i16(unsigned long long value) { return value; };
 inline int32_t operator""_i32(unsigned long long value) { return value; };
 inline int64_t operator""_i64(unsigned long long value) { return value; };
+/// @}
 } // namespace literals
 
 //  clang-format off
@@ -142,36 +155,28 @@ public:
   }
 } Log;
 
-/// @brief Get environment variable
-template <typename T>
-inline T getenv(const std::string &variable_name, const T &default_value = {}) {
-  const char *value = std::getenv(variable_name.c_str());
-
-  if (value) {
-    T v;
-    std::istringstream(value) >> v;
-    return v;
-  } else
-    return default_value;
-}
-
 /// @brief Initializes the library
 inline void init(std::ostream &os = Log(log::info)) {
   torch::manual_seed(1);
 
   // Set number of intraop thread pool threads
-#if _OPENMP
+#ifdef IGANET_WITH_OPENMP
   at::set_num_threads(
-      getenv("IGANET_INTRAOP_NUM_THREADS", omp_get_max_threads()));
+      utils::getenv("IGANET_INTRAOP_NUM_THREADS", omp_get_max_threads()));
 #else
-  at::set_num_threads(getenv("IGANET_INTRAOP_NUM_THREADS", 1));
+  at::set_num_threads(utils::getenv("IGANET_INTRAOP_NUM_THREADS", 1));
 #endif
 
   // Set number of interop thread pool threads
-  at::set_num_interop_threads(getenv("IGANET_INTEROP_NUM_THREADS", 1));
+  at::set_num_interop_threads(utils::getenv("IGANET_INTEROP_NUM_THREADS", 1));
 
-  // Output version information
-  os << getVersion();
+#ifdef IGANET_WITH_MPI
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  if (rank == 0)
+#endif
+    // Output version information
+    os << getVersion();
 }
 
 /// Stream manipulator

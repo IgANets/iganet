@@ -120,19 +120,25 @@ public:
     for (const auto &path : paths) {
       try {
         const std::filesystem::path fspath{path};
+	if (std::filesystem::exists(fspath)) {
         for (const auto &entry : std::filesystem::directory_iterator{fspath}) {
           if (entry.path().extension() == ".dll" ||
               entry.path().extension() == ".dylib" ||
               entry.path().extension() == ".so") {
+	    try {
             auto handler = std::make_shared<ModelHandler>(entry.path().c_str());
             std::shared_ptr<Model> (*create)(const nlohmann::json &);
             create = reinterpret_cast<std::shared_ptr<Model> (*)(
                 const nlohmann::json &)>(handler->getSymbol("create"));
             models[create({})->getName()] = handler;
+	    } catch (...) {
+	      std::clog << "Unable to create model " << entry << std::endl;
+	    }
           }
         }
+	}
       } catch (...) {
-        std::cout << "Unable to open path " << path << std::endl;
+        std::clog << "Unable to open path " << path << std::endl;
       }
     }
   }

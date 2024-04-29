@@ -23,9 +23,8 @@
 
 /// @brief Specialization of the abstract IgANet class for function fitting
 template <typename Optimizer, typename GeometryMap, typename Variable>
-class fitting
-    : public iganet::IgANet<Optimizer, GeometryMap, Variable>,
-      public iganet::IgANetCustomizable<Optimizer, GeometryMap, Variable> {
+class fitting : public iganet::IgANet<Optimizer, GeometryMap, Variable>,
+                public iganet::IgANetCustomizable<GeometryMap, Variable> {
 
 private:
   /// @brief Type of the base class
@@ -35,13 +34,12 @@ private:
   typename Base::variable_collPts_type collPts_;
 
   /// @brief Type of the customizable class
-  using Customizable =
-      iganet::IgANetCustomizable<Optimizer, GeometryMap, Variable>;
+  using Customizable = iganet::IgANetCustomizable<GeometryMap, Variable>;
 
   /// @brief Knot indices
   typename Customizable::variable_interior_knot_indices_type knot_indices_;
 
-  /// @broef Coefficient indices
+  /// @brief Coefficient indices
   typename Customizable::variable_interior_coeff_indices_type coeff_indices_;
 
 public:

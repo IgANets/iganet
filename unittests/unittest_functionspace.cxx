@@ -3256,7 +3256,8 @@ TEST_F(FunctionSpaceTest, RT1_geoDim1_degrees2) {
                              *(bspline1.eval<deriv::dx ^ 2, false>(xi_)[0])));
 
     /// Evaluation of gradient (in parametric domain)
-    auto grad = functionspace.template grad<functionspace::interior, false>(xi);
+    auto grad =
+        functionspace.template grad_all<functionspace::interior, false>(xi);
     auto grad_ref0 = bspline0.grad(xi_);
     auto grad_ref1 = bspline1.grad(xi_);
 
@@ -3266,8 +3267,9 @@ TEST_F(FunctionSpaceTest, RT1_geoDim1_degrees2) {
     }
 
     /// Evaluation of gradient (in physical domain)
-    auto igrad = functionspace.template igrad<functionspace::interior, false>(
-        RT1_geometry, xi);
+    auto igrad =
+        functionspace.template igrad_all<functionspace::interior, false>(
+            RT1_geometry, xi);
     auto igrad_ref0 = bspline0.igrad(geometry0, xi_);
     auto igrad_ref1 = bspline1.igrad(geometry1, xi_);
 
@@ -3277,7 +3279,8 @@ TEST_F(FunctionSpaceTest, RT1_geoDim1_degrees2) {
     }
 
     /// Evaluation of Jacobian (in parametric domain)
-    auto jac = functionspace.template jac<functionspace::interior, false>(xi);
+    auto jac =
+        functionspace.template jac_all<functionspace::interior, false>(xi);
     auto jac_ref0 = bspline0.jac(xi_);
     auto jac_ref1 = bspline1.jac(xi_);
 
@@ -3287,7 +3290,7 @@ TEST_F(FunctionSpaceTest, RT1_geoDim1_degrees2) {
     }
 
     /// Evaluation of Jacobian (in physical domain)
-    auto ijac = functionspace.template ijac<functionspace::interior, false>(
+    auto ijac = functionspace.template ijac_all<functionspace::interior, false>(
         RT1_geometry, xi);
     auto ijac_ref0 = bspline0.ijac(geometry0, xi_);
     auto ijac_ref1 = bspline1.ijac(geometry1, xi_);
@@ -3298,7 +3301,8 @@ TEST_F(FunctionSpaceTest, RT1_geoDim1_degrees2) {
     }
 
     /// Evaluation of Hessian (in parametric domain)
-    auto hess = functionspace.template hess<functionspace::interior, false>(xi);
+    auto hess =
+        functionspace.template hess_all<functionspace::interior, false>(xi);
     auto hess_ref0 = bspline0.hess(xi_);
     auto hess_ref1 = bspline1.hess(xi_);
 
@@ -3308,8 +3312,9 @@ TEST_F(FunctionSpaceTest, RT1_geoDim1_degrees2) {
     }
 
     /// Evaluation of Hessian (in physical domain)
-    auto ihess = functionspace.template ihess<functionspace::interior, false>(
-        RT1_geometry, xi);
+    auto ihess =
+        functionspace.template ihess_all<functionspace::interior, false>(
+            RT1_geometry, xi);
     auto ihess_ref0 = bspline0.ihess(geometry0, xi_);
     auto ihess_ref1 = bspline1.ihess(geometry1, xi_);
 
@@ -3512,7 +3517,8 @@ TEST_F(FunctionSpaceTest, RT2_geoDim1_degrees23) {
                      *(bspline2.eval<deriv::dx + deriv::dy, false>(xi_)[0])));
 
     /// Evaluation of gradient (in parametric domain)
-    auto grad = functionspace.template grad<functionspace::interior, false>(xi);
+    auto grad =
+        functionspace.template grad_all<functionspace::interior, false>(xi);
     auto grad_ref0 = bspline0.grad(xi_);
     auto grad_ref1 = bspline1.grad(xi_);
     auto grad_ref2 = bspline2.grad(xi_);
@@ -3524,8 +3530,9 @@ TEST_F(FunctionSpaceTest, RT2_geoDim1_degrees23) {
     }
 
     /// Evaluation of gradient (in physical domain)
-    auto igrad = functionspace.template igrad<functionspace::interior, false>(
-        RT2_geometry, xi);
+    auto igrad =
+        functionspace.template igrad_all<functionspace::interior, false>(
+            RT2_geometry, xi);
     auto igrad_ref0 = bspline0.igrad(geometry0, xi_);
     auto igrad_ref1 = bspline1.igrad(geometry1, xi_);
     auto igrad_ref2 = bspline2.igrad(geometry2, xi_);
@@ -3537,7 +3544,8 @@ TEST_F(FunctionSpaceTest, RT2_geoDim1_degrees23) {
     }
 
     /// Evaluation of Jacobian (in parametric domain)
-    auto jac = functionspace.template jac<functionspace::interior, false>(xi);
+    auto jac =
+        functionspace.template jac_all<functionspace::interior, false>(xi);
     auto jac_ref0 = bspline0.jac(xi_);
     auto jac_ref1 = bspline1.jac(xi_);
     auto jac_ref2 = bspline2.jac(xi_);
@@ -3549,7 +3557,7 @@ TEST_F(FunctionSpaceTest, RT2_geoDim1_degrees23) {
     }
 
     /// Evaluation of Jacobian (in physical domain)
-    auto ijac = functionspace.template ijac<functionspace::interior, false>(
+    auto ijac = functionspace.template ijac_all<functionspace::interior, false>(
         RT2_geometry, xi);
     auto ijac_ref0 = bspline0.ijac(geometry0, xi_);
     auto ijac_ref1 = bspline1.ijac(geometry1, xi_);
@@ -3562,7 +3570,8 @@ TEST_F(FunctionSpaceTest, RT2_geoDim1_degrees23) {
     }
 
     /// Evaluation of Hessian (in parametric domain)
-    auto hess = functionspace.template hess<functionspace::interior, false>(xi);
+    auto hess =
+        functionspace.template hess_all<functionspace::interior, false>(xi);
     auto hess_ref0 = bspline0.hess(xi_);
     auto hess_ref1 = bspline1.hess(xi_);
     auto hess_ref2 = bspline2.hess(xi_);
@@ -3574,8 +3583,9 @@ TEST_F(FunctionSpaceTest, RT2_geoDim1_degrees23) {
     }
 
     /// Evaluation of Hessian (in physical domain)
-    auto ihess = functionspace.template ihess<functionspace::interior, false>(
-        RT2_geometry, xi);
+    auto ihess =
+        functionspace.template ihess_all<functionspace::interior, false>(
+            RT2_geometry, xi);
     auto ihess_ref0 = bspline0.ihess(geometry0, xi_);
     auto ihess_ref1 = bspline1.ihess(geometry1, xi_);
     auto ihess_ref2 = bspline2.ihess(geometry2, xi_);
@@ -3937,7 +3947,8 @@ TEST_F(FunctionSpaceTest, RT3_geoDim1_degrees234) {
                      *(bspline3.eval<deriv::dy + deriv::dz, false>(xi_)[0])));
 
     /// Evaluation of gradient (in parametric domain)
-    auto grad = functionspace.template grad<functionspace::interior, false>(xi);
+    auto grad =
+        functionspace.template grad_all<functionspace::interior, false>(xi);
     auto grad_ref0 = bspline0.grad(xi_);
     auto grad_ref1 = bspline1.grad(xi_);
     auto grad_ref2 = bspline2.grad(xi_);
@@ -3951,8 +3962,9 @@ TEST_F(FunctionSpaceTest, RT3_geoDim1_degrees234) {
     }
 
     /// Evaluation of gradient (in physical domain)
-    auto igrad = functionspace.template igrad<functionspace::interior, false>(
-        RT3_geometry, xi);
+    auto igrad =
+        functionspace.template igrad_all<functionspace::interior, false>(
+            RT3_geometry, xi);
     auto igrad_ref0 = bspline0.igrad(geometry0, xi_);
     auto igrad_ref1 = bspline1.igrad(geometry1, xi_);
     auto igrad_ref2 = bspline2.igrad(geometry2, xi_);
@@ -3966,7 +3978,8 @@ TEST_F(FunctionSpaceTest, RT3_geoDim1_degrees234) {
     }
 
     /// Evaluation of Jacobian (in parametric domain)
-    auto jac = functionspace.template jac<functionspace::interior, false>(xi);
+    auto jac =
+        functionspace.template jac_all<functionspace::interior, false>(xi);
     auto jac_ref0 = bspline0.jac(xi_);
     auto jac_ref1 = bspline1.jac(xi_);
     auto jac_ref2 = bspline2.jac(xi_);
@@ -3980,7 +3993,7 @@ TEST_F(FunctionSpaceTest, RT3_geoDim1_degrees234) {
     }
 
     /// Evaluation of Jacobian (in physical domain)
-    auto ijac = functionspace.template ijac<functionspace::interior, false>(
+    auto ijac = functionspace.template ijac_all<functionspace::interior, false>(
         RT3_geometry, xi);
     auto ijac_ref0 = bspline0.ijac(geometry0, xi_);
     auto ijac_ref1 = bspline1.ijac(geometry1, xi_);
@@ -3995,7 +4008,8 @@ TEST_F(FunctionSpaceTest, RT3_geoDim1_degrees234) {
     }
 
     /// Evaluation of Hessian (in parametric domain)
-    auto hess = functionspace.template hess<functionspace::interior, false>(xi);
+    auto hess =
+        functionspace.template hess_all<functionspace::interior, false>(xi);
     auto hess_ref0 = bspline0.hess(xi_);
     auto hess_ref1 = bspline1.hess(xi_);
     auto hess_ref2 = bspline2.hess(xi_);
@@ -4009,8 +4023,9 @@ TEST_F(FunctionSpaceTest, RT3_geoDim1_degrees234) {
     }
 
     /// Evaluation of Hessian (in physical domain)
-    auto ihess = functionspace.template ihess<functionspace::interior, false>(
-        RT3_geometry, xi);
+    auto ihess =
+        functionspace.template ihess_all<functionspace::interior, false>(
+            RT3_geometry, xi);
     auto ihess_ref0 = bspline0.ihess(geometry0, xi_);
     auto ihess_ref1 = bspline1.ihess(geometry1, xi_);
     auto ihess_ref2 = bspline2.ihess(geometry2, xi_);
@@ -4612,7 +4627,8 @@ TEST_F(FunctionSpaceTest, RT4_geoDim1_degrees2341) {
                      *(bspline4.eval<deriv::dz + deriv::dt, false>(xi_)[0])));
 
     /// Evaluation of gradient (in parametric domain)
-    auto grad = functionspace.template grad<functionspace::interior, false>(xi);
+    auto grad =
+        functionspace.template grad_all<functionspace::interior, false>(xi);
     auto grad_ref0 = bspline0.grad(xi_);
     auto grad_ref1 = bspline1.grad(xi_);
     auto grad_ref2 = bspline2.grad(xi_);
@@ -4628,8 +4644,9 @@ TEST_F(FunctionSpaceTest, RT4_geoDim1_degrees2341) {
     }
 
     /// Evaluation of gradient (in physical domain)
-    auto igrad = functionspace.template igrad<functionspace::interior, false>(
-        RT4_geometry, xi);
+    auto igrad =
+        functionspace.template igrad_all<functionspace::interior, false>(
+            RT4_geometry, xi);
     auto igrad_ref0 = bspline0.igrad(geometry0, xi_);
     auto igrad_ref1 = bspline1.igrad(geometry1, xi_);
     auto igrad_ref2 = bspline2.igrad(geometry2, xi_);
@@ -4645,7 +4662,8 @@ TEST_F(FunctionSpaceTest, RT4_geoDim1_degrees2341) {
     }
 
     /// Evaluation of Jacobian (in parametric domain)
-    auto jac = functionspace.template jac<functionspace::interior, false>(xi);
+    auto jac =
+        functionspace.template jac_all<functionspace::interior, false>(xi);
     auto jac_ref0 = bspline0.jac(xi_);
     auto jac_ref1 = bspline1.jac(xi_);
     auto jac_ref2 = bspline2.jac(xi_);
@@ -4661,7 +4679,7 @@ TEST_F(FunctionSpaceTest, RT4_geoDim1_degrees2341) {
     }
 
     /// Evaluation of Jacobian (in physical domain)
-    auto ijac = functionspace.template ijac<functionspace::interior, false>(
+    auto ijac = functionspace.template ijac_all<functionspace::interior, false>(
         RT4_geometry, xi);
     auto ijac_ref0 = bspline0.ijac(geometry0, xi_);
     auto ijac_ref1 = bspline1.ijac(geometry1, xi_);
@@ -4678,7 +4696,8 @@ TEST_F(FunctionSpaceTest, RT4_geoDim1_degrees2341) {
     }
 
     /// Evaluation of Hessian (in parametric domain)
-    auto hess = functionspace.template hess<functionspace::interior, false>(xi);
+    auto hess =
+        functionspace.template hess_all<functionspace::interior, false>(xi);
     auto hess_ref0 = bspline0.hess(xi_);
     auto hess_ref1 = bspline1.hess(xi_);
     auto hess_ref2 = bspline2.hess(xi_);
@@ -4694,8 +4713,9 @@ TEST_F(FunctionSpaceTest, RT4_geoDim1_degrees2341) {
     }
 
     /// Evaluation of Hessian (in physical domain)
-    auto ihess = functionspace.template ihess<functionspace::interior, false>(
-        RT4_geometry, xi);
+    auto ihess =
+        functionspace.template ihess_all<functionspace::interior, false>(
+            RT4_geometry, xi);
     auto ihess_ref0 = bspline0.ihess(geometry0, xi_);
     auto ihess_ref1 = bspline1.ihess(geometry1, xi_);
     auto ihess_ref2 = bspline2.ihess(geometry2, xi_);
