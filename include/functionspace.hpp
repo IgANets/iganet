@@ -3724,38 +3724,64 @@ template <typename Spline, short_t = Spline::parDim()> class Hcurl;
 /// This class implements the H(curl) function space
 ///
 /// \f[
-/// S_{p-1, p, p} \otimes
-/// S_{p, p-1, p} \otimes
-/// S_{p, p, p-1}
+/// S_{p, p+1, p+1} \otimes
+/// S_{p+1, p, p+1} \otimes
+/// S_{p+1, p+1, p}
 /// \f]
 ///
 /// in three spatial dimensions
 template <typename Spline>
 class Hcurl<Spline, 3>
     : public FunctionSpace<
-          S<typename Spline::template derived_self_type<
-              typename Spline::value_type, Spline::geoDim(),
-              Spline::degree(0) - 1, Spline::degree(1), Spline::degree(2)>>,
-          S<typename Spline::template derived_self_type<
-              typename Spline::value_type, Spline::geoDim(), Spline::degree(0),
-              Spline::degree(1) - 1, Spline::degree(2)>>,
-          S<typename Spline::template derived_self_type<
-              typename Spline::value_type, Spline::geoDim(), Spline::degree(0),
-              Spline::degree(1), Spline::degree(2) - 1>>> {
+    S<typename Spline::template derived_self_type<
+    typename Spline::value_type, Spline::geoDim(),
+    Spline::degree(0), Spline::degree(1) + 1, Spline::degree(2) + 1>>,
+    S<typename Spline::template derived_self_type<
+    typename Spline::value_type, Spline::geoDim(), Spline::degree(0) + 1,
+    Spline::degree(1), Spline::degree(2) + 1>>,
+    S<typename Spline::template derived_self_type<
+    typename Spline::value_type, Spline::geoDim(), Spline::degree(0) + 1,
+    Spline::degree(1) + 1, Spline::degree(2)>>> {
 
 public:
-  /// @brief Base type
-  using Base = FunctionSpace<
-      S<typename Spline::template derived_self_type<
-          typename Spline::value_type, Spline::geoDim(), Spline::degree(0) - 1,
-          Spline::degree(1), Spline::degree(2)>>,
-      S<typename Spline::template derived_self_type<
-          typename Spline::value_type, Spline::geoDim(), Spline::degree(0),
-          Spline::degree(1) - 1, Spline::degree(2)>>,
-      S<typename Spline::template derived_self_type<
-          typename Spline::value_type, Spline::geoDim(), Spline::degree(0),
-          Spline::degree(1), Spline::degree(2) - 1>>>;
+    /// @brief Base type
+    using Base = FunctionSpace<
+        S<typename Spline::template derived_self_type<
+        typename Spline::value_type, Spline::geoDim(), Spline::degree(0),
+        Spline::degree(1) + 1, Spline::degree(2) + 1>>,
+        S<typename Spline::template derived_self_type<
+        typename Spline::value_type, Spline::geoDim(), Spline::degree(0) + 1,
+        Spline::degree(1), Spline::degree(2) + 1>>,
+        S<typename Spline::template derived_self_type<
+        typename Spline::value_type, Spline::geoDim(), Spline::degree(0) + 1,
+        Spline::degree(1) + 1, Spline::degree(2)>>>;
+
+    /// @brief Constructor
+     /// @{
+    Hcurl(const std::array<int64_t, 3>& ncoeffs, enum init init = init::zeros,
+        Options<typename Spline::value_type> options =
+        iganet::Options<typename Spline::value_type>{})
+        : Base(ncoeffs + utils::to_array(1_i64, 0_i64, 0_i64),
+            ncoeffs + utils::to_array(0_i64, 1_i64, 0_i64),
+            ncoeffs + utils::to_array(0_i64, 0_i64, 1_i64),
+            init, options) {}
+
+    Hcurl(const std::array<std::vector<typename Spline::value_type>, 3>& kv,
+        enum init init = init::zeros,
+        Options<typename Spline::value_type> options =
+        iganet::Options<typename Spline::value_type>{})
+        : Base({ {kv[0].front() + kv[0] + kv[0].back() , kv[1], kv[2]} },
+            { {kv[0],kv[1].front() + kv[1] + kv[1].back(),kv[2]} },
+            { {kv[0], kv[1], kv[2].front() + kv[2] + kv[2].back()} },
+            init, options) {
+        static_assert(Spline::is_nonuniform(),
+            "Constructor only available for non-uniform splines");
+    }
+    /// @}
+    IGANET_FUNCTIONSPACE_DEFAULT_OPS(Hcurl);
 };
+
+IGANET_FUNCTIONSPACE_TUPLE_WRAPPER(Hcurl);
 
 #undef IGANET_FUNCTIONSPACE_TUPLE_WRAPPER
 #undef IGANET_FUNCTIONSPACE_DEFAULT_OPS
