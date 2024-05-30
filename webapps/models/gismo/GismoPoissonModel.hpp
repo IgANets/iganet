@@ -168,6 +168,9 @@ public:
     return R"([{
            "name" : "Solution",
            "description" : "Solution of the Poisson equation",
+           "type" : 1},{
+           "name" : "RHS",
+           "description" : "Right-hand side function",
            "type" : 1}])"_json;
   }
 
@@ -457,9 +460,15 @@ public:
 
     // Uniform parameters for evaluation
     gsMatrix<T> pts = gsPointGrid(a, b, np);
-    gsMatrix<T> eval = solution_.patch(0).eval(pts);
 
-    return utils::to_json(eval, true);
+    if (component == "Solution") {
+      gsMatrix<T> eval = solution_.patch(0).eval(pts);
+      return utils::to_json(eval, true);
+    } else if (component == "RHS") {
+      gsMatrix<T> eval = rhsFunc_.eval(pts);
+      return utils::to_json(eval, true);
+    } else
+      return R"({ INVALID REQUEST })"_json;
   }
 
   /// @brief Elevates the model's degrees, preserves smoothness
