@@ -50,6 +50,7 @@ public:
       }
 
       geo_.addPatch(gsBSpline<T>(give(KV0), give(C)));
+      geo_.computeTopology();
 
     } else if constexpr (d == 2) {
       gsKnotVector<T> KV0(0, 1, ncoeffs[0] - degrees[0] - 1, degrees[0] + 1);
@@ -67,6 +68,7 @@ public:
         }
 
       geo_.addPatch(gsTensorBSpline<2, T>(give(KV0), give(KV1), give(C)));
+      geo_.computeTopology();
 
     } else if constexpr (d == 3) {
       gsKnotVector<T> KV0(0, 1, ncoeffs[0] - degrees[0] - 1, degrees[0] + 1);
@@ -87,6 +89,7 @@ public:
 
       geo_.addPatch(
           gsTensorBSpline<3, T>(give(KV0), give(KV1), give(KV2), give(C)));
+      geo_.computeTopology();
 
     } else if constexpr (d == 4) {
       gsKnotVector<T> KV0(0, 1, ncoeffs[0] - degrees[0] - 1, degrees[0] + 1);
@@ -110,6 +113,7 @@ public:
 
       geo_.addPatch(gsTensorBSpline<4, T>(give(KV0), give(KV1), give(KV2),
                                           give(KV3), give(C)));
+      geo_.computeTopology();
     }
   }
 
@@ -420,14 +424,32 @@ public:
     geo_.patch(0).uniformRefine(num, 1, dim);
   }
 
-  /// @brief Reparameterized the model
+  /// @brief Reparameterize the model
   void reparameterize(const nlohmann::json &json = NULL) override {
+    std::string type("volume");
+    int maxiter(200);
+    T tol(1e-3);
 
-    gismo::gsBarrierPatch<2, T> opt(geo_, false);
-    opt.options().setInt("ParamMethod", 1);
-    opt.compute();
+    if (json.contains("data")) {
+      if (json["data"].contains("type"))
+        type = json["data"]["type"].get<std::string>();
 
-    geo_ = opt.result();
+      if (json["data"].contains("maxiter"))
+        maxiter = json["data"]["maxiter"].get<int>();
+
+      if (json["data"].contains("tol"))
+        tol = json["data"]["tol"].get<T>();
+    }
+
+    if (type == "surface") {
+
+    } else if (type == "volume") {
+      gismo::gsBarrierPatch<d, T> opt(geo_, false);
+      opt.options().setInt("ParamMethod", 1);
+      opt.compute();
+
+      geo_ = opt.result();
+    }
   }
 };
 

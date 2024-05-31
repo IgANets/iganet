@@ -108,18 +108,17 @@ TEST_F(BoundaryTest, Boundary_parDim2_geoDim1_degrees23) {
   using BSpline = iganet::UniformBSpline<real_t, 1, 2, 3>;
   iganet::Boundary<BSpline> boundary({5, 4}, iganet::init::greville, options);
 
-  auto xi = std::tuple{iganet::utils::to_tensorArray<real_t>(
-                           {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r, 0.0_r},
-                           options) /* west  */,
-                       iganet::utils::to_tensorArray<real_t>(
-                           {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r, 0.0_r},
-                           options) /* east  */,
-                       iganet::utils::to_tensorArray<real_t>(
-                           {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r},
-                           options) /* south */,
-                       iganet::utils::to_tensorArray<real_t>(
-                           {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r},
-                           options) /* north */};
+  auto xi = std::tuple{
+      iganet::utils::to_tensorArray(options, {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r,
+                                              0.75_r, 0.0_r}) /* west  */,
+      iganet::utils::to_tensorArray(options, {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r,
+                                              0.75_r, 0.0_r}) /* east  */,
+      iganet::utils::to_tensorArray(
+          options,
+          {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r}) /* south */,
+      iganet::utils::to_tensorArray(
+          options,
+          {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r}) /* north */};
 
   // Evaluation
   auto values = boundary.eval<deriv::func, false>(xi);
@@ -344,31 +343,31 @@ TEST_F(BoundaryTest, Boundary_parDim3_geoDim1_degrees234) {
   iganet::Boundary<BSpline> boundary({5, 4, 7}, iganet::init::greville,
                                      options);
 
-  auto xi =
-      std::tuple{iganet::utils::to_tensorArray<real_t>(
-                     {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r, 0.0_r} /* v */,
-                     {0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r, 0.0_r, 0.1_r} /* w */,
-                     options) /* west  */,
-                 iganet::utils::to_tensorArray<real_t>(
-                     {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r, 0.0_r} /* v */,
-                     {0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r, 0.0_r, 0.1_r} /* w */,
-                     options) /* east  */,
-                 iganet::utils::to_tensorArray<real_t>(
-                     {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u */,
-                     {0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r, 0.0_r, 0.1_r} /* w */,
-                     options) /* south */,
-                 iganet::utils::to_tensorArray<real_t>(
-                     {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u */,
-                     {0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r, 0.0_r, 0.1_r} /* w */,
-                     options) /* north */,
-                 iganet::utils::to_tensorArray<real_t>(
-                     {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u */,
-                     {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r, 0.0_r} /* v */,
-                     options) /* front */,
-                 iganet::utils::to_tensorArray<real_t>(
-                     {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u */,
-                     {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r, 0.0_r} /* v */,
-                     options) /* back  */};
+  auto xi = std::tuple{
+      iganet::utils::to_tensorArray(
+          options, {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r, 0.0_r} /* v */,
+          {0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r, 0.0_r,
+           0.1_r} /* w */) /* west  */,
+      iganet::utils::to_tensorArray(
+          options, {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r, 0.0_r} /* v */,
+          {0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r, 0.0_r,
+           0.1_r} /* w */) /* east  */,
+      iganet::utils::to_tensorArray(
+          options, {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u */,
+          {0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r, 0.0_r,
+           0.1_r} /* w */) /* south */,
+      iganet::utils::to_tensorArray(
+          options, {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u */,
+          {0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r, 0.0_r,
+           0.1_r} /* w */) /* north */,
+      iganet::utils::to_tensorArray(
+          options, {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u */,
+          {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r,
+           0.0_r} /* v */) /* front */,
+      iganet::utils::to_tensorArray(
+          options, {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u */,
+          {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r,
+           0.0_r} /* v */) /* back  */};
 
   // Evaluation
   auto values = boundary.eval<deriv::func, false>(xi);
@@ -1926,9 +1925,8 @@ check_requires_grad(std::index_sequence<Is...>, const Values &values,
                     const iganet::Options<iganet::unittests::real_t> &options) {
   auto check = [&options](const auto &values, const auto &xi) {
     values[0]->operator[](0).backward();
-    EXPECT_TRUE(torch::allclose(
-        xi[0].grad(),
-        iganet::utils::to_tensor<iganet::unittests::real_t>({1.0_r}, options)));
+    EXPECT_TRUE(torch::allclose(xi[0].grad(),
+                                iganet::utils::to_tensor({1.0_r}, options)));
   };
 
   (check(std::get<Is>(values), std::get<Is>(xi)), ...);
@@ -1959,18 +1957,18 @@ TEST_F(BoundaryTest, Boundary_requires_grad) {
                    boundary.requires_grad()));
 
     auto xi = std::tuple{
-        iganet::utils::to_tensorArray<real_t>({0.5_r} /* v */, {0.5_r} /* w */,
-                                              options) /* west  */,
-        iganet::utils::to_tensorArray<real_t>({0.5_r} /* v */, {0.5_r} /* w */,
-                                              options) /* east  */,
-        iganet::utils::to_tensorArray<real_t>({0.5_r} /* u */, {0.5_r} /* w */,
-                                              options) /* south */,
-        iganet::utils::to_tensorArray<real_t>({0.5_r} /* u */, {0.5_r} /* w */,
-                                              options) /* north */,
-        iganet::utils::to_tensorArray<real_t>({0.5_r} /* u */, {0.5_r} /* v */,
-                                              options) /* front */,
-        iganet::utils::to_tensorArray<real_t>({0.5_r} /* u */, {0.5_r} /* v */,
-                                              options) /* back  */};
+        iganet::utils::to_tensorArray(options, {0.5_r} /* v */, {0.5_r} /* w */
+                                      ) /* west  */,
+        iganet::utils::to_tensorArray(options, {0.5_r} /* v */, {0.5_r} /* w */
+                                      ) /* east  */,
+        iganet::utils::to_tensorArray(options, {0.5_r} /* u */, {0.5_r} /* w */
+                                      ) /* south */,
+        iganet::utils::to_tensorArray(options, {0.5_r} /* u */, {0.5_r} /* w */
+                                      ) /* north */,
+        iganet::utils::to_tensorArray(options, {0.5_r} /* u */, {0.5_r} /* v */
+                                      ) /* front */,
+        iganet::utils::to_tensorArray(options, {0.5_r} /* u */, {0.5_r} /* v */
+                                      ) /* back  */};
     auto values = boundary.eval(xi);
 
     // We expect an error when calling backward() because no tensor
@@ -1984,24 +1982,24 @@ TEST_F(BoundaryTest, Boundary_requires_grad) {
         },
         values);
 
-    xi = std::tuple{iganet::utils::to_tensorArray<real_t>(
-                        {0.5_r} /* v */, {0.5_r} /* w */,
-                        options.requires_grad(true)) /* west  */,
-                    iganet::utils::to_tensorArray<real_t>(
-                        {0.5_r} /* v */, {0.5_r} /* w */,
-                        options.requires_grad(true)) /* east  */,
-                    iganet::utils::to_tensorArray<real_t>(
-                        {0.5_r} /* u */, {0.5_r} /* w */,
-                        options.requires_grad(true)) /* south */,
-                    iganet::utils::to_tensorArray<real_t>(
-                        {0.5_r} /* u */, {0.5_r} /* w */,
-                        options.requires_grad(true)) /* north */,
-                    iganet::utils::to_tensorArray<real_t>(
-                        {0.5_r} /* u */, {0.5_r} /* v */,
-                        options.requires_grad(true)) /* front */,
-                    iganet::utils::to_tensorArray<real_t>(
-                        {0.5_r} /* u */, {0.5_r} /* v */,
-                        options.requires_grad(true)) /* back  */};
+    xi = std::tuple{iganet::utils::to_tensorArray(options.requires_grad(true),
+                                                  {0.5_r} /* v */,
+                                                  {0.5_r} /* w */) /* west  */,
+                    iganet::utils::to_tensorArray(options.requires_grad(true),
+                                                  {0.5_r} /* v */,
+                                                  {0.5_r} /* w */) /* east  */,
+                    iganet::utils::to_tensorArray(options.requires_grad(true),
+                                                  {0.5_r} /* u */,
+                                                  {0.5_r} /* w */) /* south */,
+                    iganet::utils::to_tensorArray(options.requires_grad(true),
+                                                  {0.5_r} /* u */,
+                                                  {0.5_r} /* w */) /* north */,
+                    iganet::utils::to_tensorArray(options.requires_grad(true),
+                                                  {0.5_r} /* u */,
+                                                  {0.5_r} /* v */) /* front */,
+                    iganet::utils::to_tensorArray(options.requires_grad(true),
+                                                  {0.5_r} /* u */,
+                                                  {0.5_r} /* v */) /* back  */};
     values = boundary.eval(xi);
 
     // Note that this check cannot be implemented using std::apply as
@@ -2022,19 +2020,19 @@ TEST_F(BoundaryTest, Boundary_requires_grad) {
         std::apply([](auto... requires_grad) { return (requires_grad && ...); },
                    boundary.requires_grad()));
 
-    auto xi = std::tuple{
-        iganet::utils::to_tensorArray<real_t>({0.5_r} /* v */, {0.5_r} /* w */,
-                                              options) /* west  */,
-        iganet::utils::to_tensorArray<real_t>({0.5_r} /* v */, {0.5_r} /* w */,
-                                              options) /* east  */,
-        iganet::utils::to_tensorArray<real_t>({0.5_r} /* u */, {0.5_r} /* w */,
-                                              options) /* south */,
-        iganet::utils::to_tensorArray<real_t>({0.5_r} /* u */, {0.5_r} /* w */,
-                                              options) /* north */,
-        iganet::utils::to_tensorArray<real_t>({0.5_r} /* u */, {0.5_r} /* v */,
-                                              options) /* front */,
-        iganet::utils::to_tensorArray<real_t>({0.5_r} /* u */, {0.5_r} /* v */,
-                                              options) /* back  */};
+    auto xi =
+        std::tuple{iganet::utils::to_tensorArray(options, {0.5_r} /* v */,
+                                                 {0.5_r} /* w */) /* west  */,
+                   iganet::utils::to_tensorArray(options, {0.5_r} /* v */,
+                                                 {0.5_r} /* w */) /* east  */,
+                   iganet::utils::to_tensorArray(options, {0.5_r} /* u */,
+                                                 {0.5_r} /* w */) /* south */,
+                   iganet::utils::to_tensorArray(options, {0.5_r} /* u */,
+                                                 {0.5_r} /* w */) /* north */,
+                   iganet::utils::to_tensorArray(options, {0.5_r} /* u */,
+                                                 {0.5_r} /* v */) /* front */,
+                   iganet::utils::to_tensorArray(options, {0.5_r} /* u */,
+                                                 {0.5_r} /* v */) /* back  */};
     auto values = boundary.eval(xi);
 
     // We expect an error because xi[0].grad() is an undefined tensor
@@ -2046,24 +2044,24 @@ TEST_F(BoundaryTest, Boundary_requires_grad) {
         std::make_index_sequence<iganet::Boundary<BSpline>::nsides()>{}, values,
         xi, options);
 
-    xi = std::tuple{iganet::utils::to_tensorArray<real_t>(
-                        {0.5_r} /* v */, {0.5_r} /* w */,
-                        options.requires_grad(true)) /* west  */,
-                    iganet::utils::to_tensorArray<real_t>(
-                        {0.5_r} /* v */, {0.5_r} /* w */,
-                        options.requires_grad(true)) /* east  */,
-                    iganet::utils::to_tensorArray<real_t>(
-                        {0.5_r} /* u */, {0.5_r} /* w */,
-                        options.requires_grad(true)) /* south */,
-                    iganet::utils::to_tensorArray<real_t>(
-                        {0.5_r} /* u */, {0.5_r} /* w */,
-                        options.requires_grad(true)) /* north */,
-                    iganet::utils::to_tensorArray<real_t>(
-                        {0.5_r} /* u */, {0.5_r} /* v */,
-                        options.requires_grad(true)) /* front */,
-                    iganet::utils::to_tensorArray<real_t>(
-                        {0.5_r} /* u */, {0.5_r} /* v */,
-                        options.requires_grad(true)) /* back  */};
+    xi = std::tuple{iganet::utils::to_tensorArray(options.requires_grad(true),
+                                                  {0.5_r} /* v */,
+                                                  {0.5_r} /* w */) /* west  */,
+                    iganet::utils::to_tensorArray(options.requires_grad(true),
+                                                  {0.5_r} /* v */,
+                                                  {0.5_r} /* w */) /* east  */,
+                    iganet::utils::to_tensorArray(options.requires_grad(true),
+                                                  {0.5_r} /* u */,
+                                                  {0.5_r} /* w */) /* south */,
+                    iganet::utils::to_tensorArray(options.requires_grad(true),
+                                                  {0.5_r} /* u */,
+                                                  {0.5_r} /* w */) /* north */,
+                    iganet::utils::to_tensorArray(options.requires_grad(true),
+                                                  {0.5_r} /* u */,
+                                                  {0.5_r} /* v */) /* front */,
+                    iganet::utils::to_tensorArray(options.requires_grad(true),
+                                                  {0.5_r} /* u */,
+                                                  {0.5_r} /* v */) /* back  */};
     values = boundary.eval(xi);
 
     // Note that this check cannot be implemented using std::apply as

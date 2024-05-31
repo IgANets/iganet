@@ -46,7 +46,7 @@ int main() {
 
     // Evaluate B-spline at xi=0, xi=0.5, and xi=1
     iganet::Log(iganet::log::info)
-        << bspline.eval(iganet::utils::to_tensorArray<real_t>({0.0, 0.5, 1.0}))
+        << bspline.eval(iganet::utils::to_tensorArray({0.0, 0.5, 1.0}))
         << std::endl;
 
 #ifdef IGANET_WITH_MATPLOT
@@ -82,7 +82,7 @@ int main() {
 
     // Evaluate B-spline at xi=0, xi=0.5, and xi=1
     iganet::Log(iganet::log::info)
-        << bspline.eval(iganet::utils::to_tensorArray<real_t>({0.0, 0.5, 1.0}))
+        << bspline.eval(iganet::utils::to_tensorArray({0.0, 0.5, 1.0}))
         << std::endl;
 
 #ifdef IGANET_WITH_MATPLOT
@@ -118,7 +118,7 @@ int main() {
 
     // Evaluate B-spline at xi=0, xi=0.5, and xi=1
     iganet::Log(iganet::log::info)
-        << bspline.eval(iganet::utils::to_tensorArray<real_t>({0.0, 0.5, 1.0}))
+        << bspline.eval(iganet::utils::to_tensorArray({0.0, 0.5, 1.0}))
         << std::endl;
 
 #ifdef IGANET_WITH_MATPLOT
@@ -158,8 +158,8 @@ int main() {
 
     // Evaluate B-spline at xi=0, xi=0.5, and xi=1
     iganet::Log(iganet::log::info)
-        << bspline.eval(iganet::utils::to_tensorArray<real_t>({0.0, 0.5, 1.0},
-                                                              {0.0, 0.5, 0.5}))
+        << bspline.eval(
+               iganet::utils::to_tensorArray({0.0, 0.5, 1.0}, {0.0, 0.5, 0.5}))
         << std::endl;
 
 #ifdef IGANET_WITH_MATPLOT
@@ -199,8 +199,8 @@ int main() {
 
     // Evaluate B-spline at (xi=0,eta=0), (xi=0.5,eta=0.5), and (xi=1,eta=0.5)
     iganet::Log(iganet::log::info)
-        << bspline.eval(iganet::utils::to_tensorArray<real_t>({0.0, 0.5, 1.0},
-                                                              {0.0, 0.5, 0.5}))
+        << bspline.eval(
+               iganet::utils::to_tensorArray({0.0, 0.5, 1.0}, {0.0, 0.5, 0.5}))
         << std::endl;
 
 #ifdef IGANET_WITH_MATPLOT

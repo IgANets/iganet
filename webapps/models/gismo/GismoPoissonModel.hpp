@@ -97,7 +97,7 @@ public:
                     const std::array<int64_t, d> ncoeffs,
                     const std::array<int64_t, d> npatches)
       : Base(degrees, ncoeffs, npatches), basis_(Base::geo_, true),
-        rhsFunc_("2*pi^2*sin(pi*x)*sin(pi*y)", d), assembler_(1, 1) {
+        rhsFunc_("2*pi^2*sin(pi*x)*sin(pi*y)", 3), assembler_(1, 1) {
     // Specify assembler options
     gsOptionList Aopt;
 
@@ -130,9 +130,9 @@ public:
     // Set boundary conditions
     for (short_t i = 0; i < 2 * d; ++i) {
       if constexpr (d == 1)
-        bcFunc_[i] = gismo::give(gsFunctionExpr<T>("sin(pi*x)", 1));
+        bcFunc_[i] = gismo::give(gsFunctionExpr<T>("sin(pi*x)", 3));
       else if constexpr (d == 2)
-        bcFunc_[i] = gismo::give(gsFunctionExpr<T>("sin(pi*x)*sin(pi*y)", 2));
+        bcFunc_[i] = gismo::give(gsFunctionExpr<T>("sin(pi*x)*sin(pi*y)", 3));
       else if constexpr (d == 3)
         bcFunc_[i] =
             gismo::give(gsFunctionExpr<T>("sin(pi*x)*sin(pi*y)*sin(pi*z)", 3));
@@ -168,6 +168,9 @@ public:
     return R"([{
            "name" : "Solution",
            "description" : "Solution of the Poisson equation",
+           "type" : 1},{
+           "name" : "RHS",
+           "description" : "Right-hand side function",
            "type" : 1}])"_json;
   }
 
@@ -457,9 +460,15 @@ public:
 
     // Uniform parameters for evaluation
     gsMatrix<T> pts = gsPointGrid(a, b, np);
-    gsMatrix<T> eval = solution_.patch(0).eval(pts);
 
-    return utils::to_json(eval, true);
+    if (component == "Solution") {
+      gsMatrix<T> eval = solution_.patch(0).eval(pts);
+      return utils::to_json(eval, true);
+    } else if (component == "RHS") {
+      gsMatrix<T> eval = rhsFunc_.eval(pts);
+      return utils::to_json(eval, true);
+    } else
+      return R"({ INVALID REQUEST })"_json;
   }
 
   /// @brief Elevates the model's degrees, preserves smoothness

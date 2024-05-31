@@ -2107,19 +2107,19 @@ TEST_F(BSplineTest, UniformBSpline_requires_grad) {
     for (iganet::short_t i = 0; i < bspline.geoDim(); ++i)
       EXPECT_FALSE(bspline.coeffs(i).requires_grad());
 
-    auto xi = iganet::utils::to_tensorArray<real_t>({0.5_r}, {0.5_r}, options);
+    auto xi = iganet::utils::to_tensorArray(options, {0.5_r}, {0.5_r});
     auto values = bspline.eval(xi);
 
     // We expect an error when calling backward() because no tensor
     // has requires_grad = true
     EXPECT_THROW(values[0]->backward(), c10::Error);
 
-    xi = iganet::utils::to_tensorArray<real_t>({0.5_r}, {0.5_r},
-                                               options.requires_grad(true));
+    xi = iganet::utils::to_tensorArray(options.requires_grad(true), {0.5_r},
+                                       {0.5_r});
     values = bspline.eval(xi);
     values[0]->backward();
-    EXPECT_TRUE(torch::allclose(
-        xi[0].grad(), iganet::utils::to_tensor<real_t>({1.0_r}, options)));
+    EXPECT_TRUE(torch::allclose(xi[0].grad(),
+                                iganet::utils::to_tensor({1.0_r}, options)));
   }
 
   {
@@ -2134,7 +2134,7 @@ TEST_F(BSplineTest, UniformBSpline_requires_grad) {
     for (iganet::short_t i = 0; i < bspline.geoDim(); ++i)
       EXPECT_TRUE(bspline.coeffs(i).requires_grad());
 
-    auto xi = iganet::utils::to_tensorArray<real_t>({0.5_r}, {0.5_r}, options);
+    auto xi = iganet::utils::to_tensorArray(options, {0.5_r}, {0.5_r});
     auto values = bspline.eval(xi);
     values[0]->backward(
         {}, true); // otherwise we cannot run backward() a second time
@@ -2142,16 +2142,16 @@ TEST_F(BSplineTest, UniformBSpline_requires_grad) {
     // We expect an error because xi[0].grad() is an undefined tensor
     EXPECT_THROW(torch::allclose(xi[0].grad(), torch::empty({})), c10::Error);
 
-    xi = iganet::utils::to_tensorArray<real_t>({0.5_r}, {0.5_r},
-                                               options.requires_grad(true));
+    xi = iganet::utils::to_tensorArray(options.requires_grad(true), {0.5_r},
+                                       {0.5_r});
     values = bspline.eval(xi);
     values[0]->backward();
-    EXPECT_TRUE(torch::allclose(
-        xi[0].grad(), iganet::utils::to_tensor<real_t>({1.0_r}, options)));
+    EXPECT_TRUE(torch::allclose(xi[0].grad(),
+                                iganet::utils::to_tensor({1.0_r}, options)));
 
     EXPECT_TRUE(torch::allclose(
         bspline.coeffs(0).grad(),
-        iganet::utils::to_tensor<real_t>(
+        iganet::utils::to_tensor(
             {0.015625_r, 0.046875_r, 0.046875_r, 0.015625_r, 0.0625_r,
              0.1875_r,   0.1875_r,   0.0625_r,   0.09375_r,  0.28125_r,
              0.28125_r,  0.09375_r,  0.0625_r,   0.1875_r,   0.1875_r,

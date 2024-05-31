@@ -19,24 +19,26 @@
 #include <gtest/gtest.h>
 #include <unittest_config.hpp>
 
+using namespace iganet::unittests::literals;
+
 class FunctionSpaceTest : public ::testing::Test {
 protected:
   using real_t = iganet::unittests::real_t;
   iganet::Options<real_t> options;
 };
 
-TEST_F(FunctionSpaceTest, S1_geoDim1_degrees2) {
+TEST_F(FunctionSpaceTest, S_geoDim1_degrees2) {
   using iganet::deriv;
   using iganet::functionspace;
   using iganet::side;
   using BSpline = iganet::UniformBSpline<real_t, 1, 2>;
-  iganet::S1<BSpline> functionspace({5}, iganet::init::greville, options);
+  iganet::S<BSpline> functionspace({5}, iganet::init::greville, options);
   BSpline bspline({5}, iganet::init::greville, options);
 
   { // Interior
 
-    auto xi = iganet::utils::to_tensorArray<real_t>(
-        {0.0, 0.1, 0.2, 0.5, 0.75, 0.9, 1.0}, options);
+    auto xi = iganet::utils::to_tensorArray(
+        options, {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r});
 
     // Evaluation
     EXPECT_TRUE(torch::equal(
@@ -279,22 +281,22 @@ TEST_F(FunctionSpaceTest, S1_geoDim1_degrees2) {
   }
 }
 
-TEST_F(FunctionSpaceTest, S2_geoDim1_degrees23) {
+TEST_F(FunctionSpaceTest, S_geoDim1_degrees23) {
   using iganet::deriv;
   using iganet::functionspace;
   using iganet::side;
   using BSpline = iganet::UniformBSpline<real_t, 1, 2, 3>;
   using Geometry = iganet::UniformBSpline<real_t, 2, 2, 3>;
-  iganet::S2<BSpline> functionspace({5, 4}, iganet::init::greville, options);
-  iganet::S2<Geometry> S2_geometry({5, 4}, iganet::init::greville, options);
+  iganet::S<BSpline> functionspace({5, 4}, iganet::init::greville, options);
+  iganet::S<Geometry> S_geometry({5, 4}, iganet::init::greville, options);
   BSpline bspline({5, 4}, iganet::init::greville, options);
   Geometry geometry({5, 4}, iganet::init::greville, options);
 
   { // Interior
 
-    auto xi = iganet::utils::to_tensorArray<real_t>(
-        {0.0, 0.1, 0.2, 0.5, 0.75, 0.9, 1.0} /* u */,
-        {1.0, 0.2, 0.1, 0.5, 0.9, 0.75, 0.0} /* v */, options);
+    auto xi = iganet::utils::to_tensorArray(
+        options, {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u */,
+        {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r, 0.0_r} /* v */);
 
     // Evaluation
     EXPECT_TRUE(torch::equal(
@@ -392,7 +394,7 @@ TEST_F(FunctionSpaceTest, S2_geoDim1_degrees23) {
 
     /// Evaluation of gradient (in physical domain)
     auto igrad = functionspace.template igrad<functionspace::interior, false>(
-        S2_geometry, xi);
+        S_geometry, xi);
     auto igrad_ref = bspline.igrad(geometry, xi);
 
     for (std::size_t i = 0; i < igrad.entries(); ++i)
@@ -407,7 +409,7 @@ TEST_F(FunctionSpaceTest, S2_geoDim1_degrees23) {
 
     /// Evaluation of Jacobian (in physical domain)
     auto ijac = functionspace.template ijac<functionspace::interior, false>(
-        S2_geometry, xi);
+        S_geometry, xi);
     auto ijac_ref = bspline.ijac(geometry, xi);
 
     for (std::size_t i = 0; i < ijac.entries(); ++i)
@@ -422,7 +424,7 @@ TEST_F(FunctionSpaceTest, S2_geoDim1_degrees23) {
 
     /// Evaluation of Hessian (in physical domain)
     auto ihess = functionspace.template ihess<functionspace::interior, false>(
-        S2_geometry, xi);
+        S_geometry, xi);
     auto ihess_ref = bspline.ihess(geometry, xi);
 
     for (std::size_t i = 0; i < ihess.entries(); ++i)
@@ -436,15 +438,19 @@ TEST_F(FunctionSpaceTest, S2_geoDim1_degrees23) {
     iganet::UniformBSpline<real_t, 1, 3> bspline_bdrEW(
         {4}, iganet::init::greville, options);
 
-    auto xi = std::tuple{
-        iganet::utils::to_tensorArray<real_t>(
-            {1.0, 0.2, 0.1, 0.5, 0.9, 0.75, 0.0}, options) /* west  */,
-        iganet::utils::to_tensorArray<real_t>(
-            {1.0, 0.2, 0.1, 0.5, 0.9, 0.75, 0.0}, options) /* east  */,
-        iganet::utils::to_tensorArray<real_t>(
-            {0.0, 0.1, 0.2, 0.5, 0.75, 0.9, 1.0}, options) /* south */,
-        iganet::utils::to_tensorArray<real_t>(
-            {0.0, 0.1, 0.2, 0.5, 0.75, 0.9, 1.0}, options) /* north */};
+    auto xi =
+        std::tuple{iganet::utils::to_tensorArray(options, {1.0_r, 0.2_r, 0.1_r,
+                                                           0.5_r, 0.9_r, 0.75_r,
+                                                           0.0_r}) /* west  */,
+                   iganet::utils::to_tensorArray(options, {1.0_r, 0.2_r, 0.1_r,
+                                                           0.5_r, 0.9_r, 0.75_r,
+                                                           0.0_r}) /* east  */,
+                   iganet::utils::to_tensorArray(options, {0.0_r, 0.1_r, 0.2_r,
+                                                           0.5_r, 0.75_r, 0.9_r,
+                                                           1.0_r}) /* south */,
+                   iganet::utils::to_tensorArray(options, {0.0_r, 0.1_r, 0.2_r,
+                                                           0.5_r, 0.75_r, 0.9_r,
+                                                           1.0_r}) /* north */};
 
     // Evaluation
     auto eval =
@@ -798,23 +804,23 @@ TEST_F(FunctionSpaceTest, S2_geoDim1_degrees23) {
   }
 }
 
-TEST_F(FunctionSpaceTest, S3_geoDim1_degrees234) {
+TEST_F(FunctionSpaceTest, S_geoDim1_degrees234) {
   using iganet::deriv;
   using iganet::functionspace;
   using iganet::side;
   using BSpline = iganet::UniformBSpline<real_t, 1, 2, 3, 4>;
   using Geometry = iganet::UniformBSpline<real_t, 3, 2, 3, 4>;
-  iganet::S3<BSpline> functionspace({5, 4, 7}, iganet::init::greville, options);
-  iganet::S3<Geometry> S3_geometry({5, 4, 7}, iganet::init::greville, options);
+  iganet::S<BSpline> functionspace({5, 4, 7}, iganet::init::greville, options);
+  iganet::S<Geometry> S_geometry({5, 4, 7}, iganet::init::greville, options);
   BSpline bspline({5, 4, 7}, iganet::init::greville, options);
   Geometry geometry({5, 4, 7}, iganet::init::greville, options);
 
   { // Interior
 
-    auto xi = iganet::utils::to_tensorArray<real_t>(
-        {0.0, 0.1, 0.2, 0.5, 0.75, 0.9, 1.0} /* u */,
-        {1.0, 0.2, 0.1, 0.5, 0.9, 0.75, 0.0} /* v */,
-        {0.2, 0.5, 0.75, 0.9, 1.0, 0.0, 0.1} /* w */, options);
+    auto xi = iganet::utils::to_tensorArray(
+        options, {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u */,
+        {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r, 0.0_r} /* v */,
+        {0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r, 0.0_r, 0.1_r} /* w */);
 
     // Evaluation
     EXPECT_TRUE(torch::equal(
@@ -964,7 +970,7 @@ TEST_F(FunctionSpaceTest, S3_geoDim1_degrees234) {
 
     /// Evaluation of gradient (in physical domain)
     auto igrad = functionspace.template igrad<functionspace::interior, false>(
-        S3_geometry, xi);
+        S_geometry, xi);
     auto igrad_ref = bspline.igrad(geometry, xi);
 
     for (std::size_t i = 0; i < igrad.entries(); ++i)
@@ -979,7 +985,7 @@ TEST_F(FunctionSpaceTest, S3_geoDim1_degrees234) {
 
     /// Evaluation of Jacobian (in physical domain)
     auto ijac = functionspace.template ijac<functionspace::interior, false>(
-        S3_geometry, xi);
+        S_geometry, xi);
     auto ijac_ref = bspline.ijac(geometry, xi);
 
     for (std::size_t i = 0; i < ijac.entries(); ++i)
@@ -994,7 +1000,7 @@ TEST_F(FunctionSpaceTest, S3_geoDim1_degrees234) {
 
     /// Evaluation of Hessian (in physical domain)
     auto ihess = functionspace.template ihess<functionspace::interior, false>(
-        S3_geometry, xi);
+        S_geometry, xi);
     auto ihess_ref = bspline.ihess(geometry, xi);
 
     for (std::size_t i = 0; i < ihess.entries(); ++i)
@@ -1017,24 +1023,30 @@ TEST_F(FunctionSpaceTest, S3_geoDim1_degrees234) {
         {5, 4}, iganet::init::greville, options);
 
     auto xi = std::tuple{
-        iganet::utils::to_tensorArray<real_t>(
-            {1.0, 0.2, 0.1, 0.5, 0.9, 0.75, 0.0} /* v */,
-            {0.2, 0.5, 0.75, 0.9, 1.0, 0.0, 0.1} /* w */, options) /* west  */,
-        iganet::utils::to_tensorArray<real_t>(
-            {1.0, 0.2, 0.1, 0.5, 0.9, 0.75, 0.0} /* v */,
-            {0.2, 0.5, 0.75, 0.9, 1.0, 0.0, 0.1} /* w */, options) /* east  */,
-        iganet::utils::to_tensorArray<real_t>(
-            {0.0, 0.1, 0.2, 0.5, 0.75, 0.9, 1.0} /* u */,
-            {0.2, 0.5, 0.75, 0.9, 1.0, 0.0, 0.1} /* w */, options) /* south */,
-        iganet::utils::to_tensorArray<real_t>(
-            {0.0, 0.1, 0.2, 0.5, 0.75, 0.9, 1.0} /* u */,
-            {0.2, 0.5, 0.75, 0.9, 1.0, 0.0, 0.1} /* w */, options) /* north */,
-        iganet::utils::to_tensorArray<real_t>(
-            {0.0, 0.1, 0.2, 0.5, 0.75, 0.9, 1.0} /* u */,
-            {1.0, 0.2, 0.1, 0.5, 0.9, 0.75, 0.0} /* v */, options) /* front */,
-        iganet::utils::to_tensorArray<real_t>(
-            {0.0, 0.1, 0.2, 0.5, 0.75, 0.9, 1.0} /* u */,
-            {1.0, 0.2, 0.1, 0.5, 0.9, 0.75, 0.0} /* v */, options) /* back  */};
+        iganet::utils::to_tensorArray(
+            options, {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r, 0.0_r} /* v */,
+            {0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r, 0.0_r,
+             0.1_r} /* w */) /* west  */,
+        iganet::utils::to_tensorArray(
+            options, {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r, 0.0_r} /* v */,
+            {0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r, 0.0_r,
+             0.1_r} /* w */) /* east  */,
+        iganet::utils::to_tensorArray(
+            options, {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u */,
+            {0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r, 0.0_r,
+             0.1_r} /* w */) /* south */,
+        iganet::utils::to_tensorArray(
+            options, {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u */,
+            {0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r, 0.0_r,
+             0.1_r} /* w */) /* north */,
+        iganet::utils::to_tensorArray(
+            options, {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u */,
+            {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r,
+             0.0_r} /* v */) /* front */,
+        iganet::utils::to_tensorArray(
+            options, {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u */,
+            {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r,
+             0.0_r} /* v */) /* back  */};
 
     // Evaluation
     auto eval =
@@ -1562,7 +1574,7 @@ TEST_F(FunctionSpaceTest, S3_geoDim1_degrees234) {
 
     /// Evaluation of gradient (in physical domain)
     auto igrad = functionspace.template igrad<functionspace::boundary, false>(
-        S3_geometry, xi);
+        S_geometry, xi);
 
     for (std::size_t i = 0; i < std::get<0>(igrad).entries(); ++i) {
       EXPECT_TRUE(
@@ -1617,7 +1629,7 @@ TEST_F(FunctionSpaceTest, S3_geoDim1_degrees234) {
 
     /// Evaluation of Jacobian (in physical domain)
     auto ijac = functionspace.template ijac<functionspace::boundary, false>(
-        S3_geometry, xi);
+        S_geometry, xi);
 
     for (std::size_t i = 0; i < std::get<0>(ijac).entries(); ++i) {
       EXPECT_TRUE(
@@ -1672,7 +1684,7 @@ TEST_F(FunctionSpaceTest, S3_geoDim1_degrees234) {
 
     /// Evaluation of Hessian (in physical domain)
     auto ihess =
-        functionspace.template ihess<functionspace::boundary>(S3_geometry, xi);
+        functionspace.template ihess<functionspace::boundary>(S_geometry, xi);
 
     for (std::size_t i = 0; i < std::get<0>(ihess).entries(); ++i) {
       EXPECT_TRUE(
@@ -1703,26 +1715,25 @@ TEST_F(FunctionSpaceTest, S3_geoDim1_degrees234) {
   }
 }
 
-TEST_F(FunctionSpaceTest, S4_geoDim1_degrees2341) {
+TEST_F(FunctionSpaceTest, S_geoDim1_degrees2341) {
   using iganet::deriv;
   using iganet::functionspace;
   using iganet::side;
   using BSpline = iganet::UniformBSpline<real_t, 1, 2, 3, 4, 1>;
   using Geometry = iganet::UniformBSpline<real_t, 4, 2, 3, 4, 1>;
-  iganet::S4<BSpline> functionspace({5, 4, 7, 3}, iganet::init::greville,
-                                    options);
-  iganet::S4<Geometry> S4_geometry({5, 4, 7, 3}, iganet::init::greville,
+  iganet::S<BSpline> functionspace({5, 4, 7, 3}, iganet::init::greville,
                                    options);
+  iganet::S<Geometry> S_geometry({5, 4, 7, 3}, iganet::init::greville, options);
   BSpline bspline({5, 4, 7, 3}, iganet::init::greville, options);
   Geometry geometry({5, 4, 7, 3}, iganet::init::greville, options);
 
   { // Interior
 
-    auto xi = iganet::utils::to_tensorArray<real_t>(
-        {0.0, 0.1, 0.2, 0.5, 0.75, 0.9, 1.0} /* u */,
-        {1.0, 0.2, 0.1, 0.5, 0.9, 0.75, 0.0} /* v */,
-        {0.2, 0.5, 0.75, 0.9, 1.0, 0.0, 0.1} /* w */,
-        {0.1, 0.1, 0.2, 0.3, 0.3, 0.0, 0.1} /* t */, options);
+    auto xi = iganet::utils::to_tensorArray(
+        options, {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u */,
+        {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r, 0.0_r} /* v */,
+        {0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r, 0.0_r, 0.1_r} /* w */,
+        {0.1_r, 0.1_r, 0.2_r, 0.3_r, 0.3_r, 0.0_r, 0.1_r} /* t */);
 
     // Evaluation
     EXPECT_TRUE(torch::equal(
@@ -1937,7 +1948,7 @@ TEST_F(FunctionSpaceTest, S4_geoDim1_degrees2341) {
 
     /// Evaluation of gradient (in physical domain)
     auto igrad = functionspace.template igrad<functionspace::interior, false>(
-        S4_geometry, xi);
+        S_geometry, xi);
     auto igrad_ref = bspline.igrad(geometry, xi);
 
     for (std::size_t i = 0; i < igrad.entries(); ++i)
@@ -1952,7 +1963,7 @@ TEST_F(FunctionSpaceTest, S4_geoDim1_degrees2341) {
 
     /// Evaluation of Jacobian (in physical domain)
     auto ijac = functionspace.template ijac<functionspace::interior, false>(
-        S4_geometry, xi);
+        S_geometry, xi);
     auto ijac_ref = bspline.ijac(geometry, xi);
 
     for (std::size_t i = 0; i < ijac.entries(); ++i)
@@ -1967,7 +1978,7 @@ TEST_F(FunctionSpaceTest, S4_geoDim1_degrees2341) {
 
     /// Evaluation of Hessian (in physical domain)
     auto ihess = functionspace.template ihess<functionspace::interior, false>(
-        S4_geometry, xi);
+        S_geometry, xi);
     auto ihess_ref = bspline.ihess(geometry, xi);
 
     for (std::size_t i = 0; i < ihess.entries(); ++i)
@@ -1994,38 +2005,46 @@ TEST_F(FunctionSpaceTest, S4_geoDim1_degrees2341) {
         {5, 4, 7}, iganet::init::greville, options);
 
     auto xi = std::tuple{
-        iganet::utils::to_tensorArray<real_t>(
-            {1.0, 0.2, 0.1, 0.5, 0.9, 0.75, 0.0} /* v */,
-            {0.2, 0.5, 0.75, 0.9, 1.0, 0.0, 0.1} /* w */,
-            {0.1, 0.1, 0.2, 0.3, 0.3, 0.0, 0.1} /* t */, options) /* west  */,
-        iganet::utils::to_tensorArray<real_t>(
-            {1.0, 0.2, 0.1, 0.5, 0.9, 0.75, 0.0} /* v */,
-            {0.2, 0.5, 0.75, 0.9, 1.0, 0.0, 0.1} /* w */,
-            {0.1, 0.1, 0.2, 0.3, 0.3, 0.0, 0.1} /* t */, options) /* east  */,
-        iganet::utils::to_tensorArray<real_t>(
-            {0.0, 0.1, 0.2, 0.5, 0.75, 0.9, 1.0} /* u */,
-            {0.2, 0.5, 0.75, 0.9, 1.0, 0.0, 0.1} /* w */,
-            {0.1, 0.1, 0.2, 0.3, 0.3, 0.0, 0.1} /* t */, options) /* south */,
-        iganet::utils::to_tensorArray<real_t>(
-            {0.0, 0.1, 0.2, 0.5, 0.75, 0.9, 1.0} /* u */,
-            {0.2, 0.5, 0.75, 0.9, 1.0, 0.0, 0.1} /* w */,
-            {0.1, 0.1, 0.2, 0.3, 0.3, 0.0, 0.1} /* t */, options) /* north */,
-        iganet::utils::to_tensorArray<real_t>(
-            {0.0, 0.1, 0.2, 0.5, 0.75, 0.9, 1.0} /* u */,
-            {1.0, 0.2, 0.1, 0.5, 0.9, 0.75, 0.0} /* v */,
-            {0.1, 0.1, 0.2, 0.3, 0.3, 0.0, 0.1} /* t */, options) /* front */,
-        iganet::utils::to_tensorArray<real_t>(
-            {0.0, 0.1, 0.2, 0.5, 0.75, 0.9, 1.0} /* u */,
-            {1.0, 0.2, 0.1, 0.5, 0.9, 0.75, 0.0} /* v */,
-            {0.1, 0.1, 0.2, 0.3, 0.3, 0.0, 0.1} /* t */, options) /* back  */,
-        iganet::utils::to_tensorArray<real_t>(
-            {0.0, 0.1, 0.2, 0.5, 0.75, 0.9, 1.0} /* u */,
-            {1.0, 0.2, 0.1, 0.5, 0.9, 0.75, 0.0} /* v */,
-            {0.2, 0.5, 0.75, 0.9, 1.0, 0.0, 0.1} /* w */, options) /* stime */,
-        iganet::utils::to_tensorArray<real_t>(
-            {0.0, 0.1, 0.2, 0.5, 0.75, 0.9, 1.0} /* u */,
-            {1.0, 0.2, 0.1, 0.5, 0.9, 0.75, 0.0} /* v */,
-            {0.2, 0.5, 0.75, 0.9, 1.0, 0.0, 0.1} /* w */, options) /* etime */};
+        iganet::utils::to_tensorArray(
+            options, {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r, 0.0_r} /* v */,
+            {0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r, 0.0_r, 0.1_r} /* w */,
+            {0.1_r, 0.1_r, 0.2_r, 0.3_r, 0.3_r, 0.0_r,
+             0.1_r} /* t */) /* west  */,
+        iganet::utils::to_tensorArray(
+            options, {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r, 0.0_r} /* v */,
+            {0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r, 0.0_r, 0.1_r} /* w */,
+            {0.1_r, 0.1_r, 0.2_r, 0.3_r, 0.3_r, 0.0_r,
+             0.1_r} /* t */) /* east  */,
+        iganet::utils::to_tensorArray(
+            options, {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u */,
+            {0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r, 0.0_r, 0.1_r} /* w */,
+            {0.1_r, 0.1_r, 0.2_r, 0.3_r, 0.3_r, 0.0_r,
+             0.1_r} /* t */) /* south */,
+        iganet::utils::to_tensorArray(
+            options, {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u */,
+            {0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r, 0.0_r, 0.1_r} /* w */,
+            {0.1_r, 0.1_r, 0.2_r, 0.3_r, 0.3_r, 0.0_r,
+             0.1_r} /* t */) /* north */,
+        iganet::utils::to_tensorArray(
+            options, {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u */,
+            {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r, 0.0_r} /* v */,
+            {0.1_r, 0.1_r, 0.2_r, 0.3_r, 0.3_r, 0.0_r,
+             0.1_r} /* t */) /* front */,
+        iganet::utils::to_tensorArray(
+            options, {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u */,
+            {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r, 0.0_r} /* v */,
+            {0.1_r, 0.1_r, 0.2_r, 0.3_r, 0.3_r, 0.0_r,
+             0.1_r} /* t */) /* back  */,
+        iganet::utils::to_tensorArray(
+            options, {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u */,
+            {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r, 0.0_r} /* v */,
+            {0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r, 0.0_r,
+             0.1_r} /* w */) /* stime */,
+        iganet::utils::to_tensorArray(
+            options, {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u */,
+            {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r, 0.0_r} /* v */,
+            {0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r, 0.0_r,
+             0.1_r} /* w */) /* etime */};
 
     // Evaluation
     auto eval =
@@ -2981,7 +3000,7 @@ TEST_F(FunctionSpaceTest, S4_geoDim1_degrees2341) {
 
     /// Evaluation of gradient (in physical domain)
     auto igrad = functionspace.template igrad<functionspace::boundary, false>(
-        S4_geometry, xi);
+        S_geometry, xi);
 
     for (std::size_t i = 0; i < std::get<0>(igrad).entries(); ++i) {
       EXPECT_TRUE(
@@ -3050,7 +3069,7 @@ TEST_F(FunctionSpaceTest, S4_geoDim1_degrees2341) {
 
     /// Evaluation of Jacobian (in physical domain)
     auto ijac = functionspace.template ijac<functionspace::boundary, false>(
-        S4_geometry, xi);
+        S_geometry, xi);
 
     for (std::size_t i = 0; i < std::get<0>(ijac).entries(); ++i) {
       EXPECT_TRUE(
@@ -3119,7 +3138,7 @@ TEST_F(FunctionSpaceTest, S4_geoDim1_degrees2341) {
 
     /// Evaluation of Hessian (in physical domain)
     auto ihess =
-        functionspace.template ihess<functionspace::boundary>(S4_geometry, xi);
+        functionspace.template ihess<functionspace::boundary>(S_geometry, xi);
 
     for (std::size_t i = 0; i < std::get<0>(ihess).entries(); ++i) {
       EXPECT_TRUE(
@@ -3158,14 +3177,14 @@ TEST_F(FunctionSpaceTest, S4_geoDim1_degrees2341) {
   }
 }
 
-TEST_F(FunctionSpaceTest, RT1_geoDim1_degrees2) {
+TEST_F(FunctionSpaceTest, RT_geoDim1_degrees2) {
   using iganet::deriv;
   using iganet::functionspace;
   using iganet::side;
   using BSpline = iganet::NonUniformBSpline<real_t, 1, 2>;
   using Geometry = iganet::NonUniformBSpline<real_t, 1, 2>;
-  iganet::RT1<BSpline> functionspace({5}, iganet::init::greville, options);
-  iganet::RT1<Geometry> RT1_geometry({5}, iganet::init::greville, options);
+  iganet::RT<BSpline> functionspace({5}, iganet::init::greville, options);
+  iganet::RT<Geometry> RT_geometry({5}, iganet::init::greville, options);
 
   iganet::NonUniformBSpline<real_t, 1, 3> bspline0(
       {5 + 1}, iganet::init::greville, options);
@@ -3178,8 +3197,8 @@ TEST_F(FunctionSpaceTest, RT1_geoDim1_degrees2) {
 
   { // Interior
 
-    auto xi_ = iganet::utils::to_tensorArray<real_t>(
-        {0.0, 0.1, 0.2, 0.5, 0.75, 0.9, 1.0} /* u */, options);
+    auto xi_ = iganet::utils::to_tensorArray(
+        options, {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u */);
     auto xi = std::tuple{xi_, xi_};
 
     // Evaluation
@@ -3269,7 +3288,7 @@ TEST_F(FunctionSpaceTest, RT1_geoDim1_degrees2) {
     /// Evaluation of gradient (in physical domain)
     auto igrad =
         functionspace.template igrad_all<functionspace::interior, false>(
-            RT1_geometry, xi);
+            RT_geometry, xi);
     auto igrad_ref0 = bspline0.igrad(geometry0, xi_);
     auto igrad_ref1 = bspline1.igrad(geometry1, xi_);
 
@@ -3291,7 +3310,7 @@ TEST_F(FunctionSpaceTest, RT1_geoDim1_degrees2) {
 
     /// Evaluation of Jacobian (in physical domain)
     auto ijac = functionspace.template ijac_all<functionspace::interior, false>(
-        RT1_geometry, xi);
+        RT_geometry, xi);
     auto ijac_ref0 = bspline0.ijac(geometry0, xi_);
     auto ijac_ref1 = bspline1.ijac(geometry1, xi_);
 
@@ -3314,7 +3333,7 @@ TEST_F(FunctionSpaceTest, RT1_geoDim1_degrees2) {
     /// Evaluation of Hessian (in physical domain)
     auto ihess =
         functionspace.template ihess_all<functionspace::interior, false>(
-            RT1_geometry, xi);
+            RT_geometry, xi);
     auto ihess_ref0 = bspline0.ihess(geometry0, xi_);
     auto ihess_ref1 = bspline1.ihess(geometry1, xi_);
 
@@ -3325,14 +3344,14 @@ TEST_F(FunctionSpaceTest, RT1_geoDim1_degrees2) {
   }
 }
 
-TEST_F(FunctionSpaceTest, RT2_geoDim1_degrees23) {
+TEST_F(FunctionSpaceTest, RT_geoDim1_degrees23) {
   using iganet::deriv;
   using iganet::functionspace;
   using iganet::side;
   using BSpline = iganet::NonUniformBSpline<real_t, 1, 2, 3>;
   using Geometry = iganet::NonUniformBSpline<real_t, 2, 2, 3>;
-  iganet::RT2<BSpline> functionspace({5, 6}, iganet::init::greville, options);
-  iganet::RT2<Geometry> RT2_geometry({5, 6}, iganet::init::greville, options);
+  iganet::RT<BSpline> functionspace({5, 6}, iganet::init::greville, options);
+  iganet::RT<Geometry> RT_geometry({5, 6}, iganet::init::greville, options);
 
   iganet::NonUniformBSpline<real_t, 1, 3, 3> bspline0(
       {5 + 1, 6}, iganet::init::greville, options);
@@ -3349,9 +3368,9 @@ TEST_F(FunctionSpaceTest, RT2_geoDim1_degrees23) {
 
   { // Interior
 
-    auto xi_ = iganet::utils::to_tensorArray<real_t>(
-        {0.0, 0.1, 0.2, 0.5, 0.75, 0.9, 1.0} /* u */,
-        {1.0, 0.2, 0.1, 0.5, 0.9, 0.75, 0.0} /* v */, options);
+    auto xi_ = iganet::utils::to_tensorArray(
+        options, {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u */,
+        {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r, 0.0_r} /* v */);
     auto xi = std::tuple{xi_, xi_, xi_};
 
     // Evaluation
@@ -3532,7 +3551,7 @@ TEST_F(FunctionSpaceTest, RT2_geoDim1_degrees23) {
     /// Evaluation of gradient (in physical domain)
     auto igrad =
         functionspace.template igrad_all<functionspace::interior, false>(
-            RT2_geometry, xi);
+            RT_geometry, xi);
     auto igrad_ref0 = bspline0.igrad(geometry0, xi_);
     auto igrad_ref1 = bspline1.igrad(geometry1, xi_);
     auto igrad_ref2 = bspline2.igrad(geometry2, xi_);
@@ -3558,7 +3577,7 @@ TEST_F(FunctionSpaceTest, RT2_geoDim1_degrees23) {
 
     /// Evaluation of Jacobian (in physical domain)
     auto ijac = functionspace.template ijac_all<functionspace::interior, false>(
-        RT2_geometry, xi);
+        RT_geometry, xi);
     auto ijac_ref0 = bspline0.ijac(geometry0, xi_);
     auto ijac_ref1 = bspline1.ijac(geometry1, xi_);
     auto ijac_ref2 = bspline2.ijac(geometry2, xi_);
@@ -3585,7 +3604,7 @@ TEST_F(FunctionSpaceTest, RT2_geoDim1_degrees23) {
     /// Evaluation of Hessian (in physical domain)
     auto ihess =
         functionspace.template ihess_all<functionspace::interior, false>(
-            RT2_geometry, xi);
+            RT_geometry, xi);
     auto ihess_ref0 = bspline0.ihess(geometry0, xi_);
     auto ihess_ref1 = bspline1.ihess(geometry1, xi_);
     auto ihess_ref2 = bspline2.ihess(geometry2, xi_);
@@ -3598,16 +3617,14 @@ TEST_F(FunctionSpaceTest, RT2_geoDim1_degrees23) {
   }
 }
 
-TEST_F(FunctionSpaceTest, RT3_geoDim1_degrees234) {
+TEST_F(FunctionSpaceTest, RT_geoDim1_degrees234) {
   using iganet::deriv;
   using iganet::functionspace;
   using iganet::side;
   using BSpline = iganet::NonUniformBSpline<real_t, 1, 2, 3, 4>;
   using Geometry = iganet::NonUniformBSpline<real_t, 3, 2, 3, 4>;
-  iganet::RT3<BSpline> functionspace({5, 6, 7}, iganet::init::greville,
-                                     options);
-  iganet::RT3<Geometry> RT3_geometry({5, 6, 7}, iganet::init::greville,
-                                     options);
+  iganet::RT<BSpline> functionspace({5, 6, 7}, iganet::init::greville, options);
+  iganet::RT<Geometry> RT_geometry({5, 6, 7}, iganet::init::greville, options);
 
   iganet::NonUniformBSpline<real_t, 1, 3, 3, 4> bspline0(
       {5 + 1, 6, 7}, iganet::init::greville, options);
@@ -3628,10 +3645,10 @@ TEST_F(FunctionSpaceTest, RT3_geoDim1_degrees234) {
 
   { // Interior
 
-    auto xi_ = iganet::utils::to_tensorArray<real_t>(
-        {0.0, 0.1, 0.2, 0.5, 0.75, 0.9, 1.0} /* u */,
-        {1.0, 0.2, 0.1, 0.5, 0.9, 0.75, 0.0} /* v */,
-        {0.2, 0.5, 0.75, 0.9, 1.0, 0.0, 0.1} /* w */, options);
+    auto xi_ = iganet::utils::to_tensorArray(
+        options, {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u */,
+        {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r, 0.0_r} /* v */,
+        {0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r, 0.0_r, 0.1_r} /* w */);
     auto xi = std::tuple{xi_, xi_, xi_, xi_};
 
     // Evaluation
@@ -3964,7 +3981,7 @@ TEST_F(FunctionSpaceTest, RT3_geoDim1_degrees234) {
     /// Evaluation of gradient (in physical domain)
     auto igrad =
         functionspace.template igrad_all<functionspace::interior, false>(
-            RT3_geometry, xi);
+            RT_geometry, xi);
     auto igrad_ref0 = bspline0.igrad(geometry0, xi_);
     auto igrad_ref1 = bspline1.igrad(geometry1, xi_);
     auto igrad_ref2 = bspline2.igrad(geometry2, xi_);
@@ -3994,7 +4011,7 @@ TEST_F(FunctionSpaceTest, RT3_geoDim1_degrees234) {
 
     /// Evaluation of Jacobian (in physical domain)
     auto ijac = functionspace.template ijac_all<functionspace::interior, false>(
-        RT3_geometry, xi);
+        RT_geometry, xi);
     auto ijac_ref0 = bspline0.ijac(geometry0, xi_);
     auto ijac_ref1 = bspline1.ijac(geometry1, xi_);
     auto ijac_ref2 = bspline2.ijac(geometry2, xi_);
@@ -4025,7 +4042,7 @@ TEST_F(FunctionSpaceTest, RT3_geoDim1_degrees234) {
     /// Evaluation of Hessian (in physical domain)
     auto ihess =
         functionspace.template ihess_all<functionspace::interior, false>(
-            RT3_geometry, xi);
+            RT_geometry, xi);
     auto ihess_ref0 = bspline0.ihess(geometry0, xi_);
     auto ihess_ref1 = bspline1.ihess(geometry1, xi_);
     auto ihess_ref2 = bspline2.ihess(geometry2, xi_);
@@ -4040,16 +4057,16 @@ TEST_F(FunctionSpaceTest, RT3_geoDim1_degrees234) {
   }
 }
 
-TEST_F(FunctionSpaceTest, RT4_geoDim1_degrees2341) {
+TEST_F(FunctionSpaceTest, RT_geoDim1_degrees2341) {
   using iganet::deriv;
   using iganet::functionspace;
   using iganet::side;
   using BSpline = iganet::NonUniformBSpline<real_t, 1, 2, 3, 4, 1>;
   using Geometry = iganet::NonUniformBSpline<real_t, 4, 2, 3, 4, 1>;
-  iganet::RT4<BSpline> functionspace({5, 6, 7, 4}, iganet::init::greville,
-                                     options);
-  iganet::RT4<Geometry> RT4_geometry({5, 6, 7, 4}, iganet::init::greville,
-                                     options);
+  iganet::RT<BSpline> functionspace({5, 6, 7, 4}, iganet::init::greville,
+                                    options);
+  iganet::RT<Geometry> RT_geometry({5, 6, 7, 4}, iganet::init::greville,
+                                   options);
 
   iganet::NonUniformBSpline<real_t, 1, 3, 3, 4, 1> bspline0(
       {5 + 1, 6, 7, 4}, iganet::init::greville, options);
@@ -4074,11 +4091,11 @@ TEST_F(FunctionSpaceTest, RT4_geoDim1_degrees2341) {
 
   { // Interior
 
-    auto xi_ = iganet::utils::to_tensorArray<real_t>(
-        {0.0, 0.1, 0.2, 0.5, 0.75, 0.9, 1.0} /* u */,
-        {1.0, 0.2, 0.1, 0.5, 0.9, 0.75, 0.0} /* v */,
-        {0.2, 0.5, 0.75, 0.9, 1.0, 0.0, 0.1} /* w */,
-        {0.1, 0.1, 0.2, 0.3, 0.3, 0.0, 0.1} /* t */, options);
+    auto xi_ = iganet::utils::to_tensorArray(
+        options, {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u */,
+        {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r, 0.0_r} /* v */,
+        {0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r, 0.0_r, 0.1_r} /* w */,
+        {0.1_r, 0.1_r, 0.2_r, 0.3_r, 0.3_r, 0.0_r, 0.1_r} /* t */);
     auto xi = std::tuple{xi_, xi_, xi_, xi_, xi_};
 
     // Evaluation
@@ -4646,7 +4663,7 @@ TEST_F(FunctionSpaceTest, RT4_geoDim1_degrees2341) {
     /// Evaluation of gradient (in physical domain)
     auto igrad =
         functionspace.template igrad_all<functionspace::interior, false>(
-            RT4_geometry, xi);
+            RT_geometry, xi);
     auto igrad_ref0 = bspline0.igrad(geometry0, xi_);
     auto igrad_ref1 = bspline1.igrad(geometry1, xi_);
     auto igrad_ref2 = bspline2.igrad(geometry2, xi_);
@@ -4680,7 +4697,7 @@ TEST_F(FunctionSpaceTest, RT4_geoDim1_degrees2341) {
 
     /// Evaluation of Jacobian (in physical domain)
     auto ijac = functionspace.template ijac_all<functionspace::interior, false>(
-        RT4_geometry, xi);
+        RT_geometry, xi);
     auto ijac_ref0 = bspline0.ijac(geometry0, xi_);
     auto ijac_ref1 = bspline1.ijac(geometry1, xi_);
     auto ijac_ref2 = bspline2.ijac(geometry2, xi_);
@@ -4715,7 +4732,7 @@ TEST_F(FunctionSpaceTest, RT4_geoDim1_degrees2341) {
     /// Evaluation of Hessian (in physical domain)
     auto ihess =
         functionspace.template ihess_all<functionspace::interior, false>(
-            RT4_geometry, xi);
+            RT_geometry, xi);
     auto ihess_ref0 = bspline0.ihess(geometry0, xi_);
     auto ihess_ref1 = bspline1.ihess(geometry1, xi_);
     auto ihess_ref2 = bspline2.ihess(geometry2, xi_);

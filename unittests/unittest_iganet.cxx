@@ -40,8 +40,8 @@ TEST(BSpline, IgANet_UniformBSpline_1d) {
   using real_t = iganet::unittests::real_t;
   using Optimizer = torch::optim::Adam;
 
-  using GeometryMap = iganet::S1<iganet::UniformBSpline<real_t, 1, 5>>;
-  using Variable = iganet::S1<iganet::UniformBSpline<real_t, 1, 5>>;
+  using GeometryMap = iganet::S<iganet::UniformBSpline<real_t, 1, 5>>;
+  using Variable = iganet::S<iganet::UniformBSpline<real_t, 1, 5>>;
 
   IgANet<Optimizer, GeometryMap, Variable> net( // Number of neurons per layers
       {50, 30, 70},
@@ -81,8 +81,8 @@ TEST(BSpline, IgANet_UniformBSpline_2d) {
   using real_t = iganet::unittests::real_t;
   using Optimizer = torch::optim::Adam;
 
-  using GeometryMap = iganet::S2<iganet::UniformBSpline<real_t, 2, 3, 5>>;
-  using Variable = iganet::S2<iganet::UniformBSpline<real_t, 1, 3, 5>>;
+  using GeometryMap = iganet::S<iganet::UniformBSpline<real_t, 2, 3, 5>>;
+  using Variable = iganet::S<iganet::UniformBSpline<real_t, 1, 3, 5>>;
 
   IgANet<Optimizer, GeometryMap, Variable> net( // Number of neurons per layers
       {50, 30, 70},
@@ -144,8 +144,8 @@ TEST(BSpline, IgANet_UniformBSpline_3d) {
   using real_t = iganet::unittests::real_t;
   using Optimizer = torch::optim::Adam;
 
-  using GeometryMap = iganet::S3<iganet::UniformBSpline<real_t, 3, 3, 5, 1>>;
-  using Variable = iganet::S3<iganet::UniformBSpline<real_t, 1, 3, 5, 1>>;
+  using GeometryMap = iganet::S<iganet::UniformBSpline<real_t, 3, 3, 5, 1>>;
+  using Variable = iganet::S<iganet::UniformBSpline<real_t, 1, 3, 5, 1>>;
 
   IgANet<Optimizer, GeometryMap, Variable> net( // Number of neurons per layers
       {50, 30, 70},
@@ -237,8 +237,8 @@ TEST(BSpline, IgANet_UniformBSpline_4d) {
   using real_t = iganet::unittests::real_t;
   using Optimizer = torch::optim::Adam;
 
-  using GeometryMap = iganet::S4<iganet::UniformBSpline<real_t, 4, 3, 5, 1, 4>>;
-  using Variable = iganet::S4<iganet::UniformBSpline<real_t, 1, 3, 5, 1, 4>>;
+  using GeometryMap = iganet::S<iganet::UniformBSpline<real_t, 4, 3, 5, 1, 4>>;
+  using Variable = iganet::S<iganet::UniformBSpline<real_t, 1, 3, 5, 1, 4>>;
 
   IgANet<Optimizer, GeometryMap, Variable> net( // Number of neurons per layers
       {50, 30, 70},
@@ -368,8 +368,8 @@ TEST(BSpline, IgANet_NonUniformBSpline_1d) {
   using real_t = iganet::unittests::real_t;
   using Optimizer = torch::optim::Adam;
 
-  using GeometryMap = iganet::S1<iganet::UniformBSpline<real_t, 1, 5>>;
-  using Variable = iganet::S1<iganet::NonUniformBSpline<real_t, 1, 5>>;
+  using GeometryMap = iganet::S<iganet::UniformBSpline<real_t, 1, 5>>;
+  using Variable = iganet::S<iganet::NonUniformBSpline<real_t, 1, 5>>;
 
   IgANet<Optimizer, GeometryMap, Variable> net( // Number of neurons per layers
       {50, 30, 70},
@@ -409,8 +409,8 @@ TEST(BSpline, IgANet_NonUniformBSpline_2d) {
   using real_t = iganet::unittests::real_t;
   using Optimizer = torch::optim::Adam;
 
-  using GeometryMap = iganet::S2<iganet::NonUniformBSpline<real_t, 2, 3, 5>>;
-  using Variable = iganet::S2<iganet::NonUniformBSpline<real_t, 1, 3, 5>>;
+  using GeometryMap = iganet::S<iganet::NonUniformBSpline<real_t, 2, 3, 5>>;
+  using Variable = iganet::S<iganet::NonUniformBSpline<real_t, 1, 3, 5>>;
 
   IgANet<Optimizer, GeometryMap, Variable> net( // Number of neurons per layers
       {50, 30, 70},
@@ -472,8 +472,8 @@ TEST(BSpline, IgANet_NonUniformBSpline_3d) {
   using real_t = iganet::unittests::real_t;
   using Optimizer = torch::optim::Adam;
 
-  using GeometryMap = iganet::S3<iganet::NonUniformBSpline<real_t, 3, 3, 5, 1>>;
-  using Variable = iganet::S3<iganet::NonUniformBSpline<real_t, 1, 3, 5, 1>>;
+  using GeometryMap = iganet::S<iganet::NonUniformBSpline<real_t, 3, 3, 5, 1>>;
+  using Variable = iganet::S<iganet::NonUniformBSpline<real_t, 1, 3, 5, 1>>;
 
   IgANet<Optimizer, GeometryMap, Variable> net( // Number of neurons per layers
       {50, 30, 70},
@@ -566,8 +566,8 @@ TEST(BSpline, IgANet_NonUniformBSpline_4d) {
   using Optimizer = torch::optim::Adam;
 
   using GeometryMap =
-      iganet::S4<iganet::NonUniformBSpline<real_t, 4, 3, 5, 1, 4>>;
-  using Variable = iganet::S4<iganet::NonUniformBSpline<real_t, 1, 3, 5, 1, 4>>;
+      iganet::S<iganet::NonUniformBSpline<real_t, 4, 3, 5, 1, 4>>;
+  using Variable = iganet::S<iganet::NonUniformBSpline<real_t, 1, 3, 5, 1, 4>>;
 
   IgANet<Optimizer, GeometryMap, Variable> net( // Number of neurons per layers
       {50, 30, 70},

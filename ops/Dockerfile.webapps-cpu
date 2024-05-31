@@ -1,6 +1,10 @@
 # Build stage
 FROM ubuntu:22.04 as build-stage
 
+# CMake build type
+ARG CMAKE_BUILD_TYPE=Release
+ARG TARGET_ARCHITECTURE=nehalem
+
 # IgANet components
 ARG IGANET_BUILD_EXAMPLES=OFF
 ARG IGANET_BUILD_PCH=OFF
@@ -21,21 +25,19 @@ ARG IGANET_UNITTESTS_COEFF_TYPE=float
 ARG IGANET_WEBAPPS_COEFF_TYPE=double
 
 # Docker configurations
-ARG CMAKE_VERSION=3.27.7
+ARG CMAKE_VERSION=3.29.2
 ARG CMAKE_OS=linux
 ARG CMAKE_ARCH=x86_64
-ARG LIBTORCH_VERSION=2.2.2
+ARG LIBTORCH_VERSION=2.3.0
 ARG NJOBS=1
 
 # Install dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
         ca-certificates \
-        clang \
         curl \
         libcurl4-openssl-dev \
         libgflags-dev \
-        libomp-dev \
         libssl-dev \
         libz-dev \
         unzip
@@ -65,8 +67,10 @@ RUN rm -f /opt/iganet/webapps/models/gismo/GismoLinearElasticity3d.cxx
 
 WORKDIR /opt/iganet/build
 RUN rm -rf * \
-        && CC=clang CXX=clang++ cmake /opt/iganet \
+        && CC=gcc CXX=g++ cmake /opt/iganet \
         -DTorch_DIR=/opt/libtorch/share/cmake/Torch \
+        -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE \
+        -DTARGET_ARCHITECTURE=$TARGET_ARCHITECTURE \
         -DIGANET_BUILD_EXAMPLES=$IGANET_BUILD_EXAMPLES \
         -DIGANET_BUILD_PCH=$IGANET_BUILD_PCH \
         -DIGANET_BUILD_PERFTESTS=$IGANET_BUILD_PERFTESTS \
@@ -85,7 +89,7 @@ RUN rm -rf * \
 # Production stage
 FROM ubuntu:22.04 as production-stage
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        clang libomp-dev libz-dev
+        build-essential libz-dev
 
 # Copy LibTorch installation
 COPY --from=build-stage /opt/libtorch /opt/libtorch

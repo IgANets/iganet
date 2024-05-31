@@ -71,7 +71,7 @@ public:
 
       size_t index(0);
       for (const auto &entry : matrix) {
-        transform_(index / 4, index % 4) = entry;
+        transform_(index % 4, index / 4) = entry;
         index++;
       }
 
@@ -84,7 +84,7 @@ public:
 
 protected:
   /// @brief Global transformation matrix
-  gismo::gsMatrix<T, 4, 4, gismo::RowMajor> transform_;
+  gismo::gsMatrix<T, 4, 4, gismo::ColMajor> transform_;
 };
 
 } // namespace webapp

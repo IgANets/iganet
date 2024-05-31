@@ -114,11 +114,11 @@ int main() {
   using optimizer_t = torch::optim::Adam;
   using real_t = double;
 
-  // Geometry: Bi-linear B-spline function space S2 (geoDim = 2, p = q = 1)
-  using geometry_t = iganet::S2<iganet::UniformBSpline<real_t, 2, 2, 2>>;
+  // Geometry: Bi-linear B-spline function space S (geoDim = 2, p = q = 1)
+  using geometry_t = iganet::S<iganet::UniformBSpline<real_t, 2, 2, 2>>;
 
-  // Variable: Bi-quadratic B-spline function space S2 (geoDim = 1, p = q = 2)
-  using variable_t = iganet::S2<iganet::UniformBSpline<real_t, 1, 2, 2>>;
+  // Variable: Bi-quadratic B-spline function space S (geoDim = 1, p = q = 2)
+  using variable_t = iganet::S<iganet::UniformBSpline<real_t, 1, 2, 2>>;
 
   // Create geometry data set for training
   iganet::IgADataset<> dataset;

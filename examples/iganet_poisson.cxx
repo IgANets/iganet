@@ -151,8 +151,8 @@ int main() {
   using optimizer_t = torch::optim::LBFGS;
   using real_t = double;
 
-  using geometry_t = iganet::S2<iganet::UniformBSpline<real_t, 2, 1, 1>>;
-  using variable_t = iganet::S2<iganet::UniformBSpline<real_t, 1, 2, 2>>;
+  using geometry_t = iganet::S<iganet::UniformBSpline<real_t, 2, 1, 1>>;
+  using variable_t = iganet::S<iganet::UniformBSpline<real_t, 1, 2, 2>>;
 
   poisson<optimizer_t, geometry_t, variable_t>
       net( // Number of neurons per layers

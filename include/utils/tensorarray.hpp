@@ -18,103 +18,58 @@
 #include <initializer_list>
 
 #include <options.hpp>
-#include <utils/convert.hpp>
+#include <utils/container.hpp>
 
 #include <torch/torch.h>
 
 namespace iganet {
 namespace utils {
 
-using TensorArray0 = std::array<torch::Tensor, 0>;
-using TensorArray1 = std::array<torch::Tensor, 1>;
-using TensorArray2 = std::array<torch::Tensor, 2>;
-using TensorArray3 = std::array<torch::Tensor, 3>;
-using TensorArray4 = std::array<torch::Tensor, 4>;
+template <std::size_t N> using TensorArray = std::array<torch::Tensor, N>;
 
-/// @brief Converts an std::initializer_list to TensorArray1
+using TensorArray0 = TensorArray<0>;
+using TensorArray1 = TensorArray<1>;
+using TensorArray2 = TensorArray<2>;
+using TensorArray3 = TensorArray<3>;
+using TensorArray4 = TensorArray<4>;
+
+/// @brief Converts a set of std::initializer_list objects to a TensorArray
+/// object
 /// @{
-template <typename T>
-inline auto to_tensorArray(std::initializer_list<T> &&list,
-                           torch::IntArrayRef sizes = torch::IntArrayRef{-1},
-                           const iganet::Options<T> &options = Options<T>{}) {
-  return TensorArray1({to_tensor(list, sizes, options)});
+template <typename... Ts>
+inline constexpr TensorArray<sizeof...(Ts)>
+to_tensorArray(std::initializer_list<Ts> &&...lists) {
+  return {to_tensor(std::forward<std::initializer_list<Ts>>(lists),
+                    torch::IntArrayRef{-1}, Options<Ts>{})...};
 }
 
-template <typename T>
-inline auto to_tensorArray(std::initializer_list<T> &&list,
-                           const iganet::Options<T> &options) {
-  return TensorArray1({to_tensor(list, torch::IntArrayRef{-1}, options)});
-}
-/// @}
-
-/// @brief Converts two std::initializer_list's to TensorArray2
-/// @{
-template <typename T>
-inline auto to_tensorArray(std::initializer_list<T> &&list0,
-                           std::initializer_list<T> &&list1,
-                           torch::IntArrayRef sizes = torch::IntArrayRef{-1},
-                           const iganet::Options<T> &options = Options<T>{}) {
-  return TensorArray2(
-      {to_tensor(list0, sizes, options), to_tensor(list1, sizes, options)});
+template <typename... Ts>
+inline constexpr TensorArray<sizeof...(Ts)>
+to_tensorArray(torch::IntArrayRef sizes, std::initializer_list<Ts> &&...lists) {
+  return {to_tensor(std::forward<std::initializer_list<Ts>>(lists), sizes,
+                    Options<Ts>{})...};
 }
 
-template <typename T>
-inline auto to_tensorArray(std::initializer_list<T> &&list0,
-                           std::initializer_list<T> &&list1,
-                           const iganet::Options<T> &options) {
-  return TensorArray2({to_tensor(list0, torch::IntArrayRef{-1}, options),
-                       to_tensor(list1, torch::IntArrayRef{-1}, options)});
-}
-/// @}
-
-/// @brief Converts three std::initializer_list's to TensorArray3
-/// @{
-template <typename T>
-inline auto to_tensorArray(std::initializer_list<T> &&list0,
-                           std::initializer_list<T> &&list1,
-                           std::initializer_list<T> &&list2,
-                           torch::IntArrayRef sizes = torch::IntArrayRef{-1},
-                           const iganet::Options<T> &options = Options<T>{}) {
-  return TensorArray3({to_tensor(list0, sizes, options),
-                       to_tensor(list1, sizes, options),
-                       to_tensor(list2, sizes, options)});
+template <typename... Ts, typename T>
+inline constexpr TensorArray<sizeof...(Ts)>
+to_tensorArray(const iganet::Options<T> &options,
+               std::initializer_list<Ts> &&...lists) {
+  static_assert(
+      (std::is_same_v<T, Ts> && ...),
+      "Type mismatch between Options<T> and std::initializer_list<Ts>");
+  return {to_tensor(std::forward<std::initializer_list<Ts>>(lists),
+                    torch::IntArrayRef{-1}, options)...};
 }
 
-template <typename T>
-inline auto to_tensorArray(std::initializer_list<T> &&list0,
-                           std::initializer_list<T> &&list1,
-                           std::initializer_list<T> &&list2,
-                           const iganet::Options<T> &options) {
-  return TensorArray3({to_tensor(list0, torch::IntArrayRef{-1}, options),
-                       to_tensor(list1, torch::IntArrayRef{-1}, options),
-                       to_tensor(list2, torch::IntArrayRef{-1}, options)});
-}
-/// @}
-
-/// @brief Converts four std::initializer_list's to TensorArray4
-/// @{
-template <typename T>
-inline auto to_tensorArray(std::initializer_list<T> &&list0,
-                           std::initializer_list<T> &&list1,
-                           std::initializer_list<T> &&list2,
-                           std::initializer_list<T> &&list3,
-                           torch::IntArrayRef sizes = {-1},
-                           const iganet::Options<T> &options = Options<T>{}) {
-  return TensorArray4(
-      {to_tensor(list0, sizes, options), to_tensor(list1, sizes, options),
-       to_tensor(list2, sizes, options), to_tensor(list3, sizes, options)});
-}
-
-template <typename T>
-inline auto to_tensorArray(std::initializer_list<T> &&list0,
-                           std::initializer_list<T> &&list1,
-                           std::initializer_list<T> &&list2,
-                           std::initializer_list<T> &&list3,
-                           const iganet::Options<T> &options) {
-  return TensorArray4({to_tensor(list0, torch::IntArrayRef{-1}, options),
-                       to_tensor(list1, torch::IntArrayRef{-1}, options),
-                       to_tensor(list2, torch::IntArrayRef{-1}, options),
-                       to_tensor(list3, torch::IntArrayRef{-1}, options)});
+template <typename... Ts, typename T>
+inline constexpr TensorArray<sizeof...(Ts)>
+to_tensorArray(torch::IntArrayRef sizes, const iganet::Options<T> &options,
+               std::initializer_list<Ts> &&...lists) {
+  static_assert(
+      (std::is_same_v<T, Ts> && ...),
+      "Type mismatch between Options<T> and std::initializer_list<Ts>");
+  return {to_tensor(std::forward<std::initializer_list<Ts>>(lists), sizes,
+                    options)...};
 }
 /// @}
 
@@ -146,14 +101,14 @@ namespace detail {
 /// array of torch::TensorAccessor objects
 /// @{
 template <typename T, std::size_t N, std::size_t... Is>
-auto to_tensorAccessor(const std::array<torch::Tensor, sizeof...(Is)> &tensors,
+auto to_tensorAccessor(const TensorArray<sizeof...(Is)> &tensors,
                        std::index_sequence<Is...>) {
   return std::array<torch::TensorAccessor<T, N>, sizeof...(Is)>{
       tensors[Is].template accessor<T, N>()...};
 }
 
 template <typename T, std::size_t N, std::size_t... Is>
-auto to_tensorAccessor(const std::array<torch::Tensor, sizeof...(Is)> &tensors,
+auto to_tensorAccessor(const TensorArray<sizeof...(Is)> &tensors,
                        c10::DeviceType deviceType, std::index_sequence<Is...>) {
   std::array<torch::TensorBase, sizeof...(Is)> tensors_device{
       tensors[Is].to(deviceType)...};
@@ -178,13 +133,13 @@ auto to_tensorAccessor(const BlockTensor<torch::Tensor, Dims...> &blocktensor,
 /// array of torch::TensorAccessor objects
 /// @{
 template <typename T, std::size_t N, std::size_t M>
-auto to_tensorAccessor(const std::array<torch::Tensor, M> &tensors) {
+auto to_tensorAccessor(const TensorArray<M> &tensors) {
   return detail::to_tensorAccessor<T, N>(tensors,
                                          std::make_index_sequence<M>());
 }
 
 template <typename T, std::size_t N, std::size_t M>
-auto to_tensorAccessor(const std::array<torch::Tensor, M> &tensors,
+auto to_tensorAccessor(const TensorArray<M> &tensors,
                        c10::DeviceType deviceType) {
   return detail::to_tensorAccessor<T, N>(tensors, deviceType,
                                          std::make_index_sequence<M>());
@@ -200,3 +155,33 @@ auto to_tensorAccessor(const BlockTensor<torch::Tensor, Dims...> &blocktensor,
 
 } // namespace utils
 } // namespace iganet
+
+namespace std {
+
+/// Print (as string) a TensorArray object
+template <std::size_t N>
+inline std::ostream &operator<<(std::ostream &os,
+                                const std::array<torch::Tensor, N> &obj) {
+  at::optional<std::string> name_ = c10::demangle(typeid(obj).name());
+
+#if defined(_WIN32)
+  // Windows adds "struct" or "class" as a prefix.
+  if (name_->find("struct ") == 0) {
+    name_->erase(name_->begin(), name_->begin() + 7);
+  } else if (name_->find("class ") == 0) {
+    name_->erase(name_->begin(), name_->begin() + 6);
+  }
+#endif // defined(_WIN32)
+
+  os << *name_ << "(\n";
+  for (const auto &i : obj)
+    if (!i.numel())
+      os << "{}\n";
+    else
+      os << ((i.sizes().size() == 1) ? i.view({1, i.size(0)}) : i) << "\n";
+  os << ")";
+
+  return os;
+}
+
+} // namespace std

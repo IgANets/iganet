@@ -112,10 +112,10 @@ int main() {
   // Bivariate uniform B-spline of degree 2 in both directions
   // the type has to correspond to the respective geometry parameterization in
   // the input file
-  using geometry_t = iganet::S2<iganet::UniformBSpline<real_t, 2, 2, 2>>;
+  using geometry_t = iganet::S<iganet::UniformBSpline<real_t, 2, 2, 2>>;
 
-  // Variable: Bi-quadratic B-spline function space S2 (geoDim = 1, p = q = 2)
-  using variable_t = iganet::S2<iganet::UniformBSpline<real_t, 1, 2, 2>>;
+  // Variable: Bi-quadratic B-spline function space S (geoDim = 1, p = q = 2)
+  using variable_t = iganet::S<iganet::UniformBSpline<real_t, 1, 2, 2>>;
 
   for (std::vector<std::any> activation :
        {std::vector<std::any>{iganet::activation::relu},

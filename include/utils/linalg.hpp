@@ -180,5 +180,30 @@ inline auto kronproduct(T0 &&t0, T1 &&t1) {
   }
 }
 
+/// @brief Computes the directional Kronecker-product between two
+/// tensors along the given dimension
+///
+/// @tparam dim Dimension along which the Kronecker-product is computed
+///
+/// @tparam T Type of the first argument
+///
+/// @tparam Ts Types of the variadic arguments
+///
+/// @param[in] t  First argument
+///
+/// @param[in] ts  Variadic arguments
+///
+/// @result Tensor containing the dimensional Kronecker-product
+///
+/// @note This is not the regular Kronecker-product but a
+/// directional variant, that is, the Kronecker-product is computed
+/// along the given direction. All other directions are left
+/// unchanged. For the regular Kronecker-product use `torch::kron`.
+template <short_t dim = 0, typename T, typename... Ts>
+inline auto kronproduct(T &&t, Ts &&...ts) {
+  return kronproduct<dim>(std::forward<T>(t),
+                          kronproduct<dim>(std::forward<Ts>(ts)...));
+}
+
 } // namespace utils
 } // namespace iganet

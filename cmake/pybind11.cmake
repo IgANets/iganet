@@ -16,6 +16,7 @@
 # PyBind11
 ########################################################################
 
+include(FetchContent)
 FetchContent_Declare(pybind11
   URL https://github.com/pybind/pybind11/archive/refs/heads/master.zip
   )

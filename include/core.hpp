@@ -204,32 +204,6 @@ inline bool is_verbose(std::ostream &os) {
 
 namespace std {
 
-/// Print (as string) an std::array of torch::Tensor objects
-template <std::size_t N>
-inline std::ostream &operator<<(std::ostream &os,
-                                const std::array<torch::Tensor, N> &obj) {
-  at::optional<std::string> name_ = c10::demangle(typeid(obj).name());
-
-#if defined(_WIN32)
-  // Windows adds "struct" or "class" as a prefix.
-  if (name_->find("struct ") == 0) {
-    name_->erase(name_->begin(), name_->begin() + 7);
-  } else if (name_->find("class ") == 0) {
-    name_->erase(name_->begin(), name_->begin() + 6);
-  }
-#endif // defined(_WIN32)
-
-  os << *name_ << "(\n";
-  for (const auto &i : obj)
-    if (!i.numel())
-      os << "{}\n";
-    else
-      os << ((i.sizes().size() == 1) ? i.view({1, i.size(0)}) : i) << "\n";
-  os << ")";
-
-  return os;
-}
-
 /// Print (as string) an std::array of generic objects
 template <typename T, std::size_t N>
 inline std::ostream &operator<<(std::ostream &os, const std::array<T, N> &obj) {

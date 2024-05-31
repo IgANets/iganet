@@ -16,6 +16,8 @@
 
 #include <array>
 
+#include <utils/tensorarray.hpp>
+
 #include <torch/torch.h>
 
 namespace iganet {
@@ -66,7 +68,7 @@ inline auto VSlice(torch::Tensor index, int64_t start_offset,
 ///
 /// @param[in] leading_dim  Leading dimension
 template <bool transpose = false>
-inline auto VSlice(const std::array<torch::Tensor, 2> &index,
+inline auto VSlice(const utils::TensorArray<2> &index,
                    const std::array<int64_t, 2> &start_offset,
                    const std::array<int64_t, 2> &stop_offset,
                    int64_t leading_dim = 1) {
@@ -112,7 +114,7 @@ inline auto VSlice(const std::array<torch::Tensor, 2> &index,
 ///
 /// @param[in] leading_dim  2d array of leading dimension
 template <bool transpose = false>
-inline auto VSlice(const std::array<torch::Tensor, 3> &index,
+inline auto VSlice(const utils::TensorArray<3> &index,
                    const std::array<int64_t, 3> &start_offset,
                    const std::array<int64_t, 3> &stop_offset,
                    const std::array<int64_t, 2> &leading_dim = {1, 1}) {
@@ -175,7 +177,7 @@ inline auto VSlice(const std::array<torch::Tensor, 3> &index,
 ///
 /// @param[in] leading_dim  3d array of leading dimension
 template <bool transpose = false>
-inline auto VSlice(const std::array<torch::Tensor, 4> &index,
+inline auto VSlice(const utils::TensorArray<4> &index,
                    const std::array<int64_t, 4> &start_offset,
                    const std::array<int64_t, 4> &stop_offset,
                    const std::array<int64_t, 3> &leading_dim = {1, 1, 1}) {

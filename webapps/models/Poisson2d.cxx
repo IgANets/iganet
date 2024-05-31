@@ -111,12 +111,12 @@ extern "C"
 #endif
 {
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wreturn-type-c-linkage"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wreturn-type-c-linkage"
 
   std::shared_ptr<iganet::Model> create(const nlohmann::json &json) {
     return std::make_shared<iganet::Poisson2dModel>();
   }
 
-#pragma GCC diagnostic pop
+#pragma clang diagnostic pop
 }

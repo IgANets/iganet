@@ -67,7 +67,7 @@ template <> inline constexpr torch::Dtype dtype<std::complex<double>>() {
 }
 /// @}
 
-int guess_device_index() {
+inline int guess_device_index() {
 #ifdef IGANET_WITH_MPI
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
