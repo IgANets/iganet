@@ -25,6 +25,7 @@ namespace iganet {
 
 using namespace literals;
 using utils::operator+;
+using utils:operator-;
 
 /// @brief Enumerator for the function space component
 enum class functionspace : short_t {
@@ -3755,7 +3756,34 @@ public:
       S<typename Spline::template derived_self_type<
           typename Spline::value_type, Spline::geoDim(), Spline::degree(0),
           Spline::degree(1), Spline::degree(2) - 1>>>;
+  
+  /// @brief Constructor
+  /// @{
+  RT(const std::array<int64_t, 3>& ncoeffs, enum init init = init::zeros,
+      Options<typename Spline::value_type> options =
+      iganet::Options<typename Spline::value_type>{})
+      : Base(ncoeffs + utils::to_array(1_i64, 0_i64, 0_i64),
+          ncoeffs - utils::to_array(0_i64, 1_i64, 0_i64),
+          ncoeffs - utils::to_array(0_i64, 0_i64, 1_i64),
+          init, options) {}
+
+  RT(const std::array<std::vector<typename Spline::value_type>, 3>& kv,
+      enum init init = init::zeros,
+      Options<typename Spline::value_type> options =
+      iganet::Options<typename Spline::value_type>{})
+      : Base({ {kv[0].assign(kv[0].begin() + 1, kv[0].end() - 1), kv[1], kv[2]} },
+          { {kv[0], kv[1].assign(kv[1].begin() + 1, kv[1].end() - 1), kv[2]} },
+          { {kv[0], kv[1], kv[2].assign(kv[2].begin() + 1, kv[2].end() - 1)} },
+          init, options) {
+      static_assert(Spline::is_nonuniform(),
+          "Constructor only available for non-uniform splines");
+  }
+  /// @}
+
+  IGANET_FUNCTIONSPACE_DEFAULT_OPS(Hcurl);
 };
+
+IGANET_FUNCTIONSPACE_TUPLE_WRAPPER(Hcurl);
 
 #undef IGANET_FUNCTIONSPACE_TUPLE_WRAPPER
 #undef IGANET_FUNCTIONSPACE_DEFAULT_OPS
