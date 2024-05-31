@@ -253,6 +253,18 @@ inline constexpr std::array<T, size> operator+(std::array<T, size> lhs,
   return result;
 }
 
+/// @brief Substracts two std::arrays
+template <typename T, std::size_t size>
+inline constexpr std::array<T, size> operator-(std::array<T, size> lhs,
+    std::array<T, size> rhs) {
+    std::array<T, size> result;
+
+    for (std::size_t i = 0; i < size; ++i)
+        result[i] = lhs[i] - rhs[i];
+
+    return result;
+}
+
 /// @brief Appends data to a torch::ArrayRef object
 template <typename T>
 inline constexpr auto operator+(torch::ArrayRef<T> array, T data) {
