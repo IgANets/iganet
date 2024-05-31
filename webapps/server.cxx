@@ -1729,11 +1729,17 @@ int main(int argc, char const *argv[]) {
                                    for (const auto &session :
                                         ws->getUserData()->getSessions()) {
                                      auto json = nlohmann::json();
-                                     auto creation_time = std::chrono::system_clock::to_time_t(session.second->getCreationTime());
-                                     auto access_time = std::chrono::system_clock::to_time_t(session.second->getAccessTime());
+                                     auto creation_time =
+                                         std::chrono::system_clock::to_time_t(
+                                             session.second->getCreationTime());
+                                     auto access_time =
+                                         std::chrono::system_clock::to_time_t(
+                                             session.second->getAccessTime());
                                      json["id"] = session.first;
-                                     json["creation_time"] = std::ctime(&creation_time);
-                                     json["access_time"] = std::ctime(&access_time);
+                                     json["creation_time"] =
+                                         std::ctime(&creation_time);
+                                     json["access_time"] =
+                                         std::ctime(&access_time);
                                      json["hasHash"] =
                                          session.second->hasHash();
 
