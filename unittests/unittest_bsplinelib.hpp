@@ -110,9 +110,9 @@ void test_bspline_eval(const Spline &bspline,
 
   BSplineValue_type bspline_val;
   if constexpr (precompute) {
-    auto knot_indices = bspline.find_knot_indices(xi);
+      auto knot_indices = bspline.find_knot_indices(xi);
+      auto coeff_indices = bspline.find_coeff_indices(knot_indices);
     auto basfunc = bspline.template eval_basfunc<deriv>(xi, knot_indices);
-    auto coeff_indices = bspline.find_coeff_indices(knot_indices);
     bspline_val = bspline.eval_from_precomputed(basfunc, coeff_indices,
                                                 xi[0].numel(), xi[0].sizes());
   } else

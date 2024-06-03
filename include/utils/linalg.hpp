@@ -205,5 +205,27 @@ inline auto kronproduct(T &&t, Ts &&...ts) {
                           kronproduct<dim>(std::forward<Ts>(ts)...));
 }
 
+/// @brief Computes the product of all std::array entries
+template <typename T, std::size_t N>
+inline T prod(std::array<T, N> array) {
+  T result{1};
+
+  for (std::size_t i = 0; i < N; ++i)
+    result *= array[i];
+
+  return result;
+}
+
+/// @brief Computes the sum of all std::array entries
+template <typename T, std::size_t N>
+inline T sum(std::array<T, N> array) {
+  T result{0};
+
+  for (std::size_t i = 0; i < N; ++i)
+    result += array[i];
+
+  return result;
+}
+  
 } // namespace utils
 } // namespace iganet

@@ -2312,13 +2312,13 @@ public:
   inline FunctionSpace clone() const { return FunctionSpace(*this); }
 
   /// @brief Returns the coefficients of the space as a single tensor
-  inline torch::Tensor as_tensor() const { return Base::as_tensor(); }
+  inline torch::Tensor as_tensor() const noexcept override { return Base::as_tensor(); }
 
   /// @brief Returns the size of the single tensor representation of the space
-  inline int64_t as_tensor_size() const { return Base::as_tensor_size(); }
+  inline int64_t as_tensor_size() const noexcept override { return Base::as_tensor_size(); }
 
   /// @brief Sets the coefficients of the space from a single tensor
-  inline auto &from_tensor(const torch::Tensor &coeffs) {
+  inline FunctionSpace& from_tensor(const torch::Tensor &coeffs) noexcept {
     Base::from_tensor(coeffs);
     boundary_.from_full_tensor(coeffs);
     return *this;

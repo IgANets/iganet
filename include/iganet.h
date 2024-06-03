@@ -23,4 +23,5 @@
 #include <layer.hpp>
 #include <memory.hpp>
 #include <options.hpp>
+#include <patch.hpp>
 #include <utils.hpp>

@@ -101,30 +101,30 @@ namespace detail {
 /// array of torch::TensorAccessor objects
 /// @{
 template <typename T, std::size_t N, std::size_t... Is>
-auto to_tensorAccessor(const TensorArray<sizeof...(Is)> &tensors,
+auto to_tensorAccessor(const TensorArray<sizeof...(Is)> &tensorArray,
                        std::index_sequence<Is...>) {
   return std::array<torch::TensorAccessor<T, N>, sizeof...(Is)>{
-      tensors[Is].template accessor<T, N>()...};
+      tensorArray[Is].template accessor<T, N>()...};
 }
 
 template <typename T, std::size_t N, std::size_t... Is>
-auto to_tensorAccessor(const TensorArray<sizeof...(Is)> &tensors,
+auto to_tensorAccessor(const TensorArray<sizeof...(Is)> &tensorArray,
                        c10::DeviceType deviceType, std::index_sequence<Is...>) {
-  std::array<torch::TensorBase, sizeof...(Is)> tensors_device{
-      tensors[Is].to(deviceType)...};
+  std::array<torch::TensorBase, sizeof...(Is)> tensorArray_device{
+      tensorArray[Is].to(deviceType)...};
   std::array<torch::TensorAccessor<T, N>, sizeof...(Is)> accessors{
-      tensors_device[Is].template accessor<T, N>()...};
-  return std::tuple(tensors_device, accessors);
+      tensorArray_device[Is].template accessor<T, N>()...};
+  return std::tuple(tensorArray_device, accessors);
 }
 
 template <typename T, std::size_t N, size_t... Dims, std::size_t... Is>
 auto to_tensorAccessor(const BlockTensor<torch::Tensor, Dims...> &blocktensor,
                        c10::DeviceType deviceType, std::index_sequence<Is...>) {
-  std::array<torch::TensorBase, sizeof...(Is)> tensors_device{
+  std::array<torch::TensorBase, sizeof...(Is)> tensorArray_device{
       blocktensor[Is]->to(deviceType)...};
   std::array<torch::TensorAccessor<T, N>, sizeof...(Is)> accessors{
-      tensors_device[Is].template accessor<T, N>()...};
-  return std::tuple(tensors_device, accessors);
+      tensorArray_device[Is].template accessor<T, N>()...};
+  return std::tuple(tensorArray_device, accessors);
 }
 /// @}
 } // namespace detail
@@ -133,15 +133,15 @@ auto to_tensorAccessor(const BlockTensor<torch::Tensor, Dims...> &blocktensor,
 /// array of torch::TensorAccessor objects
 /// @{
 template <typename T, std::size_t N, std::size_t M>
-auto to_tensorAccessor(const TensorArray<M> &tensors) {
-  return detail::to_tensorAccessor<T, N>(tensors,
+auto to_tensorAccessor(const TensorArray<M> &tensorArray) {
+  return detail::to_tensorAccessor<T, N>(tensorArray,
                                          std::make_index_sequence<M>());
 }
 
 template <typename T, std::size_t N, std::size_t M>
-auto to_tensorAccessor(const TensorArray<M> &tensors,
+auto to_tensorAccessor(const TensorArray<M> &tensorArray,
                        c10::DeviceType deviceType) {
-  return detail::to_tensorAccessor<T, N>(tensors, deviceType,
+  return detail::to_tensorAccessor<T, N>(tensorArray, deviceType,
                                          std::make_index_sequence<M>());
 }
 
@@ -155,6 +155,15 @@ auto to_tensorAccessor(const BlockTensor<torch::Tensor, Dims...> &blocktensor,
 
 } // namespace utils
 } // namespace iganet
+
+#define TENSORARRAY_FORALL(obj, func, ...)                  \
+  []<std::size_t N>(const ::iganet::utils::TensorArray<N>& tensorArray) \
+  {                                                                 \
+    ::iganet::utils::TensorArray<N> result;                         \
+    for (std::size_t i=0; i<N; ++i)                                 \
+      result[i] = tensorArray[i]. func(__VA_ARGS__);                \
+    return result;                                                  \
+  }(obj)
 
 namespace std {
 
