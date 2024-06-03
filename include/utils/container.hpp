@@ -241,17 +241,7 @@ template <typename... Ts> inline auto concat(std::vector<Ts> &&...vectors) {
 }
 /// @}
 
-/// @brief Adds two std::arrays
-template <typename T, std::size_t size>
-inline constexpr std::array<T, size> operator+(std::array<T, size> lhs,
-                                               std::array<T, size> rhs) {
-  std::array<T, size> result;
 
-  for (std::size_t i = 0; i < size; ++i)
-    result[i] = lhs[i] + rhs[i];
-
-  return result;
-}
 
 /// @brief Appends data to a torch::ArrayRef object
 template <typename T>
@@ -304,6 +294,92 @@ inline constexpr auto operator+(T data, std::vector<T> vector) {
   result.insert(result.begin(), data);
   return result;
 }
+
+/// @brief Creates an std::array object filled with a constant
+template<typename T, std::size_t N>
+inline constexpr auto make_array(T value) {
+  std::array<T,N> result;
+  result.fill(value);
+  return result;
+}
+
+  /// @brief Creates an std::array object from another std::array object
+  template<typename T, typename U, std::size_t N>
+  inline constexpr std::array<T,N> make_array(std::array<U,N> array) {
+  std::array<T,N> result;
+  for (std::size_t i = 0; i < N; ++i)
+    result[i] = static_cast<T>(array[i]);
+  return result;
+}
+
+  /// @brief Negates all entries of an std::array
+template <typename T, std::size_t N>
+inline constexpr std::array<T, N> operator-(std::array<T, N> array) {
+  std::array<T, N> result;
+  for (std::size_t i = 0; i < N; ++i)
+    result[i] = -array[i];
+  return result;
+}
+  
+/// @brief Adds two std::arrays
+template <typename T, std::size_t N>
+inline constexpr std::array<T, N> operator+(std::array<T, N> lhs,
+                                               std::array<T, N> rhs) {
+  std::array<T, N> result;
+  for (std::size_t i = 0; i < N; ++i)
+    result[i] = lhs[i] + rhs[i];
+  return result;
+}
+
+/// @brief Subtracts one std::array from another std::array
+template <typename T, std::size_t N>
+inline constexpr std::array<T, N> operator-(std::array<T, N> lhs,
+                                               std::array<T, N> rhs) {
+  std::array<T, N> result;
+  for (std::size_t i = 0; i < N; ++i)
+    result[i] = lhs[i] - rhs[i];
+  return result;
+}
+
+/// @brief Multiplies two std::arrays
+template <typename T, std::size_t N>
+inline constexpr std::array<T, N> operator*(std::array<T, N> lhs,
+                                               std::array<T, N> rhs) {
+  std::array<T, N> result;
+  for (std::size_t i = 0; i < N; ++i)
+    result[i] = lhs[i] * rhs[i];
+  return result;
+}
+
+/// @brief Divides one std::array by another std::array
+template <typename T, std::size_t N>
+inline constexpr std::array<T, N> operator/(std::array<T, N> lhs,
+                                               std::array<T, N> rhs) {
+  std::array<T, N> result;
+  for (std::size_t i = 0; i < N; ++i)
+    result[i] = lhs[i] / rhs[i];
+  return result;
+}
+
+/// @brief Derives an std::array object from a given std::array object dropping the first M entries
+  template <typename T, std::size_t N, std::size_t M=1>
+inline constexpr std::array<T, N-M> remove_from_front(std::array<T, N> array) {
+
+  std::array<T, N-M> result;
+  for (std::size_t i = 0; i < N-M; ++i)
+    result[i] = array[i+M];
+  return result;
+}
+
+  /// @brief Derives an std::array object from a given std::array object dropping the last M entries
+  template <typename T, std::size_t N, std::size_t M=1>
+inline constexpr std::array<T, N-M> remove_from_back(std::array<T, N> array) {
+
+  std::array<T, N-M> result;
+  for (std::size_t i = 0; i < N-M; ++i)
+    result[i] = array[i];
+  return result;
+  }
 
 } // namespace utils
 } // namespace iganet
