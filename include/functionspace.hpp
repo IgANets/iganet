@@ -25,7 +25,7 @@ namespace iganet {
 
 using namespace literals;
 using utils::operator+;
-using utils:operator-;
+using utils::operator-;
 
 /// @brief Enumerator for the function space component
 enum class functionspace : short_t {
@@ -3759,7 +3759,7 @@ public:
   
   /// @brief Constructor
   /// @{
-  RT(const std::array<int64_t, 3>& ncoeffs, enum init init = init::zeros,
+  Hcurl(const std::array<int64_t, 3>& ncoeffs, enum init init = init::zeros,
       Options<typename Spline::value_type> options =
       iganet::Options<typename Spline::value_type>{})
       : Base(ncoeffs + utils::to_array(1_i64, 0_i64, 0_i64),
@@ -3767,7 +3767,7 @@ public:
           ncoeffs - utils::to_array(0_i64, 0_i64, 1_i64),
           init, options) {}
 
-  RT(const std::array<std::vector<typename Spline::value_type>, 3>& kv,
+  Hcurl(const std::array<std::vector<typename Spline::value_type>, 3>& kv,
       enum init init = init::zeros,
       Options<typename Spline::value_type> options =
       iganet::Options<typename Spline::value_type>{})
