@@ -137,7 +137,7 @@ int main() {
            {iganet::activation::none}},
           // Number of B-spline coefficients of the geometry, has to correspond
           // to number of coefficients in input file
-          std::tuple(iganet::utils::to_array(10_i64, 10_i64)));
+          std::tuple(iganet::utils::to_array(4_i64, 25_i64)));
 
   // Load geometry parameterization from XML
   net.G().from_xml(xml);
