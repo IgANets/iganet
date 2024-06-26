@@ -1215,18 +1215,6 @@ public:
       os << "u = " << Base::u_ << "\n)";
   }
 
-  /// @brief Evaluates the model at given inputs
-  inline void eval() {
-    torch::Tensor inputs, outputs;
-    inputs = this->inputs(0);
-    // perform prediction
-    outputs = net_->forward(inputs);
-    // Cast the network output (a raw tensor) into the proper
-    // function-space format, i.e. B-spline objects for the interior
-    // and boundary parts that can be evaluated.
-    Base::u_.from_tensor(outputs.flatten());
-  }
-
   /// @brief Saves the IgANet to file
   inline void save(const std::string &filename,
                    const std::string &key = "iganet") const {
