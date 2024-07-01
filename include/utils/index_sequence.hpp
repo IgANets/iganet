@@ -19,23 +19,22 @@
 namespace iganet {
 namespace utils {
 
-  namespace detail {
+namespace detail {
 
-    /// @brief Reverse index sequence helper
-    template <std::size_t, typename>
-    struct make_reverse_index_sequence_helper;
+/// @brief Reverse index sequence helper
+template <std::size_t, typename> struct make_reverse_index_sequence_helper;
 
-    template <std::size_t N, std::size_t...NN>
-    struct make_reverse_index_sequence_helper<N, std::index_sequence<NN...>> 
-      : std::index_sequence<(N - NN)...> {};
-    
-  } // namespace detail
+template <std::size_t N, std::size_t... NN>
+struct make_reverse_index_sequence_helper<N, std::index_sequence<NN...>>
+    : std::index_sequence<(N - NN)...> {};
 
-  /// @brief Reverse index sequence
-  template <std::size_t N>
-  struct make_reverse_index_sequence 
-    : detail::make_reverse_index_sequence_helper<N - 1, 
-        decltype(std::make_index_sequence<N>{})> {};   
-  
+} // namespace detail
+
+/// @brief Reverse index sequence
+template <std::size_t N>
+struct make_reverse_index_sequence
+    : detail::make_reverse_index_sequence_helper<
+          N - 1, decltype(std::make_index_sequence<N>{})> {};
+
 } // namespace utils
 } // namespace iganet

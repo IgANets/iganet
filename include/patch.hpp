@@ -22,10 +22,8 @@
 namespace iganet {
 
 /// @brief Abstract patch function base class
-template <typename real_t, short_t GeoDim, short_t ParDim>
-class SplinePatch {
+template <typename real_t, short_t GeoDim, short_t ParDim> class BSplinePatch {
 public:
-
   /// @brief Returns the `device` property
   virtual torch::Device device() const noexcept = 0;
 
@@ -48,13 +46,13 @@ public:
   virtual bool is_sparse() const noexcept = 0;
 
   /// @brief Sets the B-spline object's `requires_grad` property
-  virtual SplinePatch &set_requires_grad(bool requires_grad) noexcept = 0;
+  virtual BSplinePatch &set_requires_grad(bool requires_grad) noexcept = 0;
 
   // @brief Returns all coefficients as a single tensor
   virtual torch::Tensor as_tensor() const noexcept = 0;
 
   /// @brief Sets all coefficients from a single tensor
-  virtual SplinePatch &from_tensor(const torch::Tensor &tensor) noexcept = 0;
+  virtual BSplinePatch &from_tensor(const torch::Tensor &tensor) noexcept = 0;
 
   /// @brief Returns the size of the single tensor representation of
   /// all coefficients
@@ -65,19 +63,26 @@ public:
   /// @{
   virtual utils::BlockTensor<torch::Tensor, 1, GeoDim>
   eval_from_precomputed(const torch::Tensor &basfunc,
-                        const torch::Tensor &coeff_indices,
-                        int64_t numeval,
+                        const torch::Tensor &coeff_indices, int64_t numeval,
                         torch::IntArrayRef sizes) const = 0;
 
   virtual utils::BlockTensor<torch::Tensor, 1, GeoDim>
   eval_from_precomputed(const utils::TensorArray<ParDim> &basfunc,
-                        const torch::Tensor &coeff_indices,
-                        int64_t numeval,
+                        const torch::Tensor &coeff_indices, int64_t numeval,
                         torch::IntArrayRef sizes) const = 0;
   /// @}
 
-  
-  
+  /// @brief Returns a string representation
+  virtual void
+  pretty_print(std::ostream &os = Log(log::info)) const noexcept = 0;
 };
+
+/// @brief Print (as string) a BSplinePatch object
+template <typename real_t, short_t GeoDim, short_t ParDim>
+inline std::ostream &
+operator<<(std::ostream &os, const BSplinePatch<real_t, GeoDim, ParDim> &obj) {
+  obj.pretty_print(os);
+  return os;
+}
 
 } // namespace iganet

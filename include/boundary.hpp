@@ -49,6 +49,10 @@ template <typename Spline, short_t> class BoundaryCore;
 template <typename Spline>
 class BoundaryCore<Spline, /* parDim */ 1> : public utils::Serializable,
                                              private utils::FullQualifiedName {
+
+  // Safeguard that template parameter is a valid SplineType
+  static_assert(is_SplineType_v<Spline>, "Spline must be a valid SplineType");
+
   /// @brief Enable access to private members
   template <typename BoundaryCore> friend class BoundaryCommon;
 
@@ -211,6 +215,10 @@ public:
 template <typename Spline>
 class BoundaryCore<Spline, /* parDim */ 2> : public utils::Serializable,
                                              private utils::FullQualifiedName {
+
+  // Safeguard that template parameter is a valid SplineType
+  static_assert(is_SplineType_v<Spline>, "Spline must be a valid SplineType");
+
   /// @brief Enable access to private members
   template <typename BoundaryCore> friend class BoundaryCommon;
 
@@ -319,8 +327,8 @@ public:
 
     if (tensor.dim() > 1) {
       auto tensor_view =
-          tensor.view({Spline::geoDim(), side<west>().ncoeffs(0),
-                       side<south>().ncoeffs(0), tensor.size(-1)});
+          tensor.view({-1, side<west>().ncoeffs(0), side<south>().ncoeffs(0),
+                       tensor.size(-1)});
 
       side<west>().from_tensor(
           tensor_view
@@ -339,8 +347,8 @@ public:
               .index({torch::indexing::Slice(), -1, torch::indexing::Slice()})
               .reshape({-1, tensor.size(-1)}));
     } else {
-      auto tensor_view = tensor.view({Spline::geoDim(), side<west>().ncoeffs(0),
-                                      side<south>().ncoeffs(0)});
+      auto tensor_view =
+          tensor.view({-1, side<west>().ncoeffs(0), side<south>().ncoeffs(0)});
 
       side<west>().from_tensor(
           tensor_view
@@ -446,6 +454,10 @@ public:
 template <typename Spline>
 class BoundaryCore<Spline, /* parDim */ 3> : public utils::Serializable,
                                              private utils::FullQualifiedName {
+
+  // Safeguard that template parameter is a valid SplineType
+  static_assert(is_SplineType_v<Spline>, "Spline must be a valid SplineType");
+
   /// @brief Enable access to private members
   template <typename BoundaryCore> friend class BoundaryCommon;
 
@@ -583,9 +595,9 @@ public:
   inline auto &from_full_tensor(const torch::Tensor &tensor) {
 
     if (tensor.dim() > 1) {
-      auto tensor_view = tensor.view(
-          {Spline::geoDim(), side<west>().ncoeffs(1), side<west>().ncoeffs(0),
-           side<south>().ncoeffs(0), tensor.size(-1)});
+      auto tensor_view =
+          tensor.view({-1, side<west>().ncoeffs(1), side<west>().ncoeffs(0),
+                       side<south>().ncoeffs(0), tensor.size(-1)});
 
       side<west>().from_tensor(
           tensor_view
@@ -619,8 +631,8 @@ public:
               .reshape({-1, tensor.size(-1)}));
     } else {
       auto tensor_view =
-          tensor.view({Spline::geoDim(), side<west>().ncoeffs(1),
-                       side<west>().ncoeffs(0), side<south>().ncoeffs(0)});
+          tensor.view({-1, side<west>().ncoeffs(1), side<west>().ncoeffs(0),
+                       side<south>().ncoeffs(0)});
 
       side<west>().from_tensor(
           tensor_view
@@ -753,6 +765,10 @@ public:
 template <typename Spline>
 class BoundaryCore<Spline, /* parDim */ 4> : public utils::Serializable,
                                              private utils::FullQualifiedName {
+
+  // Safeguard that template parameter is a valid SplineType
+  static_assert(is_SplineType_v<Spline>, "Spline must be a valid SplineType");
+
   /// @brief Enable access to private members
   template <typename BoundaryCore> friend class BoundaryCommon;
 
@@ -919,7 +935,7 @@ public:
 
     if (tensor.dim() > 1) {
       auto tensor_view = tensor.view(
-          {Spline::geoDim(), side<west>().ncoeffs(2), side<west>().ncoeffs(1),
+          {-1, side<west>().ncoeffs(2), side<west>().ncoeffs(1),
            side<west>().ncoeffs(0), side<south>().ncoeffs(0), tensor.size(-1)});
 
       side<west>().from_tensor(
@@ -963,9 +979,9 @@ public:
                       torch::indexing::Slice(), torch::indexing::Slice()})
               .reshape({-1, tensor.size(-1)}));
     } else {
-      auto tensor_view = tensor.view(
-          {Spline::geoDim(), side<west>().ncoeffs(2), side<west>().ncoeffs(1),
-           side<west>().ncoeffs(0), side<south>().ncoeffs(0)});
+      auto tensor_view =
+          tensor.view({-1, side<west>().ncoeffs(2), side<west>().ncoeffs(1),
+                       side<west>().ncoeffs(0), side<south>().ncoeffs(0)});
 
       side<west>().from_tensor(
           tensor_view
@@ -1106,8 +1122,23 @@ public:
 
 /// @brief
 
+namespace detail {
+/// @brief Boundary type
+class BoundaryType {};
+} // namespace detail
+
+/// @brief Type trait to check if T is a valid Boundary type
+template <typename... T>
+using is_BoundaryType =
+    std::conjunction<std::is_base_of<detail::BoundaryType, T>...>;
+
+/// @brief Alias to the value of is_BoundaryType
+template <typename... T>
+inline constexpr bool is_BoundaryType_v = is_BoundaryType<T...>::value;
+
 /// @brief Boundary (common high-level functionality)
-template <typename BoundaryCore> class BoundaryCommon : public BoundaryCore {
+template <typename BoundaryCore>
+class BoundaryCommon : private detail::BoundaryType, public BoundaryCore {
 public:
   /// @brief Constructors from the base class
   using BoundaryCore::BoundaryCore;

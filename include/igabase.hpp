@@ -148,60 +148,60 @@ private:
     case collPts::greville:
       // Get Greville abscissae inside the domain and at the boundary
       ((std::get<Is>(collPts_.first) =
-            std::get<Is>(G_).greville(/* interior */ false)),
+            G_.template space<Is>().greville(/* interior */ false)),
        ...);
 
       // Get Greville abscissae at the domain
-      ((std::get<Is>(collPts_.second) = std::get<Is>(G_.boundary()).greville()),
+      ((std::get<Is>(collPts_.second) = G_.template boundary<Is>().greville()),
        ...);
       break;
 
     case collPts::greville_interior:
       // Get Greville abscissae inside the domain
       ((std::get<Is>(collPts_.first) =
-            std::get<Is>(G_).greville(/* interior */ true)),
+            G_.template space<Is>().greville(/* interior */ true)),
        ...);
 
       // Get Greville abscissae at the domain
-      ((std::get<Is>(collPts_.second) = std::get<Is>(G_.boundary()).greville()),
+      ((std::get<Is>(collPts_.second) = G_.template boundary<Is>().greville()),
        ...);
       break;
 
     case collPts::greville_ref1:
       // Get Greville abscissae inside the domain and at the boundary
       ((std::get<Is>(collPts_.first) =
-            std::get<Is>(G_).clone().uniform_refine().greville(
+            G_.template space<Is>().clone().uniform_refine().greville(
                 /* interior */ false)),
        ...);
 
       // Get Greville abscissae at the domain
       ((std::get<Is>(collPts_.second) =
-            std::get<Is>(G_.boundary()).clone().uniform_refine().greville()),
+            G_.template boundary<Is>().clone().uniform_refine().greville()),
        ...);
       break;
 
     case collPts::greville_interior_ref1:
       // Get Greville abscissae inside the domain
       ((std::get<Is>(collPts_.first) =
-            std::get<Is>(G_).clone().uniform_refine().greville(
+            G_.template space<Is>().clone().uniform_refine().greville(
                 /* interior */ true)),
        ...);
 
       // Get Greville abscissae at the domain
       ((std::get<Is>(collPts_.second) =
-            std::get<Is>(G_.boundary()).clone().uniform_refine().greville()),
+            G_.template boundary<Is>().clone().uniform_refine().greville()),
        ...);
       break;
 
     case collPts::greville_ref2:
       // Get Greville abscissae inside the domain and at the boundary
       ((std::get<Is>(collPts_.first) =
-            std::get<Is>(G_).clone().uniform_refine(2, -1).greville(
+            G_.template space<Is>().clone().uniform_refine(2, -1).greville(
                 /* interior */ false)),
        ...);
 
       // Get Greville abscissae at the domain
-      ((std::get<Is>(collPts_.second) = std::get<Is>(G_.boundary())
+      ((std::get<Is>(collPts_.second) = G_.template boundary<Is>()
                                             .clone()
                                             .uniform_refine(2, -1)
                                             .greville()),
@@ -211,12 +211,12 @@ private:
     case collPts::greville_interior_ref2:
       // Get Greville abscissae inside the domain
       ((std::get<Is>(collPts_.first) =
-            std::get<Is>(G_).clone().uniform_refine(2, -1).greville(
+            G_.template space<Is>().clone().uniform_refine(2, -1).greville(
                 /* interior */ true)),
        ...);
 
       // Get Greville abscissae at the domain
-      ((std::get<Is>(collPts_.second) = std::get<Is>(G_.boundary())
+      ((std::get<Is>(collPts_.second) = G_.template boundary<Is>()
                                             .clone()
                                             .uniform_refine(2, -1)
                                             .greville()),
@@ -246,60 +246,60 @@ private:
     case collPts::greville:
       // Get Greville abscissae inside the domain and at the boundary
       ((std::get<Is>(collPts_.first) =
-            std::get<Is>(u_).greville(/* interior */ false)),
+            u_.template space<Is>().greville(/* interior */ false)),
        ...);
 
       // Get Greville abscissae at the domain
-      ((std::get<Is>(collPts_.second) = std::get<Is>(u_.boundary()).greville()),
+      ((std::get<Is>(collPts_.second) = u_.template boundary<Is>().greville()),
        ...);
       break;
 
     case collPts::greville_interior:
       // Get Greville abscissae inside the domain and at the boundary
       ((std::get<Is>(collPts_.first) =
-            std::get<Is>(u_).greville(/* interior */ true)),
+            u_.template space<Is>().greville(/* interior */ true)),
        ...);
 
       // Get Greville abscissae at the domain
-      ((std::get<Is>(collPts_.second) = std::get<Is>(u_.boundary()).greville()),
+      ((std::get<Is>(collPts_.second) = u_.template boundary<Is>().greville()),
        ...);
       break;
 
     case collPts::greville_ref1:
       // Get Greville abscissae inside the domain and at the boundary
       ((std::get<Is>(collPts_.first) =
-            std::get<Is>(u_).clone().uniform_refine().greville(
+            u_.template space<Is>().clone().uniform_refine().greville(
                 /* interior */ false)),
        ...);
 
       // Get Greville abscissae at the domain
       ((std::get<Is>(collPts_.second) =
-            std::get<Is>(u_.boundary()).clone().uniform_refine().greville()),
+            u_.template boundary<Is>().clone().uniform_refine().greville()),
        ...);
       break;
 
     case collPts::greville_interior_ref1:
       // Get Greville abscissae inside the domain and at the boundary
       ((std::get<Is>(collPts_.first) =
-            std::get<Is>(u_).clone().uniform_refine().greville(
+            u_.template space<Is>().clone().uniform_refine().greville(
                 /* interior */ true)),
        ...);
 
       // Get Greville abscissae at the domain
       ((std::get<Is>(collPts_.second) =
-            std::get<Is>(u_.boundary()).clone().uniform_refine().greville()),
+            u_.template boundary<Is>().clone().uniform_refine().greville()),
        ...);
       break;
 
     case collPts::greville_ref2:
       // Get Greville abscissae inside the domain and at the boundary
       ((std::get<Is>(collPts_.first) =
-            std::get<Is>(u_).clone().uniform_refine(2, -1).greville(
+            u_.template space<Is>().clone().uniform_refine(2, -1).greville(
                 /* interior */ false)),
        ...);
 
       // Get Greville abscissae at the domain
-      ((std::get<Is>(collPts_.second) = std::get<Is>(u_.boundary())
+      ((std::get<Is>(collPts_.second) = u_.template boundary<Is>()
                                             .clone()
                                             .uniform_refine(2, -1)
                                             .greville()),
@@ -309,12 +309,12 @@ private:
     case collPts::greville_interior_ref2:
       // Get Greville abscissae inside the domain and at the boundary
       ((std::get<Is>(collPts_.first) =
-            std::get<Is>(u_).clone().uniform_refine(2, -1).greville(
+            u_.template space<Is>().clone().uniform_refine(2, -1).greville(
                 /* interior */ true)),
        ...);
 
       // Get Greville abscissae at the domain
-      ((std::get<Is>(collPts_.second) = std::get<Is>(u_.boundary())
+      ((std::get<Is>(collPts_.second) = u_.template boundary<Is>()
                                             .clone()
                                             .uniform_refine(2, -1)
                                             .greville()),
@@ -342,26 +342,32 @@ public:
       switch (collPts) {
 
       case collPts::greville:
-        return {G_.greville(/* interior */ false), G_.boundary().greville()};
+        return {G_.space().greville(/* interior */ false),
+                G_.boundary().greville()};
 
       case collPts::greville_interior:
-        return {G_.greville(/* interior */ true), G_.boundary().greville()};
+        return {G_.space().greville(/* interior */ true),
+                G_.boundary().greville()};
 
       case collPts::greville_ref1:
-        return {G_.clone().uniform_refine().greville(/* interior */ false),
-                G_.clone().uniform_refine().boundary().greville()};
+        return {
+            G_.space().clone().uniform_refine().greville(/* interior */ false),
+            G_.boundary().clone().uniform_refine().greville()};
 
       case collPts::greville_interior_ref1:
-        return {G_.clone().uniform_refine().greville(/* interior */ true),
-                G_.clone().uniform_refine().boundary().greville()};
+        return {
+            G_.space().clone().uniform_refine().greville(/* interior */ true),
+            G_.boundary().clone().uniform_refine().greville()};
 
       case collPts::greville_ref2:
-        return {G_.clone().uniform_refine(2, -1).greville(/* interior */ false),
-                G_.clone().uniform_refine(2, -1).boundary().greville()};
+        return {G_.space().clone().uniform_refine(2, -1).greville(
+                    /* interior */ false),
+                G_.boundary().clone().uniform_refine(2, -1).greville()};
 
       case collPts::greville_interior_ref2:
-        return {G_.clone().uniform_refine(2, -1).greville(/* interior */ true),
-                G_.clone().uniform_refine(2, -1).boundary().greville()};
+        return {G_.space().clone().uniform_refine(2, -1).greville(
+                    /* interior */ true),
+                G_.boundary().clone().uniform_refine(2, -1).greville()};
 
       default:
         throw std::runtime_error("Invalid collocation point specifier");
@@ -384,26 +390,32 @@ public:
       switch (collPts) {
 
       case collPts::greville:
-        return {u_.greville(/* interior */ false), u_.boundary().greville()};
+        return {u_.space().greville(/* interior */ false),
+                u_.boundary().greville()};
 
       case collPts::greville_interior:
-        return {u_.greville(/* interior */ true), u_.boundary().greville()};
+        return {u_.space().greville(/* interior */ true),
+                u_.boundary().greville()};
 
       case collPts::greville_ref1:
-        return {u_.clone().uniform_refine().greville(/* interior */ false),
-                u_.boundary().clone().uniform_refine().greville()};
+        return {
+            u_.space().clone().uniform_refine().greville(/* interior */ false),
+            u_.boundary().clone().uniform_refine().greville()};
 
       case collPts::greville_interior_ref1:
-        return {u_.clone().uniform_refine().greville(/* interior */ true),
-                u_.clone().uniform_refine().boundary().greville()};
+        return {
+            u_.space().clone().uniform_refine().greville(/* interior */ true),
+            u_.boundary().clone().uniform_refine().greville()};
 
       case collPts::greville_ref2:
-        return {u_.clone().uniform_refine(2, -1).greville(/* interior */ false),
+        return {u_.space().clone().uniform_refine(2, -1).greville(
+                    /* interior */ false),
                 u_.boundary().clone().uniform_refine(2, -1).greville()};
 
       case collPts::greville_interior_ref2:
-        return {u_.clone().uniform_refine(2, -1).greville(/* interior */ true),
-                u_.clone().uniform_refine(2, -1).boundary().greville()};
+        return {u_.space().clone().uniform_refine(2, -1).greville(
+                    /* interior */ true),
+                u_.boundary().clone().uniform_refine(2, -1).greville()};
 
       default:
         throw std::runtime_error("Invalid collocation point specifier");

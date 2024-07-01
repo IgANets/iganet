@@ -841,6 +841,7 @@ The `optiontype descriptor` must be one of the following
 
 | `type`        | description  | value format example | enum value |
 |--------------:|:-------------|:---------------------|------------|
+| `bool`        | boolean value| `"value" : 0`        |
 | `int`         | integer value| `"value" : 5` or     |
 ||| `"value" : [5,5]`  |
 | `float`       | float value  | `"value" : 5.0` or  |

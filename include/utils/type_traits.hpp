@@ -37,8 +37,43 @@ struct is_tuple_of_tuples<std::tuple<Ts...>>
     : std::common_type<is_tuple<Ts>...>::type {};
 /// @}
 
+/// @brief Alias for is_tuple_of_tuples::type
 template <class T>
-inline constexpr bool is_tuple_of_tuples_v = is_tuple_of_tuples<T>::value;
+using is_tuple_of_tuples_t = typename is_tuple_of_tuples<T>::type;
+
+/// @brief Alias for is_tuple_of_tuples::value
+template <class T>
+inline constexpr auto is_tuple_of_tuples_v = is_tuple_of_tuples<T>::value;
+
+/// @brief Type trait for concatenating std::tuples
+/// @{
+template <typename... Tuples> struct tuple_cat;
+
+template <> struct tuple_cat<> {
+  using type = std::tuple<>;
+};
+
+template <typename... Ts, typename... Tuples>
+struct tuple_cat<std::tuple<Ts...>, Tuples...> {
+  using type = decltype(std::tuple_cat(
+      std::declval<std::tuple<Ts...>>(),
+      std::declval<typename tuple_cat<Tuples...>::type>()));
+};
+
+template <typename T, typename... Tuples> struct tuple_cat<T, Tuples...> {
+  using type = decltype(std::tuple_cat(
+      std::declval<std::tuple<T>>(),
+      std::declval<typename tuple_cat<Tuples...>::type>()));
+};
+/// @}
+
+/// @brief Alias for tuple_cat::type
+template <typename... Tuples>
+using tuple_cat_t = typename tuple_cat<Tuples...>::type;
+
+/// @brief Alias for tuple_cat::value
+template <typename... Tuples>
+inline constexpr auto tuple_cat_v = tuple_cat<Tuples...>::value;
 
 } // namespace utils
 } // namespace iganet

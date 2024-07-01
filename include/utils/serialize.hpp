@@ -108,36 +108,68 @@ inline auto to_json(const utils::TensorArray<M> &tensors) {
 /// @brief Converts a gismo::gsMatrix object to a JSON object
 template <typename T, int Rows, int Cols, int Options>
 inline auto to_json(const gismo::gsMatrix<T, Rows, Cols, Options> &matrix,
-                    bool flatten = false) {
+                    bool flatten = false, bool transpose = false) {
   auto json = nlohmann::json::array();
 
   if constexpr (Options == gismo::RowMajor) {
     if (flatten) {
-      for (std::size_t i = 0; i < matrix.rows(); ++i)
+      if (transpose) {
         for (std::size_t j = 0; j < matrix.cols(); ++j)
-          json.push_back(matrix(i, j));
+          for (std::size_t i = 0; i < matrix.rows(); ++i)
+            json.push_back(matrix(i, j));
+      } else {
+        for (std::size_t i = 0; i < matrix.rows(); ++i)
+          for (std::size_t j = 0; j < matrix.cols(); ++j)
+            json.push_back(matrix(i, j));
+      }
     } else {
-      for (std::size_t i = 0; i < matrix.rows(); ++i) {
-        auto data = nlohmann::json::array();
+      if (transpose) {
         for (std::size_t j = 0; j < matrix.cols(); ++j) {
-          data.push_back(matrix(i, j));
+          auto data = nlohmann::json::array();
+          for (std::size_t i = 0; i < matrix.rows(); ++i) {
+            data.push_back(matrix(i, j));
+          }
+          json.emplace_back(data);
         }
-        json.emplace_back(data);
+      } else {
+        for (std::size_t i = 0; i < matrix.rows(); ++i) {
+          auto data = nlohmann::json::array();
+          for (std::size_t j = 0; j < matrix.cols(); ++j) {
+            data.push_back(matrix(i, j));
+          }
+          json.emplace_back(data);
+        }
       }
     }
 
   } else if constexpr (Options == gismo::ColMajor) {
     if (flatten) {
-      for (std::size_t j = 0; j < matrix.cols(); ++j)
+      if (transpose) {
         for (std::size_t i = 0; i < matrix.rows(); ++i)
-          json.push_back(matrix(i, j));
+          for (std::size_t j = 0; j < matrix.cols(); ++j)
+            json.push_back(matrix(i, j));
+      } else {
+        for (std::size_t j = 0; j < matrix.cols(); ++j)
+          for (std::size_t i = 0; i < matrix.rows(); ++i)
+            json.push_back(matrix(i, j));
+      }
     } else {
-      for (std::size_t j = 0; j < matrix.cols(); ++j) {
-        auto data = nlohmann::json::array();
+      if (transpose) {
         for (std::size_t i = 0; i < matrix.rows(); ++i) {
-          data.push_back(matrix(i, j));
+          auto data = nlohmann::json::array();
+          for (std::size_t j = 0; j < matrix.cols(); ++j) {
+            data.push_back(matrix(i, j));
+          }
+          json.emplace_back(data);
         }
-        json.emplace_back(data);
+      } else {
+        for (std::size_t j = 0; j < matrix.cols(); ++j) {
+          auto data = nlohmann::json::array();
+          for (std::size_t i = 0; i < matrix.rows(); ++i) {
+            data.push_back(matrix(i, j));
+          }
+          json.emplace_back(data);
+        }
       }
     }
 

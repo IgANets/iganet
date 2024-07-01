@@ -53,6 +53,9 @@ public:
   /// @brief Returns the model's outputs
   nlohmann::json getOutputs() const override { return R"([])"_json; }
 
+  /// @brief Returns the model's parameters
+  nlohmann::json getParameters() const override { return R"([])"_json; }
+
   /// @brief Serializes the model to JSON
   nlohmann::json to_json(const std::string &component,
                          const std::string &attribute) const override {

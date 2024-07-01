@@ -12,7 +12,10 @@
    file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
 
+#pragma once
+
 #include <GismoModel.hpp>
+#include <GismoSurfaceReparameterization.hpp>
 
 namespace iganet {
 
@@ -22,6 +25,7 @@ namespace webapp {
 template <short_t d, class T>
 class GismoPdeModel : public GismoModel<T>,
                       public ModelElevate,
+                      public ModelEval,
                       public ModelIncrease,
                       public ModelRefine,
                       public ModelReparameterize {
@@ -215,6 +219,17 @@ public:
               "type" : 2}])"_json;
   }
 
+  /// @brief Returns the model's outputs
+  nlohmann::json getOutputs() const override {
+    return R"([{
+           "name" : "ScaledJacobian",
+           "description" : "Scaled Jacobian of the geometry mapping as quality measure for orthogonality",
+           "type" : 1},{
+           "name" : "UniformityMetric",
+           "description" : "Uniformity metric quality measure for area distortion of the geometry map",
+           "type" : 1}])"_json;
+  }
+
   /// @brief Serializes the model to JSON
   nlohmann::json to_json(const std::string &component,
                          const std::string &attribute) const override {
@@ -379,6 +394,79 @@ public:
       return GismoModel<T>::updateAttribute(component, attribute, json);
   }
 
+  /// @brief Evaluates the model
+  nlohmann::json eval(const std::string &component,
+                      const nlohmann::json &json) const override {
+
+    if (component == "ScaledJacobian" || component == "UniformityMetric") {
+
+      // Create uniform grid
+      gsMatrix<T> ab = geo_.patch(0).support();
+      gsVector<T> a = ab.col(0);
+      gsVector<T> b = ab.col(1);
+
+      gsVector<unsigned> np(geo_.parDim());
+      np.setConstant(25);
+
+      if (json.contains("data"))
+        if (json["data"].contains("resolution")) {
+          auto res = json["data"]["resolution"].get<std::array<int64_t, d>>();
+
+          for (std::size_t i = 0; i < d; ++i)
+            np(i) = res[i];
+        }
+
+      // Uniform parameters for evaluation
+      gsMatrix<T> pts = gsPointGrid(a, b, np);
+      gsMatrix<T> eval(1, pts.cols());
+
+      gsExprEvaluator<T> ev;
+      gsMultiBasis<T> basis(geo_);
+      ev.setIntegrationElements(basis);
+      typename gsExprAssembler<T>::geometryMap G = ev.getMap(geo_);
+
+      if (component == "ScaledJacobian") {
+
+        int parDim = geo_.parDim();
+
+        if (parDim == 2 && geo_.geoDim() == 3) {
+          for (std::size_t i = 0; i < pts.cols(); i++) {
+            auto jac = ev.eval(expr::jac(G), pts.col(i));
+            eval(0, i) = jac.col(0).dot(jac.col(1));
+            for (std::size_t j = 0; j < parDim; j++)
+              eval(0, i) /= (jac.col(j).norm());
+          }
+        } else {
+          for (std::size_t i = 0; i < pts.cols(); i++) {
+            auto jac = ev.eval(expr::jac(G), pts.col(i));
+            eval(0, i) = jac.determinant();
+            for (std::size_t j = 0; j < parDim; j++)
+              eval(0, i) /= (jac.col(j).norm());
+          }
+        }
+
+        eval.resize(np(0), np(1));
+        return utils::to_json(eval, true, true);
+      }
+
+      else if (component == "UniformityMetric") {
+
+        T areaTotal = ev.integral(expr::meas(G));
+        gsConstantFunction<T> areaConstFunc(areaTotal, geo_.parDim());
+        auto area = ev.getVariable(areaConstFunc);
+        auto expr = expr::pow((expr::meas(G) - area.val()) / area.val(), 2);
+
+        for (std::size_t i = 0; i < pts.cols(); i++)
+          eval(0, i) = ev.eval(expr, pts.col(i))(0);
+
+        eval.resize(np(0), np(1));
+        return utils::to_json(eval, true, true);
+      } else
+        return R"({ INVALID REQUEST })"_json;
+    } else
+      return R"({ INVALID REQUEST })"_json;
+  }
+
   /// @brief Elevates the model's degrees, preserves smoothness
   void elevate(const nlohmann::json &json = NULL) override {
     int num = 1, dim = -1;
@@ -443,12 +531,84 @@ public:
 
     if (type == "surface") {
 
-    } else if (type == "volume") {
-      gismo::gsBarrierPatch<d, T> opt(geo_, false);
-      opt.options().setInt("ParamMethod", 1);
-      opt.compute();
+      if (geo_.parDim() == 2) {
+        // bivariate surface
+        gismo::gsMatrix<T, 2, 2> alpha;
+        alpha.setConstant(0.5);
+        gismo::gsMobiusDomain<2, T> mobiusDomain(alpha);
+        gismo::gsVector<real_t> initialGuessVector(4);
+        initialGuessVector.setConstant(0.5);
 
-      geo_ = opt.result();
+        gsObjFuncSurface<T> objFuncSurface(geo_, mobiusDomain);
+        gismo::gsHLBFGS<real_t> optimizer(&objFuncSurface);
+
+        optimizer.options().addReal("MinGradientLength",
+                                    "Minimum gradient length", 1e-5);
+        optimizer.options().addReal("MinStepLength", "Minimum step length",
+                                    1e-5);
+        optimizer.options().addInt("MaxIterations",
+                                   "Maximum number of iterations", 200);
+        optimizer.options().addInt("Verbose", "Verbose output", 1);
+
+        optimizer.solve(initialGuessVector);
+        geo_ = convertIntoBSpline(geo_, optimizer.currentDesign());
+      }
+
+      else if (geo_.parDim() == 3) {
+        // trivariate surface
+        gismo::gsMatrix<T, 2, 2> alpha;
+        alpha.setConstant(0.5);
+        gismo::gsMobiusDomain<2, T> mobiusDomain(alpha);
+        gismo::gsVector<real_t> initialGuessVector(4);
+        initialGuessVector.setConstant(0.5);
+
+        for (std::size_t i = 1; i <= 6; ++i) {
+
+          gsMultiPatch<T> mp;
+          mp.addPatch(*(geo_.patch(0).boundary(i)));
+
+          gsObjFuncSurface<T> objFuncSurface(mp, mobiusDomain);
+          gismo::gsHLBFGS<real_t> optimizer(&objFuncSurface);
+
+          optimizer.options().addReal("MinGradientLength",
+                                      "Minimum gradient length", 1e-5);
+          optimizer.options().addReal("MinStepLength", "Minimum step length",
+                                      1e-5);
+          optimizer.options().addInt("MaxIterations",
+                                     "Maximum number of iterations", 200);
+          optimizer.options().addInt("Verbose", "Verbose output", 1);
+
+          optimizer.solve(initialGuessVector);
+          mp = convertIntoBSpline(mp, optimizer.currentDesign());
+
+          auto ind = geo_.patch(0).basis().boundary(i);
+
+          for (std::size_t j = 0; j != ind.size(); ++j)
+            geo_.patch(0).coefs().row(ind(j, 0)) = mp.patch(0).coefs().row(j);
+        }
+      }
+
+    } else if (type == "volume") {
+
+      if (geo_.parDim() == 2 && geo_.geoDim() == 3) {
+        // bivariate surface
+        geo_.embed(2);
+        gsBarrierPatch<2, T> opt(geo_, false);
+        opt.options().setInt("ParamMethod", 1); // penalty
+        opt.options().setInt("Verbose", 0);
+        opt.compute();
+        geo_ = opt.result();
+        geo_.embed(3);
+      }
+
+      else if (geo_.parDim() == 3 && geo_.geoDim() == 3) {
+        // trivariate volume
+        gsBarrierPatch<d, T> opt(geo_, true);
+        opt.options().setInt("ParamMethod", 2); // penalty
+        opt.options().setInt("Verbose", 0);
+        opt.compute();
+        geo_ = opt.result();
+      }
     }
   }
 };

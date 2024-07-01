@@ -12,6 +12,8 @@
    file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
 
+#pragma once
+
 #include <GismoPdeModel.hpp>
 
 namespace iganet {
@@ -20,9 +22,7 @@ namespace webapp {
 
 /// @brief G+Smo Linear elasticity model
 template <short_t d, typename T>
-class GismoLinearElasticityModel : public GismoPdeModel<d, T>,
-                                   public ModelEval,
-                                   public ModelParameters {
+class GismoLinearElasticityModel : public GismoPdeModel<d, T> {
 
 private:
   /// @brief Base class
