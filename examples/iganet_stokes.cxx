@@ -118,8 +118,8 @@ public:
     Base::u_.from_tensor(outputs);
 
     // Evaluate
-    auto u_ilapl = Base::u_.template space<0, 1>().div(std::get<0>(
-        collPts_.first)); //, var_knot_indices_, var_coeff_indices_);
+    //    auto u_ilapl = Base::u_.template clone<0, 1>().div(std::get<0>(
+    //        collPts_.first)); //, var_knot_indices_, var_coeff_indices_);
     //    auto u_ilapl =
     //        Base::u_.ilapl(Base::G_, collPts_.first, var_knot_indices_,
     //                       var_coeff_indices_, G_knot_indices_,

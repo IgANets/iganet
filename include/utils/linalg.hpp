@@ -56,7 +56,7 @@ inline auto dotproduct(T0 &&t0, T1 &&t1) {
 /// @note This is not the regular Kronecker-product but a
 /// directional variant, that is, the Kronecker-product is computed
 /// along the given direction. All other directions are left
-/// unchanged. For the regular Kronecker-product use `torch::kron`.
+/// unchanged. For the regular Kronecker-product use `utils::kron`.
 template <short_t dim = 0, typename T0, typename T1>
 inline auto kronproduct(T0 &&t0, T1 &&t1) {
   switch (t1.sizes().size()) {
@@ -180,7 +180,7 @@ inline auto kronproduct(T0 &&t0, T1 &&t1) {
   }
 }
 
-/// @brief Computes the directional Kronecker-product between two
+/// @brief Computes the directional Kronecker-product between two or more
 /// tensors along the given dimension
 ///
 /// @tparam dim Dimension along which the Kronecker-product is computed
@@ -198,11 +198,46 @@ inline auto kronproduct(T0 &&t0, T1 &&t1) {
 /// @note This is not the regular Kronecker-product but a
 /// directional variant, that is, the Kronecker-product is computed
 /// along the given direction. All other directions are left
-/// unchanged. For the regular Kronecker-product use `torch::kron`.
+/// unchanged. For the regular Kronecker-product use `utils::kron`.
 template <short_t dim = 0, typename T, typename... Ts>
 inline auto kronproduct(T &&t, Ts &&...ts) {
   return kronproduct<dim>(std::forward<T>(t),
                           kronproduct<dim>(std::forward<Ts>(ts)...));
+}
+
+/// @brief Computes the Kronecker-product between two or more tensors
+/// @{
+template <typename T0, typename T1> inline auto kron(T0 &&t0, T1 &&t1) {
+  return torch::kron(std::forward<T0>(t0), std::forward<T1>(t1));
+}
+
+template <typename T, typename... Ts> inline auto kron(T &&t, Ts &&...ts) {
+  return kron(std::forward<T>(t), kron(std::forward<Ts>(ts)...));
+}
+/// @}
+
+/// @brief Computes the (partial) product of all std::array entries
+template <typename T, std::size_t N>
+inline T prod(std::array<T, N> array, std::size_t start_index = 0,
+              std::size_t stop_index = N - 1) {
+  T result{1};
+
+  for (std::size_t i = start_index; i <= stop_index; ++i)
+    result *= array[i];
+
+  return result;
+}
+
+/// @brief Computes the (partial) sum of all std::array entries
+template <typename T, std::size_t N>
+inline T sum(std::array<T, N> array, std::size_t start_index = 0,
+             std::size_t stop_index = N - 1) {
+  T result{0};
+
+  for (std::size_t i = start_index; i <= stop_index; ++i)
+    result += array[i];
+
+  return result;
 }
 
 } // namespace utils

@@ -8,6 +8,14 @@
    iganet_fitting_simple.cxx this examples makes use of pre-computed
    indices and coefficients and should therefore be faster.
 
+   This example can be configured with the following environment variables
+
+   IGANET_NCOEFFS   - number of B-spline coefficients
+   IGANET_NLAYERS   - number of network layers
+   IGANET_NNEURONS  - number of neurons per layer
+   IGANET_MAX_EPOCH - maximum number of epochs during training
+   IGANET_MIN_LOSS  - tolerance for loss function
+
    @author Matthias Moller
 
    @copyright This file is part of the IgANet project
@@ -23,12 +31,14 @@
 
 /// @brief Specialization of the abstract IgANet class for function fitting
 template <typename Optimizer, typename GeometryMap, typename Variable>
-class fitting : public iganet::IgANet<Optimizer, GeometryMap, Variable>,
+class fitting : public iganet::IgANet<Optimizer, GeometryMap, Variable,
+                                      iganet::IgABaseNoRefData>,
                 public iganet::IgANetCustomizable<GeometryMap, Variable> {
 
 private:
   /// @brief Type of the base class
-  using Base = iganet::IgANet<Optimizer, GeometryMap, Variable>;
+  using Base = iganet::IgANet<Optimizer, GeometryMap, Variable,
+                              iganet::IgABaseNoRefData>;
 
   /// @brief Collocation points
   typename Base::variable_collPts_type collPts_;
@@ -44,7 +54,8 @@ private:
 
 public:
   /// @brief Constructors from the base class
-  using iganet::IgANet<Optimizer, GeometryMap, Variable>::IgANet;
+  using iganet::IgANet<Optimizer, GeometryMap, Variable,
+                       iganet::IgABaseNoRefData>::IgANet;
 
   /// @brief Returns a constant reference to the collocation points
   auto const &collPts() const { return collPts_; }
@@ -63,10 +74,10 @@ public:
       collPts_ = Base::variable_collPts(iganet::collPts::greville);
 
       knot_indices_ =
-          Base::f_.template find_knot_indices<iganet::functionspace::interior>(
+          Base::u_.template find_knot_indices<iganet::functionspace::interior>(
               collPts_.first);
       coeff_indices_ =
-          Base::f_.template find_coeff_indices<iganet::functionspace::interior>(
+          Base::u_.template find_coeff_indices<iganet::functionspace::interior>(
               knot_indices_);
 
       return true;
@@ -89,7 +100,7 @@ public:
     // Evaluate the loss function
     return torch::mse_loss(
         *Base::u_.eval(collPts_.first, knot_indices_, coeff_indices_)[0],
-        *Base::f_.eval(collPts_.first, knot_indices_, coeff_indices_)[0]);
+        sin(M_PI * collPts_.first[0]) * sin(M_PI * collPts_.first[1]));
   }
 };
 
@@ -111,83 +122,101 @@ int main() {
   // Variable: Bi-quadratic B-spline function space S (geoDim = 1, p = q = 2)
   using variable_t = iganet::S<iganet::UniformBSpline<real_t, 1, 2, 2>>;
 
-  fitting<optimizer_t, geometry_t, variable_t>
-      net( // Number of neurons per layers
-          {50, 50},
-          // Activation functions
-          {{iganet::activation::sigmoid},
-           {iganet::activation::sigmoid},
-           {iganet::activation::none}},
-          // Number of B-spline coefficients of the geometry, just [0,1] x [0,1]
-          std::tuple(iganet::utils::to_array(2_i64, 2_i64)),
-          // Number of B-spline coefficients of the variable
-          std::tuple(iganet::utils::to_array(20_i64, 20_i64)));
+  // Loop over user-definded number of coefficients (default 32)
+  for (int64_t ncoeffs : iganet::utils::getenv("IGANET_NCOEFFS", {32})) {
+    // Loop over different activation functions (default ReLU)
+    for (std::vector<std::any> activation :
+         {std::vector<std::any>{iganet::activation::relu}}) {
+      // Loop over user-defined numbers of layers (default 1)
+      for (int64_t nlayers : iganet::utils::getenv("IGANET_NLAYERS", {1})) {
+        // Loop over user-defined number of neurons per layer (default 10)
+        for (int64_t nneurons :
+             iganet::utils::getenv("IGANET_NNEURONS", {10})) {
 
-  // Impose solution value for supervised training (not right-hand side)
-  net.f().transform([](const std::array<real_t, 2> xi) {
-    return std::array<real_t, 1>{
-        static_cast<real_t>(sin(M_PI * xi[0]) * sin(M_PI * xi[1]))};
-  });
+          iganet::Log(iganet::log::info)
+              << "#coeff: " << ncoeffs << ", #layers: " << nlayers
+              << ", #neurons: " << nneurons << std::endl;
 
-  // Set maximum number of epochs
-  net.options().max_epoch(1000);
+          std::vector<int64_t> layers(nlayers, nneurons);
+          std::vector<std::vector<std::any>> activations(nlayers, activation);
+          activations.emplace_back(
+              std::vector<std::any>{iganet::activation::none});
 
-  // Set tolerance for the loss functions
-  net.options().min_loss(1e-8);
+          fitting<optimizer_t, geometry_t, variable_t>
+              net( // Number of neurons per layers
+                  layers,
+                  // Activation functions
+                  activations,
+                  // Number of B-spline coefficients of the geometry, just [0,1]
+                  // x [0,1]
+                  std::tuple(iganet::utils::to_array(2_i64, 2_i64)),
+                  // Number of B-spline coefficients of the variable
+                  std::tuple(iganet::utils::to_array(ncoeffs, ncoeffs)));
 
-  // Start time measurement
-  auto t1 = std::chrono::high_resolution_clock::now();
+          // Set maximum number of epochs
+          net.options().max_epoch(
+              iganet::utils::getenv("IGANET_MAX_EPOCH", 1000_i64));
 
-  // Train network
-  net.train();
+          // Set tolerance for the loss functions
+          net.options().min_loss(
+              iganet::utils::getenv("IGANET_MIN_LOSS", 1e-12));
 
-  // Stop time measurement
-  auto t2 = std::chrono::high_resolution_clock::now();
-  iganet::Log(iganet::log::info)
-      << "Training took "
-      << std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1)
-             .count()
-      << " seconds\n";
+          // Start time measurement
+          auto t1 = std::chrono::high_resolution_clock::now();
+
+          // Train network
+          net.train();
+
+          // Stop time measurement
+          auto t2 = std::chrono::high_resolution_clock::now();
+          iganet::Log(iganet::log::info)
+              << "Training took "
+              << std::chrono::duration_cast<std::chrono::duration<double>>(t2 -
+                                                                           t1)
+                     .count()
+              << " seconds\n";
 
 #ifdef IGANET_WITH_MATPLOT
-  // Plot the solution
-  net.G().plot(net.u(), net.collPts().first, json)->show();
-
-  // Plot the difference between the solution and the reference data
-  net.G().plot(net.u().abs_diff(net.f()), net.collPts().first, json)->show();
+          // Plot the solution
+          net.G().plot(net.u(), net.collPts().first, json)->show();
 #endif
 
 #ifdef IGANET_WITH_GISMO
-  // Convert B-spline objects to G+Smo
-  auto G_gismo = net.G().to_gismo();
-  auto u_gismo = net.u().to_gismo();
-  auto f_gismo = net.f().to_gismo();
+          // Convert B-spline objects to G+Smo
+          auto G_gismo = net.G().to_gismo();
+          auto u_gismo = net.u().to_gismo();
+          gsFunctionExpr<real_t> f_gismo("sin(pi*x)*sin(pi*y)", 2);
 
-  // Set up expression assembler
-  gsExprAssembler<real_t> A(1, 1);
-  gsMultiBasis<real_t> basis(u_gismo, true);
+          // Set up expression assembler
+          gsExprAssembler<real_t> A(1, 1);
+          gsMultiBasis<real_t> basis(u_gismo, true);
 
-  A.setIntegrationElements(basis);
+          A.setIntegrationElements(basis);
 
-  auto G = A.getMap(G_gismo);
-  auto u = A.getCoeff(u_gismo, G);
-  auto f = A.getCoeff(f_gismo, G);
+          auto G = A.getMap(G_gismo);
+          auto u = A.getCoeff(u_gismo, G);
+          auto f = A.getCoeff(f_gismo, G);
 
-  // Compute L2- and H2-error
-  gsExprEvaluator<real_t> ev(A);
+          // Compute L2- and H2-error
+          gsExprEvaluator<real_t> ev(A);
 
-  iganet::Log(iganet::log::info)
-      << "L2-error : "
-      << gismo::math::sqrt(ev.integral((u - f).sqNorm() * meas(G)))
-      << std::endl;
+          iganet::Log(iganet::log::info)
+              << "L2-error : "
+              << gismo::math::sqrt(ev.integral((u - f).sqNorm() * meas(G)))
+              << std::endl;
 
-  iganet::Log(iganet::log::info)
-      << "H1-error : "
-      << gismo::math::sqrt(ev.integral(
-             (gismo::expr::igrad(u, G) - gismo::expr::igrad(f, G)).sqNorm() *
-             meas(G)))
-      << std::endl;
+          iganet::Log(iganet::log::info)
+              << "H1-error : "
+              << gismo::math::sqrt(ev.integral(
+                     (gismo::expr::igrad(u, G) - gismo::expr::igrad(f, G))
+                         .sqNorm() *
+                     meas(G)))
+              << std::endl;
 #endif
+        }
+      }
+    }
+  }
 
   return 0;
 }
