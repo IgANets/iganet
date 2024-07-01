@@ -138,29 +138,29 @@ public:
       Base::u_.from_tensor(outputs);
       // Evaluate the weakformulation
 
-     /* auto curl = Base::u_.curl(std::get<0>(collPts_.first));
+      auto curl = Base::u_.curl(std::get<0>(collPts_.first));
       auto sol_iweak =  curl * curl.tr();
 
 
       auto rhs_weak = t_ana1_ * curl(0) + t_ana2_ * curl(1) + t_ana3_ * curl(2);
 
-     */ 
+      
       auto u_bdr = Base::u_.template eval<iganet::functionspace::boundary>(
           collPts_.second);
       auto bdr =
           ref_.template eval<iganet::functionspace::boundary>(collPts_.second);
       
-      auto loss_pde = // torch::mean(0.5 * *sol_iweak[0] - rhs_weak) + 
+      auto loss_pde =  torch::mean(0.5 * *sol_iweak[0] - rhs_weak) + 
       //periodic bc in x direction
-       //      10e1 * torch::mse_loss(*std::get<0>(std::get<2>(u_bdr))[0],  *std::get<1>(std::get<2>(u_bdr))[0]) +
+             10e1 * torch::mse_loss(*std::get<0>(std::get<2>(u_bdr))[0],  *std::get<1>(std::get<2>(u_bdr))[0]) +
           
-     //     10e1 * torch::mse_loss( *std::get<0>(std::get<1>(u_bdr))[0], *std::get<1>(std::get<1>(u_bdr))[0]) +
+         10e1 * torch::mse_loss( *std::get<0>(std::get<1>(u_bdr))[0], *std::get<1>(std::get<1>(u_bdr))[0]) +
         /* 10e1 * torch::mse_loss(*std::get<0>(std::get<1>(u_bdr))[0], *std::get<0>(std::get<1>(bdr))[0]) +
          10e1 * torch::mse_loss(*std::get<0>(std::get<2>(u_bdr))[0], *std::get<0>(std::get<2>(bdr))[0]) +
-
+         
           10e1 * torch::mse_loss(*std::get<1>(std::get<1>(u_bdr))[0], *std::get<1>(std::get<1>(bdr))[0]) +
           10e1 * torch::mse_loss(*std::get<1>(std::get<2>(u_bdr))[0], *std::get<1>(std::get<2>(bdr))[0]) +
-
+          */
           10e1 * torch::mse_loss(*std::get<2>(std::get<0>(u_bdr))[0], *std::get<2>(std::get<0>(bdr))[0]) +
           10e1 * torch::mse_loss(*std::get<2>(std::get<2>(u_bdr))[0], *std::get<2>(std::get<2>(bdr))[0]) +
 
@@ -170,7 +170,7 @@ public:
           10e1 * torch::mse_loss(*std::get<4>(std::get<0>(u_bdr))[0], *std::get<4>(std::get<0>(bdr))[0]) +
           10e1 * torch::mse_loss(*std::get<4>(std::get<1>(u_bdr))[0], *std::get<4>(std::get<1>(bdr))[0]) +
 
-          10e1 * torch::mse_loss(*std::get<5>(std::get<0>(u_bdr))[0], *std::get<5>(std::get<0>(bdr))[0]) +*/
+          10e1 * torch::mse_loss(*std::get<5>(std::get<0>(u_bdr))[0], *std::get<5>(std::get<0>(bdr))[0]) +
           10e1 * torch::mse_loss(*std::get<5>(std::get<1>(u_bdr))[0], *std::get<5>(std::get<1>(bdr))[0]);
          
         

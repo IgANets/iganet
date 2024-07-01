@@ -3941,7 +3941,7 @@ public:
           Spline::degree(1), Spline::degree(2)>,
       typename Spline::template derived_self_type<
           typename Spline::value_type, Spline::geoDim(), Spline::degree(0),
-          Spline::degree(1) - 1, Spline::degree(2)>>,
+          Spline::degree(1) - 1, Spline::degree(2)>,
       typename Spline::template derived_self_type<
           typename Spline::value_type, Spline::geoDim(), Spline::degree(0),
           Spline::degree(1), Spline::degree(2) - 1>>>;
