@@ -53,27 +53,27 @@ TEST(BSpline, IgANet_UniformBSpline_1d) {
       // Number of B-spline coefficients
       std::tuple(iganet::utils::to_array(6_i64)));
 
-  EXPECT_EQ(net.G().parDim(), 1);
-  EXPECT_EQ(net.f().parDim(), 1);
-  EXPECT_EQ(net.u().parDim(), 1);
+  EXPECT_EQ(net.G().space().parDim(), 1);
+  EXPECT_EQ(net.f().space().parDim(), 1);
+  EXPECT_EQ(net.u().space().parDim(), 1);
 
   EXPECT_EQ(net.f().boundary().side<iganet::side::left>().parDim(), 0);
   EXPECT_EQ(net.f().boundary().side<iganet::side::right>().parDim(), 0);
 
-  EXPECT_EQ(net.G().geoDim(), 1);
-  EXPECT_EQ(net.f().geoDim(), 1);
-  EXPECT_EQ(net.u().geoDim(), 1);
+  EXPECT_EQ(net.G().space().geoDim(), 1);
+  EXPECT_EQ(net.f().space().geoDim(), 1);
+  EXPECT_EQ(net.u().space().geoDim(), 1);
 
   EXPECT_EQ(net.f().boundary().side<iganet::side::left>().geoDim(), 1);
   EXPECT_EQ(net.f().boundary().side<iganet::side::right>().geoDim(), 1);
 
-  EXPECT_EQ(net.G().degree(0), 5);
-  EXPECT_EQ(net.f().degree(0), 5);
-  EXPECT_EQ(net.u().degree(0), 5);
+  EXPECT_EQ(net.G().space().degree(0), 5);
+  EXPECT_EQ(net.f().space().degree(0), 5);
+  EXPECT_EQ(net.u().space().degree(0), 5);
 
-  EXPECT_EQ(net.G().ncoeffs(0), 6);
-  EXPECT_EQ(net.f().ncoeffs(0), 6);
-  EXPECT_EQ(net.u().ncoeffs(0), 6);
+  EXPECT_EQ(net.G().space().ncoeffs(0), 6);
+  EXPECT_EQ(net.f().space().ncoeffs(0), 6);
+  EXPECT_EQ(net.u().space().ncoeffs(0), 6);
 }
 
 TEST(BSpline, IgANet_UniformBSpline_2d) {
@@ -94,44 +94,44 @@ TEST(BSpline, IgANet_UniformBSpline_2d) {
       // Number of B-spline coefficients
       std::tuple(iganet::utils::to_array(4_i64, 6_i64)));
 
-  EXPECT_EQ(net.G().parDim(), 2);
-  EXPECT_EQ(net.f().parDim(), 2);
-  EXPECT_EQ(net.u().parDim(), 2);
+  EXPECT_EQ(net.G().space().parDim(), 2);
+  EXPECT_EQ(net.f().space().parDim(), 2);
+  EXPECT_EQ(net.u().space().parDim(), 2);
 
   EXPECT_EQ(net.f().boundary().side<iganet::side::east>().parDim(), 1);
   EXPECT_EQ(net.f().boundary().side<iganet::side::west>().parDim(), 1);
   EXPECT_EQ(net.f().boundary().side<iganet::side::south>().parDim(), 1);
   EXPECT_EQ(net.f().boundary().side<iganet::side::north>().parDim(), 1);
 
-  EXPECT_EQ(net.G().geoDim(), 2);
-  EXPECT_EQ(net.f().geoDim(), 1);
-  EXPECT_EQ(net.u().geoDim(), 1);
+  EXPECT_EQ(net.G().space().geoDim(), 2);
+  EXPECT_EQ(net.f().space().geoDim(), 1);
+  EXPECT_EQ(net.u().space().geoDim(), 1);
 
   EXPECT_EQ(net.f().boundary().side<iganet::side::east>().geoDim(), 1);
   EXPECT_EQ(net.f().boundary().side<iganet::side::west>().geoDim(), 1);
   EXPECT_EQ(net.f().boundary().side<iganet::side::south>().geoDim(), 1);
   EXPECT_EQ(net.f().boundary().side<iganet::side::north>().geoDim(), 1);
 
-  EXPECT_EQ(net.G().degree(0), 3);
-  EXPECT_EQ(net.f().degree(0), 3);
-  EXPECT_EQ(net.u().degree(0), 3);
+  EXPECT_EQ(net.G().space().degree(0), 3);
+  EXPECT_EQ(net.f().space().degree(0), 3);
+  EXPECT_EQ(net.u().space().degree(0), 3);
 
-  EXPECT_EQ(net.G().degree(1), 5);
-  EXPECT_EQ(net.f().degree(1), 5);
-  EXPECT_EQ(net.u().degree(1), 5);
+  EXPECT_EQ(net.G().space().degree(1), 5);
+  EXPECT_EQ(net.f().space().degree(1), 5);
+  EXPECT_EQ(net.u().space().degree(1), 5);
 
   EXPECT_EQ(net.f().boundary().side<iganet::side::east>().degree(0), 5);
   EXPECT_EQ(net.f().boundary().side<iganet::side::west>().degree(0), 5);
   EXPECT_EQ(net.f().boundary().side<iganet::side::south>().degree(0), 3);
   EXPECT_EQ(net.f().boundary().side<iganet::side::north>().degree(0), 3);
 
-  EXPECT_EQ(net.G().ncoeffs(0), 4);
-  EXPECT_EQ(net.f().ncoeffs(0), 4);
-  EXPECT_EQ(net.u().ncoeffs(0), 4);
+  EXPECT_EQ(net.G().space().ncoeffs(0), 4);
+  EXPECT_EQ(net.f().space().ncoeffs(0), 4);
+  EXPECT_EQ(net.u().space().ncoeffs(0), 4);
 
-  EXPECT_EQ(net.G().ncoeffs(1), 6);
-  EXPECT_EQ(net.f().ncoeffs(1), 6);
-  EXPECT_EQ(net.u().ncoeffs(1), 6);
+  EXPECT_EQ(net.G().space().ncoeffs(1), 6);
+  EXPECT_EQ(net.f().space().ncoeffs(1), 6);
+  EXPECT_EQ(net.u().space().ncoeffs(1), 6);
 
   EXPECT_EQ(net.f().boundary().side<iganet::side::east>().ncoeffs(0), 6);
   EXPECT_EQ(net.f().boundary().side<iganet::side::west>().ncoeffs(0), 6);
@@ -157,9 +157,9 @@ TEST(BSpline, IgANet_UniformBSpline_3d) {
       // Number of B-spline coefficients
       std::tuple(iganet::utils::to_array(4_i64, 6_i64, 3_i64)));
 
-  EXPECT_EQ(net.G().parDim(), 3);
-  EXPECT_EQ(net.f().parDim(), 3);
-  EXPECT_EQ(net.u().parDim(), 3);
+  EXPECT_EQ(net.G().space().parDim(), 3);
+  EXPECT_EQ(net.f().space().parDim(), 3);
+  EXPECT_EQ(net.u().space().parDim(), 3);
 
   EXPECT_EQ(net.f().boundary().side<iganet::side::east>().parDim(), 2);
   EXPECT_EQ(net.f().boundary().side<iganet::side::west>().parDim(), 2);
@@ -168,9 +168,9 @@ TEST(BSpline, IgANet_UniformBSpline_3d) {
   EXPECT_EQ(net.f().boundary().side<iganet::side::front>().parDim(), 2);
   EXPECT_EQ(net.f().boundary().side<iganet::side::back>().parDim(), 2);
 
-  EXPECT_EQ(net.G().geoDim(), 3);
-  EXPECT_EQ(net.f().geoDim(), 1);
-  EXPECT_EQ(net.u().geoDim(), 1);
+  EXPECT_EQ(net.G().space().geoDim(), 3);
+  EXPECT_EQ(net.f().space().geoDim(), 1);
+  EXPECT_EQ(net.u().space().geoDim(), 1);
 
   EXPECT_EQ(net.f().boundary().side<iganet::side::east>().geoDim(), 1);
   EXPECT_EQ(net.f().boundary().side<iganet::side::west>().geoDim(), 1);
@@ -179,17 +179,17 @@ TEST(BSpline, IgANet_UniformBSpline_3d) {
   EXPECT_EQ(net.f().boundary().side<iganet::side::front>().geoDim(), 1);
   EXPECT_EQ(net.f().boundary().side<iganet::side::back>().geoDim(), 1);
 
-  EXPECT_EQ(net.G().degree(0), 3);
-  EXPECT_EQ(net.f().degree(0), 3);
-  EXPECT_EQ(net.u().degree(0), 3);
+  EXPECT_EQ(net.G().space().degree(0), 3);
+  EXPECT_EQ(net.f().space().degree(0), 3);
+  EXPECT_EQ(net.u().space().degree(0), 3);
 
-  EXPECT_EQ(net.G().degree(1), 5);
-  EXPECT_EQ(net.f().degree(1), 5);
-  EXPECT_EQ(net.u().degree(1), 5);
+  EXPECT_EQ(net.G().space().degree(1), 5);
+  EXPECT_EQ(net.f().space().degree(1), 5);
+  EXPECT_EQ(net.u().space().degree(1), 5);
 
-  EXPECT_EQ(net.G().degree(2), 1);
-  EXPECT_EQ(net.f().degree(2), 1);
-  EXPECT_EQ(net.u().degree(2), 1);
+  EXPECT_EQ(net.G().space().degree(2), 1);
+  EXPECT_EQ(net.f().space().degree(2), 1);
+  EXPECT_EQ(net.u().space().degree(2), 1);
 
   EXPECT_EQ(net.f().boundary().side<iganet::side::east>().degree(0), 5);
   EXPECT_EQ(net.f().boundary().side<iganet::side::west>().degree(0), 5);
@@ -205,17 +205,17 @@ TEST(BSpline, IgANet_UniformBSpline_3d) {
   EXPECT_EQ(net.f().boundary().side<iganet::side::front>().degree(1), 5);
   EXPECT_EQ(net.f().boundary().side<iganet::side::back>().degree(1), 5);
 
-  EXPECT_EQ(net.G().ncoeffs(0), 4);
-  EXPECT_EQ(net.f().ncoeffs(0), 4);
-  EXPECT_EQ(net.u().ncoeffs(0), 4);
+  EXPECT_EQ(net.G().space().ncoeffs(0), 4);
+  EXPECT_EQ(net.f().space().ncoeffs(0), 4);
+  EXPECT_EQ(net.u().space().ncoeffs(0), 4);
 
-  EXPECT_EQ(net.G().ncoeffs(1), 6);
-  EXPECT_EQ(net.f().ncoeffs(1), 6);
-  EXPECT_EQ(net.u().ncoeffs(1), 6);
+  EXPECT_EQ(net.G().space().ncoeffs(1), 6);
+  EXPECT_EQ(net.f().space().ncoeffs(1), 6);
+  EXPECT_EQ(net.u().space().ncoeffs(1), 6);
 
-  EXPECT_EQ(net.G().ncoeffs(2), 3);
-  EXPECT_EQ(net.f().ncoeffs(2), 3);
-  EXPECT_EQ(net.u().ncoeffs(2), 3);
+  EXPECT_EQ(net.G().space().ncoeffs(2), 3);
+  EXPECT_EQ(net.f().space().ncoeffs(2), 3);
+  EXPECT_EQ(net.u().space().ncoeffs(2), 3);
 
   EXPECT_EQ(net.f().boundary().side<iganet::side::east>().ncoeffs(0), 6);
   EXPECT_EQ(net.f().boundary().side<iganet::side::west>().ncoeffs(0), 6);
@@ -250,9 +250,9 @@ TEST(BSpline, IgANet_UniformBSpline_4d) {
       // Number of B-spline coefficients
       std::tuple(iganet::utils::to_array(4_i64, 6_i64, 3_i64, 5_i64)));
 
-  EXPECT_EQ(net.G().parDim(), 4);
-  EXPECT_EQ(net.f().parDim(), 4);
-  EXPECT_EQ(net.u().parDim(), 4);
+  EXPECT_EQ(net.G().space().parDim(), 4);
+  EXPECT_EQ(net.f().space().parDim(), 4);
+  EXPECT_EQ(net.u().space().parDim(), 4);
 
   EXPECT_EQ(net.f().boundary().side<iganet::side::east>().parDim(), 3);
   EXPECT_EQ(net.f().boundary().side<iganet::side::west>().parDim(), 3);
@@ -263,9 +263,9 @@ TEST(BSpline, IgANet_UniformBSpline_4d) {
   EXPECT_EQ(net.f().boundary().side<iganet::side::stime>().parDim(), 3);
   EXPECT_EQ(net.f().boundary().side<iganet::side::etime>().parDim(), 3);
 
-  EXPECT_EQ(net.G().geoDim(), 4);
-  EXPECT_EQ(net.f().geoDim(), 1);
-  EXPECT_EQ(net.u().geoDim(), 1);
+  EXPECT_EQ(net.G().space().geoDim(), 4);
+  EXPECT_EQ(net.f().space().geoDim(), 1);
+  EXPECT_EQ(net.u().space().geoDim(), 1);
 
   EXPECT_EQ(net.f().boundary().side<iganet::side::east>().geoDim(), 1);
   EXPECT_EQ(net.f().boundary().side<iganet::side::west>().geoDim(), 1);
@@ -276,21 +276,21 @@ TEST(BSpline, IgANet_UniformBSpline_4d) {
   EXPECT_EQ(net.f().boundary().side<iganet::side::stime>().geoDim(), 1);
   EXPECT_EQ(net.f().boundary().side<iganet::side::etime>().geoDim(), 1);
 
-  EXPECT_EQ(net.G().degree(0), 3);
-  EXPECT_EQ(net.f().degree(0), 3);
-  EXPECT_EQ(net.u().degree(0), 3);
+  EXPECT_EQ(net.G().space().degree(0), 3);
+  EXPECT_EQ(net.f().space().degree(0), 3);
+  EXPECT_EQ(net.u().space().degree(0), 3);
 
-  EXPECT_EQ(net.G().degree(1), 5);
-  EXPECT_EQ(net.f().degree(1), 5);
-  EXPECT_EQ(net.u().degree(1), 5);
+  EXPECT_EQ(net.G().space().degree(1), 5);
+  EXPECT_EQ(net.f().space().degree(1), 5);
+  EXPECT_EQ(net.u().space().degree(1), 5);
 
-  EXPECT_EQ(net.G().degree(2), 1);
-  EXPECT_EQ(net.f().degree(2), 1);
-  EXPECT_EQ(net.u().degree(2), 1);
+  EXPECT_EQ(net.G().space().degree(2), 1);
+  EXPECT_EQ(net.f().space().degree(2), 1);
+  EXPECT_EQ(net.u().space().degree(2), 1);
 
-  EXPECT_EQ(net.G().degree(3), 4);
-  EXPECT_EQ(net.f().degree(3), 4);
-  EXPECT_EQ(net.u().degree(3), 4);
+  EXPECT_EQ(net.G().space().degree(3), 4);
+  EXPECT_EQ(net.f().space().degree(3), 4);
+  EXPECT_EQ(net.u().space().degree(3), 4);
 
   EXPECT_EQ(net.f().boundary().side<iganet::side::east>().degree(0), 5);
   EXPECT_EQ(net.f().boundary().side<iganet::side::west>().degree(0), 5);
@@ -319,21 +319,21 @@ TEST(BSpline, IgANet_UniformBSpline_4d) {
   EXPECT_EQ(net.f().boundary().side<iganet::side::stime>().degree(2), 1);
   EXPECT_EQ(net.f().boundary().side<iganet::side::etime>().degree(2), 1);
 
-  EXPECT_EQ(net.G().ncoeffs(0), 4);
-  EXPECT_EQ(net.f().ncoeffs(0), 4);
-  EXPECT_EQ(net.u().ncoeffs(0), 4);
+  EXPECT_EQ(net.G().space().ncoeffs(0), 4);
+  EXPECT_EQ(net.f().space().ncoeffs(0), 4);
+  EXPECT_EQ(net.u().space().ncoeffs(0), 4);
 
-  EXPECT_EQ(net.G().ncoeffs(1), 6);
-  EXPECT_EQ(net.f().ncoeffs(1), 6);
-  EXPECT_EQ(net.u().ncoeffs(1), 6);
+  EXPECT_EQ(net.G().space().ncoeffs(1), 6);
+  EXPECT_EQ(net.f().space().ncoeffs(1), 6);
+  EXPECT_EQ(net.u().space().ncoeffs(1), 6);
 
-  EXPECT_EQ(net.G().ncoeffs(2), 3);
-  EXPECT_EQ(net.f().ncoeffs(2), 3);
-  EXPECT_EQ(net.u().ncoeffs(2), 3);
+  EXPECT_EQ(net.G().space().ncoeffs(2), 3);
+  EXPECT_EQ(net.f().space().ncoeffs(2), 3);
+  EXPECT_EQ(net.u().space().ncoeffs(2), 3);
 
-  EXPECT_EQ(net.G().ncoeffs(3), 5);
-  EXPECT_EQ(net.f().ncoeffs(3), 5);
-  EXPECT_EQ(net.u().ncoeffs(3), 5);
+  EXPECT_EQ(net.G().space().ncoeffs(3), 5);
+  EXPECT_EQ(net.f().space().ncoeffs(3), 5);
+  EXPECT_EQ(net.u().space().ncoeffs(3), 5);
 
   EXPECT_EQ(net.f().boundary().side<iganet::side::east>().ncoeffs(0), 6);
   EXPECT_EQ(net.f().boundary().side<iganet::side::west>().ncoeffs(0), 6);
@@ -381,27 +381,27 @@ TEST(BSpline, IgANet_NonUniformBSpline_1d) {
       // Number of B-spline coefficients
       std::tuple(iganet::utils::to_array(6_i64)));
 
-  EXPECT_EQ(net.G().parDim(), 1);
-  EXPECT_EQ(net.f().parDim(), 1);
-  EXPECT_EQ(net.u().parDim(), 1);
+  EXPECT_EQ(net.G().space().parDim(), 1);
+  EXPECT_EQ(net.f().space().parDim(), 1);
+  EXPECT_EQ(net.u().space().parDim(), 1);
 
   EXPECT_EQ(net.f().boundary().side<iganet::side::left>().parDim(), 0);
   EXPECT_EQ(net.f().boundary().side<iganet::side::right>().parDim(), 0);
 
-  EXPECT_EQ(net.G().geoDim(), 1);
-  EXPECT_EQ(net.f().geoDim(), 1);
-  EXPECT_EQ(net.u().geoDim(), 1);
+  EXPECT_EQ(net.G().space().geoDim(), 1);
+  EXPECT_EQ(net.f().space().geoDim(), 1);
+  EXPECT_EQ(net.u().space().geoDim(), 1);
 
   EXPECT_EQ(net.f().boundary().side<iganet::side::left>().geoDim(), 1);
   EXPECT_EQ(net.f().boundary().side<iganet::side::right>().geoDim(), 1);
 
-  EXPECT_EQ(net.G().degree(0), 5);
-  EXPECT_EQ(net.f().degree(0), 5);
-  EXPECT_EQ(net.u().degree(0), 5);
+  EXPECT_EQ(net.G().space().degree(0), 5);
+  EXPECT_EQ(net.f().space().degree(0), 5);
+  EXPECT_EQ(net.u().space().degree(0), 5);
 
-  EXPECT_EQ(net.G().ncoeffs(0), 6);
-  EXPECT_EQ(net.f().ncoeffs(0), 6);
-  EXPECT_EQ(net.u().ncoeffs(0), 6);
+  EXPECT_EQ(net.G().space().ncoeffs(0), 6);
+  EXPECT_EQ(net.f().space().ncoeffs(0), 6);
+  EXPECT_EQ(net.u().space().ncoeffs(0), 6);
 }
 
 TEST(BSpline, IgANet_NonUniformBSpline_2d) {
@@ -422,44 +422,44 @@ TEST(BSpline, IgANet_NonUniformBSpline_2d) {
       // Number of B-spline coefficients
       std::tuple(iganet::utils::to_array(4_i64, 6_i64)));
 
-  EXPECT_EQ(net.G().parDim(), 2);
-  EXPECT_EQ(net.f().parDim(), 2);
-  EXPECT_EQ(net.u().parDim(), 2);
+  EXPECT_EQ(net.G().space().parDim(), 2);
+  EXPECT_EQ(net.f().space().parDim(), 2);
+  EXPECT_EQ(net.u().space().parDim(), 2);
 
   EXPECT_EQ(net.f().boundary().side<iganet::side::east>().parDim(), 1);
   EXPECT_EQ(net.f().boundary().side<iganet::side::west>().parDim(), 1);
   EXPECT_EQ(net.f().boundary().side<iganet::side::south>().parDim(), 1);
   EXPECT_EQ(net.f().boundary().side<iganet::side::north>().parDim(), 1);
 
-  EXPECT_EQ(net.G().geoDim(), 2);
-  EXPECT_EQ(net.f().geoDim(), 1);
-  EXPECT_EQ(net.u().geoDim(), 1);
+  EXPECT_EQ(net.G().space().geoDim(), 2);
+  EXPECT_EQ(net.f().space().geoDim(), 1);
+  EXPECT_EQ(net.u().space().geoDim(), 1);
 
   EXPECT_EQ(net.f().boundary().side<iganet::side::east>().geoDim(), 1);
   EXPECT_EQ(net.f().boundary().side<iganet::side::west>().geoDim(), 1);
   EXPECT_EQ(net.f().boundary().side<iganet::side::south>().geoDim(), 1);
   EXPECT_EQ(net.f().boundary().side<iganet::side::north>().geoDim(), 1);
 
-  EXPECT_EQ(net.G().degree(0), 3);
-  EXPECT_EQ(net.f().degree(0), 3);
-  EXPECT_EQ(net.u().degree(0), 3);
+  EXPECT_EQ(net.G().space().degree(0), 3);
+  EXPECT_EQ(net.f().space().degree(0), 3);
+  EXPECT_EQ(net.u().space().degree(0), 3);
 
-  EXPECT_EQ(net.G().degree(1), 5);
-  EXPECT_EQ(net.f().degree(1), 5);
-  EXPECT_EQ(net.u().degree(1), 5);
+  EXPECT_EQ(net.G().space().degree(1), 5);
+  EXPECT_EQ(net.f().space().degree(1), 5);
+  EXPECT_EQ(net.u().space().degree(1), 5);
 
   EXPECT_EQ(net.f().boundary().side<iganet::side::east>().degree(0), 5);
   EXPECT_EQ(net.f().boundary().side<iganet::side::west>().degree(0), 5);
   EXPECT_EQ(net.f().boundary().side<iganet::side::south>().degree(0), 3);
   EXPECT_EQ(net.f().boundary().side<iganet::side::north>().degree(0), 3);
 
-  EXPECT_EQ(net.G().ncoeffs(0), 4);
-  EXPECT_EQ(net.f().ncoeffs(0), 4);
-  EXPECT_EQ(net.u().ncoeffs(0), 4);
+  EXPECT_EQ(net.G().space().ncoeffs(0), 4);
+  EXPECT_EQ(net.f().space().ncoeffs(0), 4);
+  EXPECT_EQ(net.u().space().ncoeffs(0), 4);
 
-  EXPECT_EQ(net.G().ncoeffs(1), 6);
-  EXPECT_EQ(net.f().ncoeffs(1), 6);
-  EXPECT_EQ(net.u().ncoeffs(1), 6);
+  EXPECT_EQ(net.G().space().ncoeffs(1), 6);
+  EXPECT_EQ(net.f().space().ncoeffs(1), 6);
+  EXPECT_EQ(net.u().space().ncoeffs(1), 6);
 
   EXPECT_EQ(net.f().boundary().side<iganet::side::east>().ncoeffs(0), 6);
   EXPECT_EQ(net.f().boundary().side<iganet::side::west>().ncoeffs(0), 6);
@@ -485,9 +485,9 @@ TEST(BSpline, IgANet_NonUniformBSpline_3d) {
       // Number of B-spline coefficients
       std::tuple(iganet::utils::to_array(4_i64, 6_i64, 3_i64)));
 
-  EXPECT_EQ(net.G().parDim(), 3);
-  EXPECT_EQ(net.f().parDim(), 3);
-  EXPECT_EQ(net.u().parDim(), 3);
+  EXPECT_EQ(net.G().space().parDim(), 3);
+  EXPECT_EQ(net.f().space().parDim(), 3);
+  EXPECT_EQ(net.u().space().parDim(), 3);
 
   EXPECT_EQ(net.f().boundary().side<iganet::side::east>().parDim(), 2);
   EXPECT_EQ(net.f().boundary().side<iganet::side::west>().parDim(), 2);
@@ -496,9 +496,9 @@ TEST(BSpline, IgANet_NonUniformBSpline_3d) {
   EXPECT_EQ(net.f().boundary().side<iganet::side::front>().parDim(), 2);
   EXPECT_EQ(net.f().boundary().side<iganet::side::back>().parDim(), 2);
 
-  EXPECT_EQ(net.G().geoDim(), 3);
-  EXPECT_EQ(net.f().geoDim(), 1);
-  EXPECT_EQ(net.u().geoDim(), 1);
+  EXPECT_EQ(net.G().space().geoDim(), 3);
+  EXPECT_EQ(net.f().space().geoDim(), 1);
+  EXPECT_EQ(net.u().space().geoDim(), 1);
 
   EXPECT_EQ(net.f().boundary().side<iganet::side::east>().geoDim(), 1);
   EXPECT_EQ(net.f().boundary().side<iganet::side::west>().geoDim(), 1);
@@ -507,17 +507,17 @@ TEST(BSpline, IgANet_NonUniformBSpline_3d) {
   EXPECT_EQ(net.f().boundary().side<iganet::side::front>().geoDim(), 1);
   EXPECT_EQ(net.f().boundary().side<iganet::side::back>().geoDim(), 1);
 
-  EXPECT_EQ(net.G().degree(0), 3);
-  EXPECT_EQ(net.f().degree(0), 3);
-  EXPECT_EQ(net.u().degree(0), 3);
+  EXPECT_EQ(net.G().space().degree(0), 3);
+  EXPECT_EQ(net.f().space().degree(0), 3);
+  EXPECT_EQ(net.u().space().degree(0), 3);
 
-  EXPECT_EQ(net.G().degree(1), 5);
-  EXPECT_EQ(net.f().degree(1), 5);
-  EXPECT_EQ(net.u().degree(1), 5);
+  EXPECT_EQ(net.G().space().degree(1), 5);
+  EXPECT_EQ(net.f().space().degree(1), 5);
+  EXPECT_EQ(net.u().space().degree(1), 5);
 
-  EXPECT_EQ(net.G().degree(2), 1);
-  EXPECT_EQ(net.f().degree(2), 1);
-  EXPECT_EQ(net.u().degree(2), 1);
+  EXPECT_EQ(net.G().space().degree(2), 1);
+  EXPECT_EQ(net.f().space().degree(2), 1);
+  EXPECT_EQ(net.u().space().degree(2), 1);
 
   EXPECT_EQ(net.f().boundary().side<iganet::side::east>().degree(0), 5);
   EXPECT_EQ(net.f().boundary().side<iganet::side::west>().degree(0), 5);
@@ -533,17 +533,17 @@ TEST(BSpline, IgANet_NonUniformBSpline_3d) {
   EXPECT_EQ(net.f().boundary().side<iganet::side::front>().degree(1), 5);
   EXPECT_EQ(net.f().boundary().side<iganet::side::back>().degree(1), 5);
 
-  EXPECT_EQ(net.G().ncoeffs(0), 4);
-  EXPECT_EQ(net.f().ncoeffs(0), 4);
-  EXPECT_EQ(net.u().ncoeffs(0), 4);
+  EXPECT_EQ(net.G().space().ncoeffs(0), 4);
+  EXPECT_EQ(net.f().space().ncoeffs(0), 4);
+  EXPECT_EQ(net.u().space().ncoeffs(0), 4);
 
-  EXPECT_EQ(net.G().ncoeffs(1), 6);
-  EXPECT_EQ(net.f().ncoeffs(1), 6);
-  EXPECT_EQ(net.u().ncoeffs(1), 6);
+  EXPECT_EQ(net.G().space().ncoeffs(1), 6);
+  EXPECT_EQ(net.f().space().ncoeffs(1), 6);
+  EXPECT_EQ(net.u().space().ncoeffs(1), 6);
 
-  EXPECT_EQ(net.G().ncoeffs(2), 3);
-  EXPECT_EQ(net.f().ncoeffs(2), 3);
-  EXPECT_EQ(net.u().ncoeffs(2), 3);
+  EXPECT_EQ(net.G().space().ncoeffs(2), 3);
+  EXPECT_EQ(net.f().space().ncoeffs(2), 3);
+  EXPECT_EQ(net.u().space().ncoeffs(2), 3);
 
   EXPECT_EQ(net.f().boundary().side<iganet::side::east>().ncoeffs(0), 6);
   EXPECT_EQ(net.f().boundary().side<iganet::side::west>().ncoeffs(0), 6);
@@ -579,9 +579,9 @@ TEST(BSpline, IgANet_NonUniformBSpline_4d) {
       // Number of B-spline coefficients
       std::tuple(iganet::utils::to_array(4_i64, 6_i64, 3_i64, 5_i64)));
 
-  EXPECT_EQ(net.G().parDim(), 4);
-  EXPECT_EQ(net.f().parDim(), 4);
-  EXPECT_EQ(net.u().parDim(), 4);
+  EXPECT_EQ(net.G().space().parDim(), 4);
+  EXPECT_EQ(net.f().space().parDim(), 4);
+  EXPECT_EQ(net.u().space().parDim(), 4);
 
   EXPECT_EQ(net.f().boundary().side<iganet::side::east>().parDim(), 3);
   EXPECT_EQ(net.f().boundary().side<iganet::side::west>().parDim(), 3);
@@ -592,9 +592,9 @@ TEST(BSpline, IgANet_NonUniformBSpline_4d) {
   EXPECT_EQ(net.f().boundary().side<iganet::side::stime>().parDim(), 3);
   EXPECT_EQ(net.f().boundary().side<iganet::side::etime>().parDim(), 3);
 
-  EXPECT_EQ(net.G().geoDim(), 4);
-  EXPECT_EQ(net.f().geoDim(), 1);
-  EXPECT_EQ(net.u().geoDim(), 1);
+  EXPECT_EQ(net.G().space().geoDim(), 4);
+  EXPECT_EQ(net.f().space().geoDim(), 1);
+  EXPECT_EQ(net.u().space().geoDim(), 1);
 
   EXPECT_EQ(net.f().boundary().side<iganet::side::east>().geoDim(), 1);
   EXPECT_EQ(net.f().boundary().side<iganet::side::west>().geoDim(), 1);
@@ -605,21 +605,21 @@ TEST(BSpline, IgANet_NonUniformBSpline_4d) {
   EXPECT_EQ(net.f().boundary().side<iganet::side::stime>().geoDim(), 1);
   EXPECT_EQ(net.f().boundary().side<iganet::side::etime>().geoDim(), 1);
 
-  EXPECT_EQ(net.G().degree(0), 3);
-  EXPECT_EQ(net.f().degree(0), 3);
-  EXPECT_EQ(net.u().degree(0), 3);
+  EXPECT_EQ(net.G().space().degree(0), 3);
+  EXPECT_EQ(net.f().space().degree(0), 3);
+  EXPECT_EQ(net.u().space().degree(0), 3);
 
-  EXPECT_EQ(net.G().degree(1), 5);
-  EXPECT_EQ(net.f().degree(1), 5);
-  EXPECT_EQ(net.u().degree(1), 5);
+  EXPECT_EQ(net.G().space().degree(1), 5);
+  EXPECT_EQ(net.f().space().degree(1), 5);
+  EXPECT_EQ(net.u().space().degree(1), 5);
 
-  EXPECT_EQ(net.G().degree(2), 1);
-  EXPECT_EQ(net.f().degree(2), 1);
-  EXPECT_EQ(net.u().degree(2), 1);
+  EXPECT_EQ(net.G().space().degree(2), 1);
+  EXPECT_EQ(net.f().space().degree(2), 1);
+  EXPECT_EQ(net.u().space().degree(2), 1);
 
-  EXPECT_EQ(net.G().degree(3), 4);
-  EXPECT_EQ(net.f().degree(3), 4);
-  EXPECT_EQ(net.u().degree(3), 4);
+  EXPECT_EQ(net.G().space().degree(3), 4);
+  EXPECT_EQ(net.f().space().degree(3), 4);
+  EXPECT_EQ(net.u().space().degree(3), 4);
 
   EXPECT_EQ(net.f().boundary().side<iganet::side::east>().degree(0), 5);
   EXPECT_EQ(net.f().boundary().side<iganet::side::west>().degree(0), 5);
@@ -648,21 +648,21 @@ TEST(BSpline, IgANet_NonUniformBSpline_4d) {
   EXPECT_EQ(net.f().boundary().side<iganet::side::stime>().degree(2), 1);
   EXPECT_EQ(net.f().boundary().side<iganet::side::etime>().degree(2), 1);
 
-  EXPECT_EQ(net.G().ncoeffs(0), 4);
-  EXPECT_EQ(net.f().ncoeffs(0), 4);
-  EXPECT_EQ(net.u().ncoeffs(0), 4);
+  EXPECT_EQ(net.G().space().ncoeffs(0), 4);
+  EXPECT_EQ(net.f().space().ncoeffs(0), 4);
+  EXPECT_EQ(net.u().space().ncoeffs(0), 4);
 
-  EXPECT_EQ(net.G().ncoeffs(1), 6);
-  EXPECT_EQ(net.f().ncoeffs(1), 6);
-  EXPECT_EQ(net.u().ncoeffs(1), 6);
+  EXPECT_EQ(net.G().space().ncoeffs(1), 6);
+  EXPECT_EQ(net.f().space().ncoeffs(1), 6);
+  EXPECT_EQ(net.u().space().ncoeffs(1), 6);
 
-  EXPECT_EQ(net.G().ncoeffs(2), 3);
-  EXPECT_EQ(net.f().ncoeffs(2), 3);
-  EXPECT_EQ(net.u().ncoeffs(2), 3);
+  EXPECT_EQ(net.G().space().ncoeffs(2), 3);
+  EXPECT_EQ(net.f().space().ncoeffs(2), 3);
+  EXPECT_EQ(net.u().space().ncoeffs(2), 3);
 
-  EXPECT_EQ(net.G().ncoeffs(3), 5);
-  EXPECT_EQ(net.f().ncoeffs(3), 5);
-  EXPECT_EQ(net.u().ncoeffs(3), 5);
+  EXPECT_EQ(net.G().space().ncoeffs(3), 5);
+  EXPECT_EQ(net.f().space().ncoeffs(3), 5);
+  EXPECT_EQ(net.u().space().ncoeffs(3), 5);
 
   EXPECT_EQ(net.f().boundary().side<iganet::side::east>().ncoeffs(0), 6);
   EXPECT_EQ(net.f().boundary().side<iganet::side::west>().ncoeffs(0), 6);

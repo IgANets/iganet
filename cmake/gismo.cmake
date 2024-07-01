@@ -18,7 +18,9 @@
 
 include(FetchContent)
 FetchContent_Declare(gismo
-  URL https://github.com/gismo/gismo/archive/refs/heads/stable.zip
+  #URL https://github.com/gismo/gismo/archive/refs/heads/stable.zip
+  GIT_REPOSITORY https://github.com/gismo/gismo.git
+  GIT_TAG        8e3795159c4625086ea9153e0de0cc18264175cc
   )
 
 set(BUILD_TESTING        OFF CACHE INTERNAL "")

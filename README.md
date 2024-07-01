@@ -1,7 +1,5 @@
 # IgANets: Physics-informed isogeometric analysis networks
 
-check
-
 IgANets is a novel approach to combine the concept of deep operator
 learning with the mathematical framework of isogeometric analysis.
 

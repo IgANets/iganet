@@ -40,6 +40,7 @@
 
 #ifdef IGANET_WITH_GISMO
 #include <gismo.h>
+#include <gsNurbs/gsMobiusDomain.h>
 #endif
 
 #undef real_t

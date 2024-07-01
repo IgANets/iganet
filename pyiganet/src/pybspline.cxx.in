@@ -82,10 +82,10 @@ void init_UniformBSpline@SUFFIX@(py::module_ &m) {
     DEF(set_requires_grad, "Sets the `requires_grad` property")
     DEF(pinned_memory, "Returns the `pinned_memory` property")
     DEF(is_sparse, "Returns true of the layout is sparse")
-    
+
     DEF_STATIC(is_uniform, "Returns true if the B-spline is uniform")
-    DEF_STATIC(is_nonuniform, "Returns true if the B-spline is non-uniform")    
-    
+    DEF_STATIC(is_nonuniform, "Returns true if the B-spline is non-uniform")
+
     // Static getters
     DEF_STATIC(parDim, "Returns the parametric dimension")
     DEF_STATIC(geoDim, "Returns the geometric dimension")
