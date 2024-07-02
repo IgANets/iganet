@@ -28,19 +28,21 @@
 /// @brief Specialization of the abstract IgANet class for function fitting
 template <typename Optimizer, typename GeometryMap, typename Variable>
 class fitting
-    : public iganet::IgANet<Optimizer, GeometryMap, Variable>,
-      public iganet::IgANetCustomizable<Optimizer, GeometryMap, Variable> {
+    : public iganet::IgANet<Optimizer, GeometryMap, Variable,
+                            iganet::IgABaseNoRefData>,
+      public iganet::IgANetCustomizable<GeometryMap, Variable> {
 
 private:
   /// @brief Type of the base class
-  using Base = iganet::IgANet<Optimizer, GeometryMap, Variable>;
+  using Base = iganet::IgANet<Optimizer, GeometryMap, Variable,
+                              iganet::IgABaseNoRefData>;
 
   /// @brief Collocation points
   typename Base::variable_collPts_type collPts_;
 
   /// @brief Type of the customizable class
-  using Customizable =
-      iganet::IgANetCustomizable<Optimizer, GeometryMap, Variable>;
+   /// @brief Type of the customizable class
+  using Customizable = iganet::IgANetCustomizable<GeometryMap, Variable>;
 
   /// @brief Knot indices
   typename Customizable::variable_interior_knot_indices_type knot_indices_;
@@ -50,7 +52,8 @@ private:
 
 public:
   /// @brief Constructors from the base class
-  using iganet::IgANet<Optimizer, GeometryMap, Variable>::IgANet;
+  using iganet::IgANet<Optimizer, GeometryMap, Variable,
+                       iganet::IgABaseNoRefData>::IgANet;
 
   /// @brief Returns a constant reference to the collocation points
   auto const &collPts() const { return collPts_; }
@@ -71,10 +74,10 @@ public:
       collPts_ = Base::variable_collPts(iganet::collPts::greville);
 
       knot_indices_ =
-          Base::f_.template find_knot_indices<iganet::functionspace::interior>(
+          Base::u_.template find_knot_indices<iganet::functionspace::interior>(
               collPts_.first);
       coeff_indices_ =
-          Base::f_.template find_coeff_indices<iganet::functionspace::interior>(
+          Base::u_.template find_coeff_indices<iganet::functionspace::interior>(
               knot_indices_);
 
       return true;
@@ -97,7 +100,7 @@ public:
     // Evaluate the loss function
     return torch::mse_loss(
         *Base::u_.eval(collPts_.first, knot_indices_, coeff_indices_)[0],
-        *Base::f_.eval(collPts_.first, knot_indices_, coeff_indices_)[0]);
+        sin(M_PI * collPts_.first[0]) * sin(M_PI * collPts_.first[1]));
   }
 };
 
@@ -120,10 +123,10 @@ int main() {
   // Bivariate uniform B-spline of degree 2 in both directions
   // the type has to correspond to the respective geometry parameterization in
   // the input file
-  using geometry_t = iganet::S2<iganet::NonUniformBSpline<real_t, 2, 2, 3>>;
+  using geometry_t = iganet::S<iganet::NonUniformBSpline<real_t, 2, 2, 3>>;
 
   // Variable: Bi-quadratic B-spline function space S2 (geoDim = 1, p = q = 2)
-  using variable_t = iganet::S2<iganet::UniformBSpline<real_t, 1, 2, 2>>;
+  using variable_t = iganet::S<iganet::UniformBSpline<real_t, 1, 2, 2>>;
 
   fitting<optimizer_t, geometry_t, variable_t>
       net( // Number of neurons per layers
@@ -141,12 +144,6 @@ int main() {
 
   // Load geometry parameterization from XML
   net.G().from_xml(xml);
-
-  // Impose solution value for supervised training (not right-hand side)
-  net.f().transform([](const std::array<real_t, 2> xi) {
-    return std::array<real_t, 1>{
-        static_cast<real_t>(sin(M_PI * xi[0]) * sin(M_PI * xi[1]))};
-  });
 
   // Set maximum number of epoches
   net.options().max_epoch(1000);

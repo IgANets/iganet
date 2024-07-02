@@ -24,19 +24,21 @@
 /// @brief Specialization of the abstract IgANet class for function fitting
 template <typename Optimizer, typename GeometryMap, typename Variable>
 class fitting
-    : public iganet::IgANet<Optimizer, GeometryMap, Variable>,
-      public iganet::IgANetCustomizable<Optimizer, GeometryMap, Variable> {
+    : public iganet::IgANet<Optimizer, GeometryMap, Variable,
+              iganet::IgABaseNoRefData>,
+      public iganet::IgANetCustomizable<GeometryMap, Variable> {
 
 private:
   /// @brief Type of the base class
-  using Base = iganet::IgANet<Optimizer, GeometryMap, Variable>;
+  using Base = iganet::IgANet<Optimizer, GeometryMap, Variable,
+                iganet::IgABaseNoRefData>;
 
   /// @brief Collocation points
   typename Base::variable_collPts_type collPts_;
 
   /// @brief Type of the customizable class
   using Customizable =
-      iganet::IgANetCustomizable<Optimizer, GeometryMap, Variable>;
+      iganet::IgANetCustomizable<GeometryMap, Variable>;
 
   /// @brief Knot indices
   typename Customizable::variable_interior_knot_indices_type knot_indices_;
@@ -46,7 +48,8 @@ private:
 
 public:
   /// @brief Constructors from the base class
-  using iganet::IgANet<Optimizer, GeometryMap, Variable>::IgANet;
+  using iganet::IgANet<Optimizer, GeometryMap, Variable,
+                      iganet::IgABaseNoRefData>::IgANet;
 
   /// @brief Returns a constant reference to the collocation points
   auto const &collPts() const { return collPts_; }
@@ -64,10 +67,10 @@ public:
     collPts_ = Base::variable_collPts(iganet::collPts::greville);
 
     knot_indices_ =
-        Base::f_.template find_knot_indices<iganet::functionspace::interior>(
+        Base::u_.template find_knot_indices<iganet::functionspace::interior>(
             collPts_.first);
     coeff_indices_ =
-        Base::f_.template find_coeff_indices<iganet::functionspace::interior>(
+        Base::u_.template find_coeff_indices<iganet::functionspace::interior>(
             knot_indices_);
 
     return true;
@@ -84,12 +87,12 @@ public:
     // Cast the network output (a raw tensor) into the proper
     // function-space format, i.e. B-spline objects for the interior
     // and boundary parts that can be evaluated.
-    Base::u_.from_tensor(outputs.flatten());
+    Base::u_.from_tensor(outputs);
 
     // Evaluate the loss function
     return torch::mse_loss(
         *Base::u_.eval(collPts_.first, knot_indices_, coeff_indices_)[0],
-        *Base::f_.eval(collPts_.first, knot_indices_, coeff_indices_)[0]);
+        sin(M_PI * collPts_.first[0]) * sin(M_PI * collPts_.first[1]));
   }
 };
 
@@ -106,10 +109,10 @@ int main() {
   using real_t = double;
 
   // Geometry: Bi-linear B-spline function space S2 (geoDim = 2, p = q = 1)
-  using geometry_t = iganet::S2<iganet::NonUniformBSpline<real_t, 2, 2, 3>>;
+  using geometry_t = iganet::S<iganet::NonUniformBSpline<real_t, 2, 2, 3>>;
 
   // Variable: Bi-quadratic B-spline function space S2 (geoDim = 1, p = q = 2)
-  using variable_t = iganet::S2<iganet::UniformBSpline<real_t, 1, 2, 2>>;
+  using variable_t = iganet::S<iganet::UniformBSpline<real_t, 1, 2, 2>>;
 
   // Load geometry from file
   // Load XML file
@@ -157,7 +160,6 @@ int main() {
         // Convert B-spline objects to G+Smo
         auto G_gismo = net.G().to_gismo();
         auto u_gismo = net.u().to_gismo();
-        auto f_gismo = net.f().to_gismo();
 
         // Set up expression assembler
         gsExprAssembler<real_t> A(1, 1);
@@ -167,7 +169,6 @@ int main() {
 
         auto G = A.getMap(G_gismo);
         auto u = A.getCoeff(u_gismo, G);
-        auto f = A.getCoeff(f_gismo, G);
 
         // Compute L2- and H2-error
         gsExprEvaluator<real_t> ev(A);

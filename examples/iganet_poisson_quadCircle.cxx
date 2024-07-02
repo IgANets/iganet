@@ -25,7 +25,7 @@ using namespace iganet::literals;
 template <typename Optimizer, typename GeometryMap, typename Variable>
 class poisson
     : public iganet::IgANet<Optimizer, GeometryMap, Variable>,
-      public iganet::IgANetCustomizable<Optimizer, GeometryMap, Variable> {
+      public iganet::IgANetCustomizable<GeometryMap, Variable> {
 
 private:
   /// @brief Type of the base class
@@ -39,7 +39,7 @@ private:
 
   /// @brief Type of the customizable class
   using Customizable =
-      iganet::IgANetCustomizable<Optimizer, GeometryMap, Variable>;
+      iganet::IgANetCustomizable<GeometryMap, Variable>;
 
   /// @brief Knot indices of variables
   typename Customizable::variable_interior_knot_indices_type var_knot_indices_;
@@ -163,8 +163,8 @@ int main() {
   pugi::xml_document xml;
   xml.load_file(IGANET_DATA_DIR "surfaces/2d_quadCircle_degree34/quadCircleImp_R1I04_resultR1E2Fixed.xml");
 
-  using geometry_t = iganet::S2<iganet::NonUniformBSpline<real_t, 2, 3, 4>>;
-  using variable_t = iganet::S2<iganet::UniformBSpline<real_t, 1, 3, 3>>;
+  using geometry_t = iganet::S<iganet::NonUniformBSpline<real_t, 2, 3, 4>>;
+  using variable_t = iganet::S<iganet::UniformBSpline<real_t, 1, 3, 3>>;
 
   poisson<optimizer_t, geometry_t, variable_t>
       net( // Number of neurons per layers
