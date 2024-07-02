@@ -26,8 +26,8 @@ extern "C"
   // @brief List of JIT-compiled model handlers
   static std::map<std::string, std::shared_ptr<iganet::ModelHandler>> models;
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wreturn-type-c-linkage"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wreturn-type-c-linkage"
 
   /// @brief Create a G+Smo Poisson solver
   std::shared_ptr<iganet::Model> create(const nlohmann::json &json) {
@@ -52,5 +52,5 @@ extern "C"
                                                               npatches);
   }
 
-#pragma GCC diagnostic pop
+#pragma clang diagnostic pop
 }

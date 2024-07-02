@@ -12,6 +12,8 @@
    file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
 
+#pragma once
+
 #include <GismoPdeModel.hpp>
 
 namespace iganet {
@@ -20,9 +22,9 @@ namespace webapp {
 
 /// @brief G+Smo Linear elasticity model
 template <short_t d, typename T>
-class GismoLinearElasticityModel : public GismoPdeModel<d, T>,
-                                   public ModelEval,
-                                   public ModelParameters {
+class GismoLinearElasticityModel : public GismoPdeModel<d, T> {
+
+  static_assert(d >= 1 && d <= 3, "Spatial dimension must be between 1 and 3");
 
 private:
   /// @brief Base class
@@ -49,8 +51,18 @@ private:
   /// @brief Right-hand side values
   gsFunctionExpr<T> rhsFunc_;
 
+  /// @brief Right-hand side function defined on parametric domain (default
+  /// false)
+  bool rhsFuncParametric_;
+
   /// @brief Boundary values
   std::array<gsFunctionExpr<T>, 2 * d> bcFunc_;
+
+  /// @brief Boundary values defined on parametric domain (default false)
+  std::array<bool, 2 * d> bcFuncParametric_;
+
+  /// @brief Boundary condition type
+  std::array<gismo::condition_type::type, 2 * d> bcType_;
 
   /// @brief Expression assembler
   gsExprAssembler<T> assembler_;

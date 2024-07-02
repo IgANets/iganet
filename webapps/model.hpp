@@ -126,18 +126,6 @@ public:
   }
 };
 
-/// @brief Model parameters
-class ModelParameters {
-public:
-  /// @brief Return's the model's parameters
-  virtual nlohmann::json getParameters() const = 0;
-
-  // @brief Returns model capabilities
-  std::vector<std::string> getCapabilities() const {
-    return std::vector{std::string("parameters")};
-  }
-};
-
 /// @brief Model refinement
 class ModelRefine {
 public:
@@ -225,6 +213,9 @@ public:
   /// @brief Returns the model's outputs
   virtual nlohmann::json getOutputs() const = 0;
 
+  /// @brief Return's the model's parameters
+  virtual nlohmann::json getParameters() const = 0;
+
   /// @brief Returns the model's JSON serialization
   virtual nlohmann::json getModel() const {
 
@@ -236,6 +227,7 @@ public:
     json["capabilities"] = getCapabilities();
     json["inputs"] = getInputs();
     json["outputs"] = getOutputs();
+    json["parameters"] = getParameters();
 
     return json;
   }
@@ -261,10 +253,6 @@ public:
         json.push_back(capability);
 
     if (auto m = dynamic_cast<const ModelIncrease *>(this))
-      for (auto const &capability : m->getCapabilities())
-        json.push_back(capability);
-
-    if (auto m = dynamic_cast<const ModelParameters *>(this))
       for (auto const &capability : m->getCapabilities())
         json.push_back(capability);
 

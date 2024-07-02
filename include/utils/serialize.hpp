@@ -1,7 +1,7 @@
 /**
    @file include/utils/serialize.hpp
 
-   @brief Srialization utility functions
+   @brief Serialization utility functions
 
    @author Matthias Moller
 
@@ -79,7 +79,7 @@ inline auto to_json(const torch::Tensor &tensor) {
 /// @brief Converts an std::array of torch::Tensor objects to a JSON
 /// object
 template <typename T, std::size_t N, std::size_t M>
-inline auto to_json(const std::array<torch::Tensor, M> &tensors) {
+inline auto to_json(const utils::TensorArray<M> &tensors) {
   auto json = nlohmann::json::array();
 
 #ifdef __CUDACC__
@@ -108,22 +108,73 @@ inline auto to_json(const std::array<torch::Tensor, M> &tensors) {
 /// @brief Converts a gismo::gsMatrix object to a JSON object
 template <typename T, int Rows, int Cols, int Options>
 inline auto to_json(const gismo::gsMatrix<T, Rows, Cols, Options> &matrix,
-                    bool flatten = false) {
+                    bool flatten = false, bool transpose = false) {
   auto json = nlohmann::json::array();
 
-  if (flatten) {
-    for (std::size_t j = 0; j < matrix.cols(); ++j)
-      for (std::size_t i = 0; i < matrix.rows(); ++i)
-        json.push_back(matrix(i, j));
-  } else {
-    for (std::size_t j = 0; j < matrix.cols(); ++j) {
-      auto data = nlohmann::json::array();
-      for (std::size_t i = 0; i < matrix.rows(); ++i) {
-        data.push_back(matrix(i, j));
+  if constexpr (Options == gismo::RowMajor) {
+    if (flatten) {
+      if (transpose) {
+        for (std::size_t j = 0; j < matrix.cols(); ++j)
+          for (std::size_t i = 0; i < matrix.rows(); ++i)
+            json.push_back(matrix(i, j));
+      } else {
+        for (std::size_t i = 0; i < matrix.rows(); ++i)
+          for (std::size_t j = 0; j < matrix.cols(); ++j)
+            json.push_back(matrix(i, j));
       }
-      json.emplace_back(data);
+    } else {
+      if (transpose) {
+        for (std::size_t j = 0; j < matrix.cols(); ++j) {
+          auto data = nlohmann::json::array();
+          for (std::size_t i = 0; i < matrix.rows(); ++i) {
+            data.push_back(matrix(i, j));
+          }
+          json.emplace_back(data);
+        }
+      } else {
+        for (std::size_t i = 0; i < matrix.rows(); ++i) {
+          auto data = nlohmann::json::array();
+          for (std::size_t j = 0; j < matrix.cols(); ++j) {
+            data.push_back(matrix(i, j));
+          }
+          json.emplace_back(data);
+        }
+      }
     }
-  }
+
+  } else if constexpr (Options == gismo::ColMajor) {
+    if (flatten) {
+      if (transpose) {
+        for (std::size_t i = 0; i < matrix.rows(); ++i)
+          for (std::size_t j = 0; j < matrix.cols(); ++j)
+            json.push_back(matrix(i, j));
+      } else {
+        for (std::size_t j = 0; j < matrix.cols(); ++j)
+          for (std::size_t i = 0; i < matrix.rows(); ++i)
+            json.push_back(matrix(i, j));
+      }
+    } else {
+      if (transpose) {
+        for (std::size_t i = 0; i < matrix.rows(); ++i) {
+          auto data = nlohmann::json::array();
+          for (std::size_t j = 0; j < matrix.cols(); ++j) {
+            data.push_back(matrix(i, j));
+          }
+          json.emplace_back(data);
+        }
+      } else {
+        for (std::size_t j = 0; j < matrix.cols(); ++j) {
+          auto data = nlohmann::json::array();
+          for (std::size_t i = 0; i < matrix.rows(); ++i) {
+            data.push_back(matrix(i, j));
+          }
+          json.emplace_back(data);
+        }
+      }
+    }
+
+  } else
+    throw std::runtime_error("Invalid matrix options");
 
   return json;
 }
@@ -371,9 +422,9 @@ inline pugi::xml_node &to_xml(const torch::Tensor &tensor, pugi::xml_node &root,
 /// @brief Converts an std::array of torch::Tensor objects to an XML
 /// object
 template <typename T, std::size_t N, std::size_t M>
-inline pugi::xml_document to_xml(const std::array<torch::Tensor, M> &tensors,
+inline pugi::xml_document to_xml(const utils::TensorArray<M> &tensors,
                                  std::string tag = "Matrix", int id = 0,
-                                 std::string label = "") {
+                                 std::string label = "", int index = -1) {
   pugi::xml_document doc;
   pugi::xml_node root = doc.append_child("xml");
   to_xml<T, N>(tensors, root, id, label, index);
@@ -384,7 +435,7 @@ inline pugi::xml_document to_xml(const std::array<torch::Tensor, M> &tensors,
 /// @brief Converts an std::array of torch::Tensor objects to an XML
 /// object
 template <typename T, std::size_t N, std::size_t M>
-inline pugi::xml_node &to_xml(const std::array<torch::Tensor, M> &tensors,
+inline pugi::xml_node &to_xml(const utils::TensorArray<M> &tensors,
                               pugi::xml_node &root, std::string tag = "Matrix",
                               int id = 0, std::string label = "") {
 
@@ -614,8 +665,8 @@ from_xml(const pugi::xml_node &root, torch::Tensor &tensor,
 /// @brief Converts an XML document object to an std::array of torch::Tensor
 /// objects
 template <typename T, std::size_t N, std::size_t M>
-inline std::array<torch::Tensor, M> &
-from_xml(const pugi::xml_document &doc, std::array<torch::Tensor, M> &tensors,
+inline utils::TensorArray<M> &
+from_xml(const pugi::xml_document &doc, utils::TensorArray<M> &tensors,
          std::string tag = "Matrix", int id = 0, bool alloc = true,
          std::string label = "") {
 
@@ -624,8 +675,8 @@ from_xml(const pugi::xml_document &doc, std::array<torch::Tensor, M> &tensors,
 
 /// @brief Converts an XML object to an std::array of torch::Tensor objects
 template <typename T, std::size_t N, std::size_t M>
-inline std::array<torch::Tensor, M> &
-from_xml(const pugi::xml_node &root, std::array<torch::Tensor, M> &tensors,
+inline utils::TensorArray<M> &
+from_xml(const pugi::xml_node &root, utils::TensorArray<M> &tensors,
          std::string tag = "Matrix", int id = 0, bool alloc = true,
          std::string label = "") {
 

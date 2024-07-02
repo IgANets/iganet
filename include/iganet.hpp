@@ -20,7 +20,7 @@
 #include <functionspace.hpp>
 #include <igabase.hpp>
 #include <layer.hpp>
-#include <utils/concat.hpp>
+#include <utils/container.hpp>
 #include <utils/fqn.hpp>
 #include <utils/zip.hpp>
 
@@ -1019,9 +1019,9 @@ public:
   virtual torch::Tensor inputs(int64_t epoch) const {
     if constexpr (Base::has_GeometryMap && Base::has_RefData)
       return torch::cat({Base::G_.as_tensor(), Base::f_.as_tensor()});
-    else if constexpr (Base::has_GeometryMap)
+    else if constexpr (Base::has_GeometryMap && !Base::has_RefData)
       return Base::G_.as_tensor();
-    else if constexpr (Base::has_RefData)
+    else if constexpr (!Base::has_GeometryMap && Base::has_RefData)
       return Base::f_.as_tensor();
     else
       return torch::empty({0});
@@ -1125,37 +1125,36 @@ public:
         inputs = batch.data;
 
         if (inputs.dim() > 0) {
-          if constexpr (Base::has_GeometryMap)
+          if constexpr (Base::has_GeometryMap && Base::has_RefData) {
             Base::G_.from_tensor(
-                inputs.slice(1, 0, Base::G_.ncumcoeffs() * Base::G_.geoDim())
-                    .t());
-          if constexpr (Base::has_RefData && Base::has_GeometryMap)
+                inputs.slice(1, 0, Base::G_.as_tensor_size()).t());
+            Base::f_.from_tensor(inputs
+                                     .slice(1, Base::G_.as_tensor_size(),
+                                            Base::G_.as_tensor_size() +
+                                                Base::f_.as_tensor_size())
+                                     .t());
+          } else if constexpr (Base::has_GeometryMap && !Base::has_RefData)
+            Base::G_.from_tensor(
+                inputs.slice(1, 0, Base::G_.as_tensor_size()).t());
+          else if constexpr (!Base::has_GeometryMap && Base::has_RefData)
             Base::f_.from_tensor(
-                inputs
-                    .slice(1, Base::G_.ncumcoeffs() * Base::G_.geoDim(),
-                           Base::G_.ncumcoeffs() * Base::G_.geoDim() +
-                               Base::f_.ncumcoeffs() * Base::f_.geoDim())
-                    .t());
-          else if constexpr (Base::has_RefData)
-            Base::f_.from_tensor(
-                inputs.slice(1, 0, Base::f_.ncumcoeffs() * Base::f_.geoDim())
-                    .t());
+                inputs.slice(1, 0, Base::f_.as_tensor_size()).t());
+
         } else {
-          if constexpr (Base::has_GeometryMap)
+          if constexpr (Base::has_GeometryMap && Base::has_RefData) {
             Base::G_.from_tensor(
-                inputs.slice(1, 0, Base::G_.ncumcoeffs() * Base::G_.geoDim())
-                    .flatten());
-          if constexpr (Base::has_RefData && Base::has_GeometryMap)
+                inputs.slice(1, 0, Base::G_.as_tensor_size()).flatten());
+            Base::f_.from_tensor(inputs
+                                     .slice(1, Base::G_.as_tensor_size(),
+                                            Base::G_.as_tensor_size() +
+                                                Base::f_.as_tensor_size())
+                                     .flatten());
+          } else if constexpr (Base::has_GeometryMap && !Base::has_RefData)
+            Base::G_.from_tensor(
+                inputs.slice(1, 0, Base::G_.as_tensor_size()).flatten());
+          else if constexpr (!Base::has_GeometryMap && Base::has_RefData)
             Base::f_.from_tensor(
-                inputs
-                    .slice(1, Base::G_.ncumcoeffs() * Base::G_.geoDim(),
-                           Base::G_.ncumcoeffs() * Base::G_.geoDim() +
-                               Base::f_.ncumcoeffs() * Base::f_.geoDim())
-                    .flatten());
-          else if constexpr (Base::has_RefData)
-            Base::f_.from_tensor(
-                inputs.slice(1, 0, Base::f_.ncumcoeffs() * Base::f_.geoDim())
-                    .flatten());
+                inputs.slice(1, 0, Base::f_.as_tensor_size()).flatten());
         }
 
         this->epoch(epoch);
@@ -1326,8 +1325,7 @@ operator<<(std::ostream &os,
 /// This class implements a customizable variant of IgANets that
 /// provides types and attributes for precomputing indices and basis
 /// functions
-template <typename Optimizer, typename GeometryMap, typename Variable>
-class IgANetCustomizable {
+template <typename GeometryMap, typename Variable> class IgANetCustomizable {
 public:
   /// @brief Type of the knot indices of the geometry map in the interior
   using geometryMap_interior_knot_indices_type =

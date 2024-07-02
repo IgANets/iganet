@@ -29,13 +29,19 @@ if(NOT PYIGANET_COEFF_TYPE)
 endif()
 set_property(CACHE PYIGANET_COEFF_TYPE PROPERTY STRINGS "float" "double")
 
-message("Pyiganet options:")
+message("PyIgaNet options:")
 message("PYIGANET_COEFF_TYPE................: ${PYIGANET_COEFF_TYPE}")
 message("")
 
 ########################################################################
 # Auto-generate source files
 ########################################################################
+
+# Clean output directory
+file(GLOB_RECURSE FILES_AND_DIRS "${CMAKE_CURRENT_BINARY_DIR}/*")
+foreach(ITEM ${FILES_AND_DIRS})
+  file(REMOVE_RECURSE ${ITEM})
+endforeach()
 
 # Config
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/pyconfig.hpp.in
@@ -45,8 +51,8 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/pyconfig.hpp.in
 list(APPEND init_core "init_options")
 
 # Explicit instantiation of templated blocktensor classes
-foreach(ROWS RANGE 1 4)
-  foreach(COLS RANGE 1 4)
+foreach(ROWS RANGE 1 2)
+  foreach(COLS RANGE 1 2)
 
     set(SUFFIX "_${ROWS}_${COLS}")
     list(APPEND init_core "init_BlockTensor${SUFFIX}")
@@ -60,9 +66,9 @@ endforeach()
 list(APPEND init_splines "init_bspline")
 
 # Explicit instantiation of templated spline classes
-foreach(GEODIM RANGE 1 4)
+foreach(GEODIM RANGE 1 2)
   foreach(DEGREES IN ITEMS
-      "1" "1,1" "1,1,1" "1,1,1,1")
+      "1" "1,1")# "1,1,1" "1,1,1,1")
 #      "2" "2,2" "2,2,2" "2,2,2,2"
 #      "3" "3,3" "3,3,3" "3,3,3,3"
 #      "4" "4,4" "4,4,4" "4,4,4,4"
@@ -158,6 +164,7 @@ file(GLOB SRCS ${CMAKE_CURRENT_SOURCE_DIR}/*.cxx ${CMAKE_CURRENT_BINARY_DIR}/*.c
 
 pybind11_add_module(pyiganet_core MODULE ${SRCS})
 
+# LibTorch
 target_include_directories(pyiganet_core PUBLIC ${TORCH_INCLUDE_DIRS})
 target_link_libraries(pyiganet_core PUBLIC pugixml)
 
@@ -167,9 +174,17 @@ if (IPEX_FOUND)
 endif()
 
 if (IGANET_WITH_GISMO)
-  target_link_libraries(pyiganet_core PUBLIC gismo)
+  target_link_libraries(pyiganet_core PUBLIC gismo_static)
 endif()
 
 if (IGANET_WITH_MATPLOT)
   target_link_libraries(pyiganet_core PUBLIC Matplot++::matplot)
+endif()
+
+if (IGANET_WITH_MPI)
+  target_link_libraries(pyiganet_core PUBLIC MPI::MPI_CXX)
+endif()
+
+if (IGANET_WITH_OPENMP)
+  target_link_libraries(pyiganet_core PUBLIC OpenMP::OpenMP_CXX)
 endif()

@@ -25,7 +25,8 @@ RUN curl -fsSL --insecure -o cmake-${CMAKE_VERSION}-${CMAKE_OS}-${CMAKE_ARCH}.ta
 ENV PATH="$PATH:/opt/cmake-${CMAKE_VERSION}-${CMAKE_OS}-${CMAKE_ARCH}/bin"
 
 # Install Torch
-ARG LIBTORCH_URL=https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.1.0%2Bcpu.zip
+ARG LIBTORCH_VERSION=2.2.2
+ARG LIBTORCH_URL=https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-${LIBTORCH_VERSION}%2Bcpu.zip
 WORKDIR /opt
 RUN curl -fsSL --insecure -o libtorch.zip ${LIBTORCH_URL} \
         && unzip -q libtorch.zip \

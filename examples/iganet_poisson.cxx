@@ -23,9 +23,8 @@ using namespace iganet::literals;
 
 /// @brief Specialization of the abstract IgANet class for Poisson's equation
 template <typename Optimizer, typename GeometryMap, typename Variable>
-class poisson
-    : public iganet::IgANet<Optimizer, GeometryMap, Variable>,
-      public iganet::IgANetCustomizable<Optimizer, GeometryMap, Variable> {
+class poisson : public iganet::IgANet<Optimizer, GeometryMap, Variable>,
+                public iganet::IgANetCustomizable<GeometryMap, Variable> {
 
 private:
   /// @brief Type of the base class
@@ -38,8 +37,7 @@ private:
   Variable ref_;
 
   /// @brief Type of the customizable class
-  using Customizable =
-      iganet::IgANetCustomizable<Optimizer, GeometryMap, Variable>;
+  using Customizable = iganet::IgANetCustomizable<GeometryMap, Variable>;
 
   /// @brief Knot indices of variables
   typename Customizable::variable_interior_knot_indices_type var_knot_indices_;
@@ -153,8 +151,8 @@ int main() {
   using optimizer_t = torch::optim::LBFGS;
   using real_t = double;
 
-  using geometry_t = iganet::S2<iganet::UniformBSpline<real_t, 2, 1, 1>>;
-  using variable_t = iganet::S2<iganet::UniformBSpline<real_t, 1, 2, 2>>;
+  using geometry_t = iganet::S<iganet::UniformBSpline<real_t, 2, 1, 1>>;
+  using variable_t = iganet::S<iganet::UniformBSpline<real_t, 1, 2, 2>>;
 
   poisson<optimizer_t, geometry_t, variable_t>
       net( // Number of neurons per layers

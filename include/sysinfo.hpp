@@ -34,10 +34,10 @@
 namespace iganet {
 
 /// @brief Returns the IgANet version
-std::string getIgANetVersion() { return std::string(IGANET_VERSION); }
+inline std::string getIgANetVersion() { return std::string(IGANET_VERSION); }
 
 /// @brief Returns the version of the compiler
-std::string getCompilerVersion() {
+inline std::string getCompilerVersion() {
   // This code is copied from the CMakeCXXCompilerId.cpp file that was
   // automatically generated with CMake 3.21.4
 
@@ -448,7 +448,7 @@ std::string getCompilerVersion() {
 }
 
 /// @brief Returns the version of the C++ standard
-std::string getCppVersion() {
+inline std::string getCppVersion() {
 #if defined(_MSC_VER) && _MSC_VER < 1600
   return "C++ 199711L";
 #elif _MSC_VER >= 1900
@@ -461,7 +461,7 @@ std::string getCppVersion() {
 }
 
 /// @brief Returns the version of the standard library
-std::string getStdLibVersion() {
+inline std::string getStdLibVersion() {
 #ifdef _LIBCPP_VERSION
   return "libc++ " + std::to_string(_LIBCPP_VERSION);
 #elif defined(__GLIBCXX__)
@@ -488,7 +488,7 @@ std::string getStdLibVersion() {
 }
 
 /// @brief Returns the version of extra libraries
-std::string getExtraLibsVersion() {
+inline std::string getExtraLibsVersion() {
   std::string s("");
 
   // CUDA
@@ -531,7 +531,7 @@ std::string getExtraLibsVersion() {
 }
 
 /// @brief Returns CPU information
-std::string getCpuInfo() {
+inline std::string getCpuInfo() {
 #if defined(_WIN32) || defined(_WIN64)
 
   int CPUInfo[4] = {-1};
@@ -613,7 +613,7 @@ std::string getCpuInfo() {
 }
 
 /// @brief Returns total system memory in bytes
-uint64_t getMemoryInBytes() {
+inline uint64_t getMemoryInBytes() {
 #if defined(_WIN32) || defined(_WIN64)
 
   MEMORYSTATUSEX status;
@@ -642,7 +642,7 @@ uint64_t getMemoryInBytes() {
 }
 
 /// @brief Returns memory information
-std::string getMemoryInfo() {
+inline std::string getMemoryInfo() {
   uint64_t memsize = getMemoryInBytes();
   if (memsize > 0) {
     if (memsize < 1024)
@@ -658,7 +658,7 @@ std::string getMemoryInfo() {
 }
 
 /// @brief Returns version information
-std::string getVersion() {
+inline std::string getVersion() {
   return std::string("IgANets - Isogeometric Analysis Networks") +
          " (version " + getIgANetVersion() + ")\n" + "Compiled by " +
          getCompilerVersion() + " (" + getCppVersion() + ", " +

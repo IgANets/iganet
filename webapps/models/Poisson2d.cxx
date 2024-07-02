@@ -53,6 +53,9 @@ public:
   /// @brief Returns the model's outputs
   nlohmann::json getOutputs() const override { return R"([])"_json; }
 
+  /// @brief Returns the model's parameters
+  nlohmann::json getParameters() const override { return R"([])"_json; }
+
   /// @brief Serializes the model to JSON
   nlohmann::json to_json(const std::string &component,
                          const std::string &attribute) const override {
@@ -111,12 +114,12 @@ extern "C"
 #endif
 {
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wreturn-type-c-linkage"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wreturn-type-c-linkage"
 
   std::shared_ptr<iganet::Model> create(const nlohmann::json &json) {
     return std::make_shared<iganet::Poisson2dModel>();
   }
 
-#pragma GCC diagnostic pop
+#pragma clang diagnostic pop
 }

@@ -23,10 +23,9 @@ using namespace iganet::literals;
 
 /// @brief Specialization of the abstract IgANet class for Stokes's equation
 template <typename Optimizer, typename GeometryMap, typename Variable>
-class stokes
-    : public iganet::IgANet<Optimizer, GeometryMap, Variable,
-                            iganet::IgABaseNoRefData>,
-      public iganet::IgANetCustomizable<Optimizer, GeometryMap, Variable> {
+class stokes : public iganet::IgANet<Optimizer, GeometryMap, Variable,
+                                     iganet::IgABaseNoRefData>,
+               public iganet::IgANetCustomizable<GeometryMap, Variable> {
 
 private:
   /// @brief Type of the base class
@@ -40,8 +39,7 @@ private:
   Variable ref_;
 
   /// @brief Type of the customizable class
-  using Customizable =
-      iganet::IgANetCustomizable<Optimizer, GeometryMap, Variable>;
+  using Customizable = iganet::IgANetCustomizable<GeometryMap, Variable>;
 
   /// @brief Knot indices of variables
   typename Customizable::variable_interior_knot_indices_type var_knot_indices_;
@@ -123,9 +121,14 @@ public:
     Base::u_.from_tensor(outputs.t());
 
     // Evaluate
-    auto u_ilapl =
-        Base::u_.ilapl(Base::G_, collPts_.first, var_knot_indices_,
-                       var_coeff_indices_, G_knot_indices_, G_coeff_indices_);
+    //    auto u_ilapl = Base::u_.template clone<0, 1>().div(std::get<0>(
+    //        collPts_.first)); //, var_knot_indices_, var_coeff_indices_);
+    //    auto u_ilapl =
+    //        Base::u_.ilapl(Base::G_, collPts_.first, var_knot_indices_,
+    //                       var_coeff_indices_, G_knot_indices_,
+    //                       G_coeff_indices_);
+
+    exit(0);
 
     auto u_bdr = Base::u_.template eval<iganet::functionspace::boundary>(
         collPts_.second);
@@ -139,7 +142,7 @@ public:
     };
 
     // Evaluate the loss function
-    return mse_loss(*std::get<0>(u_ilapl)[0]);
+    return outputs; // mse_loss(*std::get<0>(u_ilapl)[0]);
   }
 };
 
@@ -155,8 +158,8 @@ int main() {
   using optimizer_t = torch::optim::LBFGS;
   using real_t = double;
 
-  using geometry_t = iganet::S2<iganet::UniformBSpline<real_t, 2, 2, 3>>;
-  using variable_t = iganet::RT2<iganet::UniformBSpline<real_t, 1, 2, 2>>;
+  using geometry_t = iganet::S<iganet::UniformBSpline<real_t, 2, 2, 3>>;
+  using variable_t = iganet::RT<iganet::UniformBSpline<real_t, 1, 2, 2>>;
 
   stokes<optimizer_t, geometry_t, variable_t>
       net( // Number of neurons per layers

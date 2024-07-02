@@ -33,6 +33,7 @@ enum class degree {
 template <class BSpline_t>
 class BSplineModel : public Model,
                      public ModelEval,
+                     public ModelReparameterize,
                      public ModelRefine,
                      public ModelSerialize,
                      public ModelXML,
@@ -258,6 +259,9 @@ public:
                 "type" : 2}])"_json;
   }
 
+  /// @brief Returns the model's parameters
+  nlohmann::json getParameters() const override { return R"([])"_json; }
+
   /// @brief Serializes the model to JSON
   nlohmann::json to_json(const std::string &component,
                          const std::string &attribute) const override {
@@ -450,7 +454,7 @@ public:
         if (json["data"].contains("resolution"))
           res = json["data"]["resolution"].get<std::array<int64_t, 2>>();
 
-      utils::TensorArray2 xi = utils::convert<2>(torch::meshgrid(
+      utils::TensorArray2 xi = utils::to_array<2>(torch::meshgrid(
           {torch::linspace(0, 1, res[0],
                            Options<typename BSpline_t::value_type>{}),
            torch::linspace(0, 1, res[1],
@@ -478,7 +482,7 @@ public:
         if (json["data"].contains("resolution"))
           res = json["data"]["resolution"].get<std::array<int64_t, 3>>();
 
-      utils::TensorArray3 xi = utils::convert<3>(torch::meshgrid(
+      utils::TensorArray3 xi = utils::to_array<3>(torch::meshgrid(
           {torch::linspace(0, 1, res[0],
                            Options<typename BSpline_t::value_type>{}),
            torch::linspace(0, 1, res[1],
@@ -508,7 +512,7 @@ public:
         if (json["data"].contains("resolution"))
           res = json["data"]["resolution"].get<std::array<int64_t, 4>>();
 
-      utils::TensorArray4 xi = utils::convert<4>(torch::meshgrid(
+      utils::TensorArray4 xi = utils::to_array<4>(torch::meshgrid(
           {torch::linspace(0, 1, res[0],
                            Options<typename BSpline_t::value_type>{}),
            torch::linspace(0, 1, res[1],
@@ -574,6 +578,16 @@ public:
                                         std::sin(M_PI * xi[2])),
             0.0, 0.0};
       });
+  }
+
+  /// @brief Reparameterize the model
+  void reparameterize(const nlohmann::json &json = NULL) override {
+
+    // gismo::gsBarrierPatch<d, T> opt(geo_, false);
+    // opt.options().setInt("ParamMethod", 1);
+    // opt.compute();
+
+    // geo_ = opt.result();
   }
 
   /// @brief Loads model from LibTorch file

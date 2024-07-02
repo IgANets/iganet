@@ -18,12 +18,13 @@
 
 include(FetchContent)
 FetchContent_Declare(gismo
-  URL https://github.com/gismo/gismo/archive/refs/heads/stable.zip
+  #URL https://github.com/gismo/gismo/archive/refs/heads/stable.zip
+  GIT_REPOSITORY https://github.com/gismo/gismo.git
+  GIT_TAG        8e3795159c4625086ea9153e0de0cc18264175cc
   )
 
 set(BUILD_TESTING        OFF CACHE INTERNAL "")
 set(GISMO_BUILD_EXAMPLES OFF CACHE INTERNAL "")
-set(GISMO_BUILD_LIB      OFF CACHE INTERNAL "")
 set(GISMO_OPTIONAL       "gsHLBFGS;gsKLShell"  CACHE INTERNAL "")
 set(GISMO_SHORT_TYPE     "int" CACHE INTERNAL "")
 set(GISMO_WITH_OPENMP    ${IGANET_WITH_OPENMP} CACHE INTERNAL "")

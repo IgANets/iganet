@@ -72,7 +72,7 @@ void init_options(py::module_ &m) {
       .def(
           "dtype",
           [](const iganet::Options<pyiganet::real_t> &self) {
-            return self.dtype().toScalarType();
+            return self.dtype();
           },
           "Returns the `dtype` property")
 

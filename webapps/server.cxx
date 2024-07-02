@@ -19,6 +19,7 @@
 #include <popl.hpp>
 
 #include <chrono>
+#include <ctime>
 #include <filesystem>
 #include <thread>
 
@@ -76,29 +77,35 @@ std::vector<std::string> tokenize(std::string str,
 template <typename T> struct Session {
 private:
   /// @brief Session UUID
-  const std::string uuid;
+  const std::string uuid_;
 
   /// @brief Hashed password
-  const std::size_t hash;
+  const std::string hash_;
 
   /// @brief Creation time stamp
-  std::chrono::system_clock::time_point creation_time;
+  std::chrono::system_clock::time_point creation_time_;
 
   /// @brief Access time stamp
-  std::chrono::system_clock::time_point access_time;
+  std::chrono::system_clock::time_point access_time_;
 
 public:
   /// @brief Default constructor
-  Session(std::size_t hash)
-      : uuid(iganet::utils::uuid::create()), hash(hash),
-        creation_time(std::chrono::system_clock::now()),
-        access_time(std::chrono::system_clock::now()) {}
+  Session(std::string hash)
+      : uuid_(iganet::utils::uuid::create()), hash_(hash),
+        creation_time_(std::chrono::system_clock::now()),
+        access_time_(std::chrono::system_clock::now()) {}
 
   /// @brief Returns the UUID
-  const std::string &getUUID() const { return uuid; }
+  inline const std::string &getUUID() const { return uuid_; }
+
+  /// @brief Returns a constant reference to the list of models
+  inline const auto &getModels() const { return models; }
+
+  /// @brief Returns a non-constant reference to the list of models
+  inline auto &getModels() { return models; }
 
   /// @brief Returns the requested model or throws an exception
-  std::shared_ptr<Model> getModel(int64_t id) {
+  inline std::shared_ptr<Model> getModel(int64_t id) {
     auto it = models.find(id);
     if (it == models.end())
       throw InvalidModelIdException();
@@ -107,7 +114,7 @@ public:
   }
 
   /// @brief Returns the model and removes it from the list of models
-  std::shared_ptr<Model> removeModel(int64_t id) {
+  inline std::shared_ptr<Model> removeModel(int64_t id) {
     auto it = models.find(id);
     if (it == models.end())
       throw InvalidModelIdException();
@@ -118,8 +125,24 @@ public:
     }
   }
 
+  /// @brief Returns true if the session has a non-zero hash
+  inline bool hasHash() const { return (hash_ != ""); }
+
+  /// @brief Returns true if the provided hash coincides with the session's hash
+  inline bool checkHash(std::string hash) const { return (hash_ == hash); }
+
   /// @brief Updates the access time stamp
-  void access() { access_time = std::chrono::system_clock::now(); }
+  inline void access() { access_time_ = std::chrono::system_clock::now(); }
+
+  /// @brief Returns the creation time
+  inline std::chrono::system_clock::time_point getCreationTime() const {
+    return creation_time_;
+  }
+
+  /// @brief Returns the access time
+  inline std::chrono::system_clock::time_point getAccessTime() const {
+    return access_time_;
+  }
 
   /// @brief List of models
   std::map<int64_t, std::shared_ptr<Model>> models;
@@ -128,10 +151,10 @@ public:
 /// @brief Sessions structure
 template <typename T> struct Sessions {
 public:
-  /// @brief Returns the requested session model or throws an exception
+  /// @brief Returns the requested session or throws an exception
   inline std::shared_ptr<Session<T>> getSession(std::string uuid) {
-    auto it = sessions.find(uuid);
-    if (it == sessions.end())
+    auto it = sessions_.find(uuid);
+    if (it == sessions_.end())
       throw InvalidSessionIdException();
     else {
       it->second->access();
@@ -139,33 +162,49 @@ public:
     }
   }
 
+  /// @brief Returns a new session
+  inline std::shared_ptr<Session<T>> createSession(std::string hash) {
+    auto session =
+        std::make_shared<iganet::webapp::Session<iganet::real_t>>(hash);
+    sessions_[session->getUUID()] = session;
+    return session;
+  }
+
   /// @brief Returns the session and removes it from the list of sessions
   inline std::shared_ptr<Session<T>> removeSession(std::string uuid) {
-    auto it = sessions.find(uuid);
-    if (it == sessions.end())
+    auto it = sessions_.find(uuid);
+    if (it == sessions_.end())
       throw InvalidSessionIdException();
     else {
       auto session = it->second;
-      sessions.erase(it);
+      sessions_.erase(it);
       return session;
     }
   }
 
   /// @brief Add path to model path
   inline static void addModelPath(const std::string &path) {
-    models.addModelPath(path);
+    models_.addModelPath(path);
   }
 
   /// @brief Add list of paths to model path
   inline static void addModelPath(const std::vector<std::string> &path) {
-    models.addModelPath(path);
+    models_.addModelPath(path);
   }
 
+  /// @brief Returns a non-constant reference to the list of sessions
+  inline static auto &getSessions() { return sessions_; }
+
+  /// @brief Returns a non-constant reference to the list of models
+  inline static auto &getModels() { return models_; }
+
+private:
   /// @brief List of sessions shared between all sockets
-  inline static std::map<std::string, std::shared_ptr<Session<T>>> sessions;
+  inline static std::map<std::string, std::shared_ptr<Session<T>>> sessions_;
 
   /// @brief List of models
-  inline static ModelManager models = ModelManager("webapps/models");
+  inline static ModelManager models_ =
+      ModelManager(iganet::webapp::tokenize("webapps/models,models", ","));
 };
 
 } // namespace webapp
@@ -398,7 +437,7 @@ int main(int argc, char const *argv[]) {
                                    // Get list of all active sessions
                                    std::vector<std::string> ids;
                                    for (const auto &session :
-                                        ws->getUserData()->sessions)
+                                        ws->getUserData()->getSessions())
                                      ids.push_back(session.first);
                                    response["data"]["ids"] = ids;
                                    ws->send(response.dump(), uWS::OpCode::TEXT,
@@ -417,7 +456,8 @@ int main(int argc, char const *argv[]) {
                                    // Get list of all active models in session
                                    std::vector<int64_t> ids;
                                    auto models = nlohmann::json::array();
-                                   for (const auto &model : session->models) {
+                                   for (const auto &model :
+                                        session->getModels()) {
                                      ids.push_back(model.first);
                                      models.push_back(model.second->getModel());
                                    }
@@ -623,20 +663,36 @@ int main(int argc, char const *argv[]) {
                                    // request: create/session
                                    //
 
+                                   // Get password hash
+                                   std::string hash("");
+                                   if (request.contains("data"))
+                                     if (request["data"].contains("hash"))
+                                       hash = request["data"]["hash"]
+                                                  .get<std::string>();
+
                                    // Create a new session
-                                   auto session = std::make_shared<
-                                       iganet::webapp::Session<iganet::real_t>>(
-                                       0);
+                                   auto session =
+                                       ws->getUserData()->createSession(hash);
                                    std::string uuid = session->getUUID();
-                                   ws->getUserData()->sessions[uuid] = session;
+
                                    response["data"]["id"] = uuid;
                                    response["data"]["models"] =
-                                       ws->getUserData()->models.getModels();
+                                       ws->getUserData()
+                                           ->getModels()
+                                           .getModels();
                                    ws->send(response.dump(), uWS::OpCode::TEXT,
                                             true);
 
                                    // Subscribe to new session
                                    ws->subscribe(uuid);
+
+                                   // Broadcast creation of a new session
+                                   nlohmann::json broadcast;
+                                   broadcast["id"] = uuid;
+                                   broadcast["request"] = "create/session";
+                                   broadcast["data"]["id"] = uuid;
+                                   ws->publish(uuid, broadcast.dump(),
+                                               uWS::OpCode::TEXT);
                                  }
 
                                  else if (tokens.size() == 3) {
@@ -649,15 +705,16 @@ int main(int argc, char const *argv[]) {
                                        ws->getUserData()->getSession(tokens[1]);
 
                                    // Get new model's id
-                                   int64_t id =
-                                       (session->models.size() > 0
-                                            ? session->models.crbegin()->first +
-                                                  1
-                                            : 0);
+                                   int64_t id = (session->getModels().size() > 0
+                                                     ? session->getModels()
+                                                               .crbegin()
+                                                               ->first +
+                                                           1
+                                                     : 0);
 
                                    // Create a new model instance
                                    session->models[id] =
-                                       ws->getUserData()->models.create(
+                                       ws->getUserData()->getModels().create(
                                            tokens[2], request);
                                    response["data"]["id"] = std::to_string(id);
                                    response["data"]["model"] =
@@ -785,10 +842,24 @@ int main(int argc, char const *argv[]) {
                                    auto session =
                                        ws->getUserData()->getSession(tokens[1]);
 
+                                   // Get password hash
+                                   std::string hash("");
+                                   if (request.contains("data"))
+                                     if (request["data"].contains("hash"))
+                                       hash = request["data"]["hash"]
+                                                  .get<std::string>();
+
+                                   if (!session->checkHash(hash))
+                                     throw std::runtime_error(
+                                         "Invalid CONNECT request. Invalid "
+                                         "ession password.");
+
                                    // Connect to an existing session
                                    response["data"]["id"] = session->getUUID();
                                    response["data"]["models"] =
-                                       ws->getUserData()->models.getModels();
+                                       ws->getUserData()
+                                           ->getModels()
+                                           .getModels();
                                    ws->send(response.dump(), uWS::OpCode::TEXT,
                                             true);
 
@@ -943,8 +1014,9 @@ int main(int argc, char const *argv[]) {
 
                                      // Get new model's id
                                      int64_t id =
-                                         (session->models.size() > 0
-                                              ? session->models.crbegin()
+                                         (session->getModels().size() > 0
+                                              ? session->getModels()
+                                                        .crbegin()
                                                         ->first +
                                                     1
                                               : 0);
@@ -955,7 +1027,7 @@ int main(int argc, char const *argv[]) {
                                      // Create a new model instance from binary
                                      // data stream
                                      session->models[id] =
-                                         ws->getUserData()->models.load(
+                                         ws->getUserData()->getModels().load(
                                              request);
                                      ids.push_back(id);
                                      models.push_back(
@@ -1015,7 +1087,8 @@ int main(int argc, char const *argv[]) {
 
                                    // Save all active models in session
                                    auto models = nlohmann::json::array();
-                                   for (const auto &model : session->models) {
+                                   for (const auto &model :
+                                        session->getModels()) {
                                      if (auto m = std::dynamic_pointer_cast<
                                              iganet::ModelSerialize>(
                                              model.second)) {
@@ -1095,7 +1168,8 @@ int main(int argc, char const *argv[]) {
                                        ws->getUserData()->getSession(tokens[1]);
 
                                    // Load all existing models from XML
-                                   for (const auto &model : session->models) {
+                                   for (const auto &model :
+                                        session->getModels()) {
                                      if (auto m = std::dynamic_pointer_cast<
                                              iganet::ModelXML>(model.second)) {
                                        m->importXML(request, "", model.first);
@@ -1122,7 +1196,8 @@ int main(int argc, char const *argv[]) {
 
                                    // Broadcast update of model instances
                                    std::vector<int64_t> ids;
-                                   for (const auto &model : session->models)
+                                   for (const auto &model :
+                                        session->getModels())
                                      ids.push_back(model.first);
 
                                    // Broadcast update of model instance
@@ -1271,7 +1346,8 @@ int main(int argc, char const *argv[]) {
                                    pugi::xml_document doc;
                                    pugi::xml_node xml = doc.append_child("xml");
 
-                                   for (const auto &model : session->models) {
+                                   for (const auto &model :
+                                        session->getModels()) {
                                      if (auto m = std::dynamic_pointer_cast<
                                              iganet::ModelXML>(model.second))
                                        xml = m->exportXML(xml, "", model.first);
@@ -1609,7 +1685,7 @@ int main(int argc, char const *argv[]) {
                                    nlohmann::json broadcast;
                                    broadcast["id"] = session->getUUID();
                                    broadcast["request"] =
-                                       "reparameterization/instance";
+                                       "reparameterize/instance";
                                    broadcast["data"]["id"] = stoi(tokens[2]);
                                    ws->publish(session->getUUID(),
                                                broadcast.dump(),
@@ -1635,6 +1711,64 @@ int main(int argc, char const *argv[]) {
                                }
 
                              } // REPARAMETERIZE
+
+                             else if (tokens[0] == "info") {
+                               //
+                               // request: info/*
+                               //
+
+                               try {
+
+                                 if (tokens.size() == 1) {
+                                   //
+                                   // request: info
+                                   //
+
+                                   // Get list of all active sessions
+                                   auto sessions = nlohmann::json::array();
+                                   for (const auto &session :
+                                        ws->getUserData()->getSessions()) {
+                                     auto json = nlohmann::json();
+                                     auto creation_time =
+                                         std::chrono::system_clock::to_time_t(
+                                             session.second->getCreationTime());
+                                     auto access_time =
+                                         std::chrono::system_clock::to_time_t(
+                                             session.second->getAccessTime());
+                                     json["id"] = session.first;
+                                     json["creation_time"] =
+                                         std::ctime(&creation_time);
+                                     json["access_time"] =
+                                         std::ctime(&access_time);
+                                     json["hasHash"] =
+                                         session.second->hasHash();
+
+                                     json["models"] =
+                                         session.second->getModels().size();
+
+                                     sessions.push_back(json);
+                                   }
+                                   response["data"]["sessions"] = sessions;
+                                   ws->send(response.dump(), uWS::OpCode::TEXT,
+                                            true);
+                                 }
+
+                                 else
+                                   throw std::runtime_error(
+                                       "Invalid INFO request");
+
+                               } catch (...) {
+                                 response["status"] =
+                                     iganet::webapp::status::invalidGetRequest;
+                                 response["reason"] = "Invalid INFO request. "
+                                                      "Valid INFO requests "
+                                                      "are "
+                                                      "\"info\"";
+                                 ws->send(response.dump(), uWS::OpCode::TEXT,
+                                          true);
+                               }
+
+                             } // INFO
 
                              else {
                                response["status"] =
