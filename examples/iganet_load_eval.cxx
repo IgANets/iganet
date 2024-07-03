@@ -142,49 +142,48 @@ int main() {
 
 #ifdef IGANET_WITH_MATPLOT
   // Evaluate position of collocation points in physical domain
-  auto colPts = net.G().eval(net.collPts().first);
+  auto f_plot = sin(M_PI * net.collPts().first[0]) * sin(M_PI * net.collPts.first[1]);
 
   // Plot the solution
-  net.G()
-      .plot(net.u(), std::array<torch::Tensor, 2>{*colPts[0], *colPts[1]}, json)
-      ->show();
+  net.G().plot(net.u(), net.collPts().first, json)->show();
+
 
   // Plot the difference between the solution and the reference data
   net.G()
-      .plot(net.u().abs_diff(net.f()),
-            std::array<torch::Tensor, 2>{*colPts[0], *colPts[1]}, json)
+      .plot(net.u().abs_diff(f_plot), json)
       ->show();
 #endif
 
 #ifdef IGANET_WITH_GISMO
-        // Convert B-spline objects to G+Smo
-        auto G_gismo = net.G().to_gismo();
-        auto u_gismo = net.u().to_gismo();
+  // Convert B-spline objects to G+Smo
+  auto G_gismo = net.G().space().to_gismo();
+  auto u_gismo = net.u().space().to_gismo();
+  gsFunctionExpr<real_t> f_gismo("sin(pi*x)*sin(pi*y)", 2);
 
-        // Set up expression assembler
-        gsExprAssembler<real_t> A(1, 1);
-        gsMultiBasis<real_t> basis(u_gismo, true);
+  // Set up expression assembler
+  gsExprAssembler<real_t> A(1, 1);
+  gsMultiBasis<real_t> basis(u_gismo, true);
 
-        A.setIntegrationElements(basis);
+  A.setIntegrationElements(basis);
 
-        auto G = A.getMap(G_gismo);
-        auto u = A.getCoeff(u_gismo, G);
+  auto G = A.getMap(G_gismo);
+  auto u = A.getCoeff(u_gismo, G);
+  auto f = A.getCoeff(f_gismo, G);
 
-        // Compute L2- and H2-error
-        gsExprEvaluator<real_t> ev(A);
+  // Compute L2- and H2-error
+  gsExprEvaluator<real_t> ev(A);
 
-        iganet::Log(iganet::log::info)
-            << "L2-error : "
-            << gismo::math::sqrt(ev.integral((u - f).sqNorm() * meas(G)))
-            << std::endl;
+  iganet::Log(iganet::log::info)
+      << "L2-error : "
+      << gismo::math::sqrt(ev.integral((u - f).sqNorm() * meas(G)))
+      << std::endl;
 
-        iganet::Log(iganet::log::info)
-            << "H1-error : "
-            << gismo::math::sqrt(ev.integral(
-                   (gismo::expr::igrad(u, G) - gismo::expr::igrad(f, G))
-                       .sqNorm() *
-                   meas(G)))
-            << std::endl;
+  iganet::Log(iganet::log::info)
+      << "H1-error : "
+      << gismo::math::sqrt(ev.integral(
+             (gismo::expr::igrad(u, G) - gismo::expr::igrad(f, G)).sqNorm() *
+             meas(G)))
+      << std::endl;
 #endif
 
   return 0;

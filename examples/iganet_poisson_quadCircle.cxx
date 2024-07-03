@@ -237,15 +237,12 @@ int main() {
       << " seconds\n";
 
 #ifdef IGANET_WITH_MATPLOT
-auto colPts = net.G().eval(net.collPts().first);
-  // Plot the solution
-    net.G()
-      .plot(net.u(), std::array<torch::Tensor, 2>{*colPts[0], *colPts[1]}, json)
-      ->show();
+   // Plot the solution
+  net.G().plot(net.u(), net.collPts().first, json)->show();
 
   // Plot the difference between the exact and predicted solutions
   net.G()
-      .plot(net.u().abs_diff(net.ref()), std::array<torch::Tensor, 2>{*colPts[0], *colPts[1]},
+      .plot(net.u().abs_diff(net.ref()),
            json)
       ->show();
 #endif
