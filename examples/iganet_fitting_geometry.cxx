@@ -198,7 +198,7 @@ int main() {
           //          std::array<torch::Tensor, 2>{*colPts[0], *colPts[1]}, json)
           //    ->show();
             // Plot the solution
-          net.G().plot(net.u(), net.collPts().first, json)->show();
+          net.G().space().plot(net.u().space(), net.collPts().first, json)->show();
 
 
 #endif

@@ -178,7 +178,7 @@ int main() {
 
 #ifdef IGANET_WITH_MATPLOT
           // Plot the solution
-          net.G().plot(net.u(), net.collPts().first, json)->show();
+          net.G().space().plot(net.u().space(), net.collPts().first, json)->show();
 #endif
 
 #ifdef IGANET_WITH_GISMO

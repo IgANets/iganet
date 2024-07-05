@@ -221,10 +221,10 @@ int main() {
 
 #ifdef IGANET_WITH_MATPLOT
   // Plot the solution
-  net.G().plot(net.u(), net.collPts().first, json)->show();
+  net.G().space().plot(net.u().space(), net.collPts().first, json)->show();
 
   // Plot the difference between the exact and predicted solutions
-  net.G().plot(net.ref().abs_diff(net.u()), net.collPts().first, json)->show();
+  net.G().space().plot(net.ref().space().abs_diff(net.u().space()), net.collPts().first, json)->show();
 #endif
 
   return 0;

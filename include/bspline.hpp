@@ -5991,7 +5991,7 @@ public:
       auto ax = f->current_axes();
 
       // Create mesh
-      utils::TensorArray<2> meshgrid = utils::convert<2>(
+      utils::TensorArray<2> meshgrid = utils::to_array<2>(
           torch::meshgrid({torch::linspace(0, 1, res0, BSplineCore::options_),
                            torch::linspace(0, 1, res1, BSplineCore::options_)},
                           "xy"));
@@ -6151,7 +6151,7 @@ public:
       auto ax = f->current_axes();
 
       // Cretae surface
-      utils::TensorArray<2> meshgrid = utils::convert<2>(
+      utils::TensorArray<2> meshgrid = utils::to_array<2>(
           torch::meshgrid({torch::linspace(0, 1, res0, BSplineCore::options_),
                            torch::linspace(0, 1, res1, BSplineCore::options_)},
                           "xy"));

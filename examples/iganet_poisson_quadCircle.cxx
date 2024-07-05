@@ -161,10 +161,10 @@ int main() {
   
    // Load XML file
   pugi::xml_document xml;
-  xml.load_file(IGANET_DATA_DIR "surfaces/2d_quadCircle_degree34/quadCircleImp_R1I04_resultR1E2Fixed.xml");
+  xml.load_file(IGANET_DATA_DIR "surfaces/2d_quadCircleImp/quadCircleImpR1I04_resultR1E1Fixed.xml");
 
-  using geometry_t = iganet::S<iganet::NonUniformBSpline<real_t, 2, 3, 4>>;
-  using variable_t = iganet::S<iganet::UniformBSpline<real_t, 1, 3, 3>>;
+  using geometry_t = iganet::S<iganet::NonUniformBSpline<real_t, 2, 2, 3>>;
+  using variable_t = iganet::S<iganet::UniformBSpline<real_t, 1, 2, 2>>;
 
   poisson<optimizer_t, geometry_t, variable_t>
       net( // Number of neurons per layers
@@ -175,13 +175,15 @@ int main() {
            {iganet::activation::sigmoid},
            {iganet::activation::sigmoid},
            {iganet::activation::none}},
-          // Number of B-spline coefficients of the geometry, just [0,1] x [0,1]
-          std::tuple(iganet::utils::to_array(5_i64, 41_i64)));
+          // Number of B-spline coefficients of the geometry
+          std::tuple(iganet::utils::to_array(6_i64, 33_i64)));
 
   // load geometry from file
   net.G().from_xml(xml);
+
   net.G().uniform_refine(1, 0);
-  net.f().uniform_refine(1, 0);
+  //net.f().uniform_refine(1, 0);
+
 
   // Impose the negative of the second derivative of sin(M_PI*x) *
   // sin(M_PI*y) as right-hand side vector (manufactured solution)
@@ -216,6 +218,9 @@ int main() {
         return std::array<real_t, 1>{0.0};
       });
 
+
+  //net.ref().uniform_refine(1, 0);
+
   // Set maximum number of epoches
   net.options().max_epoch(2000);
 
@@ -238,11 +243,10 @@ int main() {
 
 #ifdef IGANET_WITH_MATPLOT
    // Plot the solution
-  net.G().plot(net.u(), net.collPts().first, json)->show();
+  net.G().space().plot(net.u().space(), net.collPts().first, json)->show();
 
   // Plot the difference between the exact and predicted solutions
-  net.G()
-      .plot(net.u().abs_diff(net.ref()),
+  net.G().space().plot(net.u().space().abs_diff(net.ref().space()),
            json)
       ->show();
 #endif

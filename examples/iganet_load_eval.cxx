@@ -142,16 +142,16 @@ int main() {
 
 #ifdef IGANET_WITH_MATPLOT
   // Evaluate position of collocation points in physical domain
-  auto f_plot = sin(M_PI * net.collPts().first[0]) * sin(M_PI * net.collPts.first[1]);
+  //auto f_plot = sin(M_PI * net.collPts().first[0]) * sin(M_PI * net.collPts().first[1]);
 
   // Plot the solution
-  net.G().plot(net.u(), net.collPts().first, json)->show();
+  net.G().space().plot(net.u().space(), net.collPts().first, json)->show();
 
 
   // Plot the difference between the solution and the reference data
-  net.G()
-      .plot(net.u().abs_diff(f_plot), json)
-      ->show();
+  //net.G().space().
+  //    .plot(net.u().space().abs_diff(f_plot), json)
+  //    ->show();
 #endif
 
 #ifdef IGANET_WITH_GISMO
