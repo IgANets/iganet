@@ -63,7 +63,7 @@ public:
       : Base(std::forward<std::vector<int64_t>>(layers),
              std::forward<std::vector<std::vector<std::any>>>(activations),
              std::forward<Args>(args)...),
-        ref_(iganet::utils::to_array(4_i64, 33_i64)) {}
+        ref_(iganet::utils::to_array(18_i64, 33_i64)) {}
 
   /// @brief Returns a constant reference to the collocation points
   auto const &collPts() const { return collPts_; }
@@ -161,7 +161,10 @@ int main() {
   
    // Load XML file
   pugi::xml_document xml;
-  xml.load_file(IGANET_DATA_DIR "surfaces/2d_quadCircleImp/quadCircleImpR1I04_resultR1E1Fixed.xml");
+  xml.load_file(IGANET_DATA_DIR "surfaces/2d_quadCircleImp/quadCircleImpR1I04_refined.xml");
+
+  //pugi::xml_document xml_new;
+  //xml_new.load_file(IGANET_DATA_DIR "surfaces/2d_quadCircleImp/quadCircleImpR1I04_refined4x.xml");
 
   using geometry_t = iganet::S<iganet::NonUniformBSpline<real_t, 2, 2, 3>>;
   using variable_t = iganet::S<iganet::UniformBSpline<real_t, 1, 2, 2>>;
@@ -176,12 +179,18 @@ int main() {
            {iganet::activation::sigmoid},
            {iganet::activation::none}},
           // Number of B-spline coefficients of the geometry
-          std::tuple(iganet::utils::to_array(6_i64, 33_i64)));
+          std::tuple(iganet::utils::to_array(18_i64, 33_i64)),
+          std::tuple(iganet::utils::to_array(18_i64, 33_i64)));
 
   // load geometry from file
   net.G().from_xml(xml);
 
-  net.G().uniform_refine(1, 0);
+  //net.G().uniform_refine(4, 0);
+  //net.f().uniform_refine(1, 0);
+  //net.ref().uniform_refine(1, 0);
+
+  //net.G().to_xml(xml_new);
+  //xml_new.save_file(IGANET_DATA_DIR "surfaces/2d_quadCircleImp/quadCircleImpR1I04_refined4x.xml");
   //net.f().uniform_refine(1, 0);
 
 
@@ -222,7 +231,7 @@ int main() {
   //net.ref().uniform_refine(1, 0);
 
   // Set maximum number of epoches
-  net.options().max_epoch(2000);
+  net.options().max_epoch(10);
 
   // Set tolerance for the loss functions
   net.options().min_loss(1e-8);
@@ -242,8 +251,9 @@ int main() {
       << " seconds\n";
 
 #ifdef IGANET_WITH_MATPLOT
+  //auto colPts = net.G().space().eval(net.collPts().first);
    // Plot the solution
-  net.G().space().plot(net.u().space(), net.collPts().first, json)->show();
+  net.G().space().plot(net.u().space(), json)->show();
 
   // Plot the difference between the exact and predicted solutions
   net.G().space().plot(net.u().space().abs_diff(net.ref().space()),
