@@ -111,16 +111,24 @@ public:
     boundary_from_full_tensor(this->as_tensor());
   }
 
-  explicit FunctionSpace(const std::tuple<Splines...> &splines)
-      : spline_(splines) { //,
-    //        boundary_({splines.ncoeffs(), init::none, splines.options()}...) {
+  explicit FunctionSpace(const std::tuple<Splines...> &spline)
+      : spline_(spline) {
     boundary_from_full_tensor(this->as_tensor());
   }
 
-  explicit FunctionSpace(std::tuple<Splines...> &&splines)
-      : spline_(splines) { //,
-    //        boundary_({splines.ncoeffs(), init::none, splines.options()}...) {
+  explicit FunctionSpace(std::tuple<Splines...> &&spline)
+      : spline_(spline) {
     boundary_from_full_tensor(this->as_tensor());
+  }
+
+  explicit FunctionSpace(const std::tuple<Splines...> &spline,
+                         const std::tuple<Boundaries...> &boundary)
+    : spline_(spline), boundary_(boundary) {
+  }
+
+  explicit FunctionSpace(std::tuple<Splines...> &&spline,
+                         std::tuple<Boundaries...> &&boundary)
+    : spline_(spline), boundary_(boundary) {
   }
   /// @}
 
@@ -169,7 +177,7 @@ public:
 
     return FunctionSpace<std::tuple<std::tuple_element_t<s, spline_type>...>,
                          std::tuple<std::tuple_element_t<s, boundary_type>...>>(
-        std::get<s>(spline_)..., std::get<s>(boundary_)...);
+                                                                                std::make_tuple(std::get<s>(spline_)...), std::make_tuple(std::get<s>(boundary_)...));
   }
 
 private:
@@ -1218,7 +1226,7 @@ public:
 
     if constexpr (comp == functionspace::interior) {
       static_assert(std::tuple_element_t<0, spline_type>::geoDim() == 1,
-                    "grid(.) for vector-valued spaces requires 1D variables");
+                    "grad(.) for vector-valued spaces requires 1D variables");
 
       return utils::BlockTensor<torch::Tensor, 1, 1>(
           std::get<0>(spline_).template eval<deriv::dx, memory_optimized>(

@@ -2,7 +2,7 @@
 # CMakeLists.txt
 #
 # Author: Matthias Moller
-# Copyright (C) 2021-2023 by the IgANet authors
+# Copyright (C) 2021-2025 by the IgANet authors
 #
 # This file is part of the IgANet project
 #
@@ -11,6 +11,8 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
 ########################################################################
+
+add_custom_target(iganet_examples)
 
 file(GLOB EXAMPLES *.cxx)
 
@@ -22,6 +24,7 @@ foreach(example ${EXAMPLES})
 
   get_filename_component(name ${example} NAME_WE)
   add_executable(${name} ${example})
+  add_dependencies(iganet_examples ${name})
 
   if(IGANET_BUILD_PCH AND NOT WIN32 AND NOT ${CMAKE_VERSION} VERSION_LESS "3.16.0")
     target_precompile_headers(${name} REUSE_FROM iganet_pch)

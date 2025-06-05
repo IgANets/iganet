@@ -2,7 +2,7 @@
 # popl.cmake
 #
 # Author: Matthias Moller
-# Copyright (C) 2021-2023 by the IgaNet authors
+# Copyright (C) 2021-2025 by the IgaNet authors
 #
 # This file is part of the IgaNet project
 #
@@ -23,6 +23,7 @@ FetchContent_Declare(popl
 
 set(BUILD_EXAMPLE 0 CACHE INTERNAL "")
 set(BUILD_TESTS   0 CACHE INTERNAL "")
+set(CMAKE_POLICY_VERSION_MINIMUM 3.5 CACHE INTERNAL "")
 FetchContent_MakeAvailable(popl)
 FetchContent_GetProperties(popl)
 include_directories(${popl_SOURCE_DIR}/include)

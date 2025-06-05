@@ -114,6 +114,7 @@ int main() {
   nlohmann::json json;
   json["res0"] = 50;
   json["res1"] = 50;
+  json["cnet"] = true;
 
   using namespace iganet::literals;
   using optimizer_t = torch::optim::Adam;
@@ -142,10 +143,6 @@ int main() {
         for (int64_t nneurons :
              iganet::utils::getenv("IGANET_NNEURONS", {10})) {
 
-          iganet::Log(iganet::log::info)
-              << "#coeff: " << ncoeffs << ", #layers: " << nlayers
-              << ", #neurons: " << nneurons << std::endl;
-
           std::vector<int64_t> layers(nlayers, nneurons);
           std::vector<std::vector<std::any>> activations(nlayers, activation);
           activations.emplace_back(
@@ -158,9 +155,14 @@ int main() {
                   activations,
                   // Number of B-spline coefficients of the geometry, has to
                   // correspond to number of coefficients in input file
-                  std::tuple(iganet::utils::to_array(25_i64, 25_i64)),
+                  iganet::utils::to_array(25_i64, 25_i64),
                   // Number of B-spline coefficients of the variable
-                  std::tuple(iganet::utils::to_array(ncoeffs, ncoeffs)));
+                  iganet::utils::to_array(ncoeffs, ncoeffs));
+
+          iganet::Log(iganet::log::info)
+              << "#coeff: " << ncoeffs << ", #layers: " << nlayers
+              << ", #neurons: " << nneurons
+              << ", #parameters: " << net.nparameters() << std::endl;
 
           // Load geometry parameterization from XML
           net.G().from_xml(xml);
@@ -193,25 +195,22 @@ int main() {
           //auto colPts = net.G().eval(net.collPts().first);
 
           // Plot the solution
-          //net.G()
-          //    .plot(net.u(),
-          //          std::array<torch::Tensor, 2>{*colPts[0], *colPts[1]}, json)
-          //    ->show();
-            // Plot the solution
-          net.G().space().plot(net.u().space(), net.collPts().first, json)->show();
-
-
+          net.G()
+              .space()
+              .plot(net.u().space(),
+                    std::array<torch::Tensor, 2>{*colPts[0], *colPts[1]}, json)
+              ->show();
 #endif
 
 #ifdef IGANET_WITH_GISMO
           // Convert B-spline objects to G+Smo
           auto G_gismo = net.G().space().to_gismo();
           auto u_gismo = net.u().space().to_gismo();
-          gsFunctionExpr<real_t> f_gismo("sin(pi*x)*sin(pi*y)", 2);
+          gismo::gsFunctionExpr<real_t> f_gismo("sin(pi*x)*sin(pi*y)", 2);
 
           // Set up expression assembler
-          gsExprAssembler<real_t> A(1, 1);
-          gsMultiBasis<real_t> basis(u_gismo, true);
+          gismo::gsExprAssembler<real_t> A(1, 1);
+          gismo::gsMultiBasis<real_t> basis(u_gismo, true);
 
           A.setIntegrationElements(basis);
 
@@ -220,7 +219,7 @@ int main() {
           auto f = A.getCoeff(f_gismo, G);
 
           // Compute L2- and H2-error
-          gsExprEvaluator<real_t> ev(A);
+          gismo::gsExprEvaluator<real_t> ev(A);
 
           iganet::Log(iganet::log::info)
               << "L2-error : "
@@ -240,5 +239,6 @@ int main() {
     }
   }
 
+  iganet::finalize();
   return 0;
 }

@@ -1081,7 +1081,7 @@ inline auto operator*(const BlockTensor<T, Rows, Common, Slices> &lhs,
   return result;
 }
 
-#define unary_op(name)                                                         \
+#define blocktensor_unary_op(name)                                             \
   template <typename T, std::size_t... Dims>                                   \
   inline auto name(const BlockTensor<T, Dims...> &input) {                     \
     BlockTensor<T, Dims...> result;                                            \
@@ -1090,7 +1090,7 @@ inline auto operator*(const BlockTensor<T, Rows, Common, Slices> &lhs,
     return result;                                                             \
   }
 
-#define unary_special_op(name)                                                 \
+#define blocktensor_unary_special_op(name)                                     \
   template <typename T, std::size_t... Dims>                                   \
   inline auto name(const BlockTensor<T, Dims...> &input) {                     \
     BlockTensor<T, Dims...> result;                                            \
@@ -1099,7 +1099,7 @@ inline auto operator*(const BlockTensor<T, Rows, Common, Slices> &lhs,
     return result;                                                             \
   }
 
-#define binary_op(name)                                                        \
+#define blocktensor_binary_op(name)                                            \
   template <typename T, typename U, std::size_t... Dims>                       \
   inline auto name(const BlockTensor<T, Dims...> &input,                       \
                    const BlockTensor<U, Dims...> &other) {                     \
@@ -1110,7 +1110,7 @@ inline auto operator*(const BlockTensor<T, Rows, Common, Slices> &lhs,
     return result;                                                             \
   }
 
-#define binary_special_op(name)                                                \
+#define blocktensor_binary_special_op(name)                                    \
   template <typename T, typename U, std::size_t... Dims>                       \
   inline auto name(const BlockTensor<T, Dims...> &input,                       \
                    const BlockTensor<U, Dims...> &other) {                     \
@@ -1123,24 +1123,24 @@ inline auto operator*(const BlockTensor<T, Rows, Common, Slices> &lhs,
 
 /// @brief Returns a new block tensor with the absolute value of the
 /// elements of `input`
-unary_op(abs);
+blocktensor_unary_op(abs);
 
 /// @brief Alias for `abs()`
-unary_op(absolute);
+blocktensor_unary_op(absolute);
 
 /// @brief Returns a new block tensor with the inverse cosine of the
 /// elements of `input`
-unary_op(acos);
+blocktensor_unary_op(acos);
 
 /// @brief Alias for `acos()`
-unary_op(arccos);
+blocktensor_unary_op(arccos);
 
 /// @brief Returns a new block tensor with the inverse hyperbolic
 /// cosine of the elements of `input`
-unary_op(acosh);
+blocktensor_unary_op(acosh);
 
 /// @brief Alias for acosh()`
-unary_op(arccosh);
+blocktensor_unary_op(arccosh);
 
 /// @brief Returns a new block tensor with the elements of `other`,
 /// scaled by `alpha`, added to the elements of `input`
@@ -1205,75 +1205,75 @@ inline auto addcmul(const BlockTensor<T, Dims...> &input,
 
 /// @brief Returns a new block tensor with the angle (in radians) of
 /// the elements of `input`
-unary_op(angle);
+blocktensor_unary_op(angle);
 
 /// @brief Returns a new block tensor with the arcsine of the
 /// elements of `input`
-unary_op(asin);
+blocktensor_unary_op(asin);
 
 /// @brief Alias for asin()
-unary_op(arcsin);
+blocktensor_unary_op(arcsin);
 
 /// @brief Returns a new block tensor with the inverse hyperbolic
 /// sine of the elements of `input`
-unary_op(asinh);
+blocktensor_unary_op(asinh);
 
 /// @brief Alias for asinh()
-unary_op(arcsinh);
+blocktensor_unary_op(arcsinh);
 
 /// @brief Returns a new block tensor with the arctangent of the
 /// elements of `input`
-unary_op(atan);
+blocktensor_unary_op(atan);
 
 /// @brief Alias for atan()
-unary_op(arctan);
+blocktensor_unary_op(arctan);
 
 /// @brief Returns a new block tensor with the inverse hyperbolic
 /// tangent of the elements of `input`
-unary_op(atanh)
+blocktensor_unary_op(atanh)
 
     /// @brief Alias for atanh()
-    unary_op(arctanh);
+    blocktensor_unary_op(arctanh);
 
 /// @brief Returns a new block tensor with the arctangent of the
 /// elements in `input` and `other` with consideration of the
 /// quadrant
-binary_op(atan2);
+blocktensor_binary_op(atan2);
 
 #if TORCH_VERSION_MAJOR >= 1 && TORCH_VERSION_MINOR >= 11 ||                   \
     TORCH_VERSION_MAJOR >= 2
 /// @brief Alias for atan2()
-binary_op(arctan2);
+blocktensor_binary_op(arctan2);
 #endif
 
 /// @brief Returns a new block tensor with the bitwise NOT of the
 /// elements of `input`
-unary_op(bitwise_not);
+blocktensor_unary_op(bitwise_not);
 
 /// @brief Returns a new block tensor with the bitwise AND of the
 /// elements of `input` and `other`
-binary_op(bitwise_and);
+blocktensor_binary_op(bitwise_and);
 
 /// @brief Returns a new block tensor with the bitwise OR of the
 /// elements of `input` and `other`
-binary_op(bitwise_or);
+blocktensor_binary_op(bitwise_or);
 
 /// @brief Returns a new block tensor with the bitwise XOR of the
 /// elements of `input` and `other`
-binary_op(bitwise_xor);
+blocktensor_binary_op(bitwise_xor);
 
 /// @brief Returns a new block tensor with the left arithmetic shift
 /// of the elements of `input` by `other` bits
-binary_op(bitwise_left_shift);
+blocktensor_binary_op(bitwise_left_shift);
 
 /// @brief Returns a new block tensor with the right arithmetic
 /// shift of the element of `input` by `other` bits
-binary_op(bitwise_right_shift);
+blocktensor_binary_op(bitwise_right_shift);
 
 /// @brief Returns a new block tensor with the ceil of the elements of
 /// input, the smallest integer greater than or equal to each
 /// element
-unary_op(ceil);
+blocktensor_unary_op(ceil);
 
 /// @brief Returns a new block tensor with the elements of `input`
 /// clamped into the range [ min, max ]
@@ -1296,247 +1296,247 @@ inline auto clip(const BlockTensor<T, Dims...> &input, U min, U max) {
 
 /// @brief Returns a new block tensor with the conjugate of the
 /// elements of `input` tensor
-unary_op(conj_physical);
+blocktensor_unary_op(conj_physical);
 
 /// @brief Returns a new block tensor with the magnitude of the
 /// elements of `input` and the sign of the elements of `other`
-binary_op(copysign);
+blocktensor_binary_op(copysign);
 
 /// @brief Returns a new block tensor with the cosine of the
 /// elements of `input`
-unary_op(cos);
+blocktensor_unary_op(cos);
 
 /// @brief Returns a new block tensor with the hyperbolic cosine of
 /// the elements of `input`
-unary_op(cosh);
+blocktensor_unary_op(cosh);
 
 /// @brief Returns a new block tensor with the elements of `input`
 /// converted from angles in degrees to radians
-unary_op(deg2rad)
+blocktensor_unary_op(deg2rad)
 
     /// @brief Returns a new block tensor with the elements of `input`
     /// divided by the elements of `other`
-    binary_op(div);
+    blocktensor_binary_op(div);
 
 /// @brief Alias for div()
-binary_op(divide);
+blocktensor_binary_op(divide);
 
 /// @brief Returns a new block tensor with the logarithmic
 /// derivative of the gamma function of the elements of `input`
-unary_op(digamma);
+blocktensor_unary_op(digamma);
 
 /// @brief Returns a new block tensor with the error function of the
 /// elements of `input`
-unary_op(erf);
+blocktensor_unary_op(erf);
 
 /// @brief Returns a new block tensor with the complementary error
 /// function of the elements of `input`
-unary_op(erfc);
+blocktensor_unary_op(erfc);
 
 /// @brief Returns a new block tensor with the inverse error
 /// function of the elements of `input`
-unary_op(erfinv);
+blocktensor_unary_op(erfinv);
 
 /// @brief Returns a new block tensor with the exponential of the
 /// elements of `input`
-unary_op(exp);
+blocktensor_unary_op(exp);
 
 /// @brief Returns a new block tensor with the base-2 exponential of
 /// the elements of `input`
-unary_op(exp2);
+blocktensor_unary_op(exp2);
 
 /// @brief Returns a new block tensor with the exponential minus 1
 /// of the elements of `input`
-unary_op(expm1);
+blocktensor_unary_op(expm1);
 
 /// @brief Alias for trunc()
-unary_op(fix);
+blocktensor_unary_op(fix);
 
 /// @brief Returns a new block tensor with the elements of `input`
 /// raised to the power of `exponent`, elementwise, in double
 /// precision
-binary_op(float_power);
+blocktensor_binary_op(float_power);
 
 /// @brief Returns a new block tensor with the floor of the elements
 /// of `input`, the largest integer less than or equal to each element
-unary_op(floor);
+blocktensor_unary_op(floor);
 
 /// @brief Returns a new block tensor with the fmod of the elements
 /// of `input` and `other`
-binary_op(fmod);
+blocktensor_binary_op(fmod);
 
 /// @brief Returns a new block tensor with the fractional portion of
 /// the elements of `input`
-unary_op(frac);
+blocktensor_unary_op(frac);
 
 /// @brief Returns a new block tensor with the decomposition of the
 /// elements of `input` into mantissae and exponents
-unary_op(frexp);
+blocktensor_unary_op(frexp);
 
 /// @brief Returns a new block tensor with the imaginary values of
 /// the elements of `input`
-unary_op(imag);
+blocktensor_unary_op(imag);
 
 /// @brief Returns a new block tensor with the elements of `input`
 /// multiplied by 2**other
-binary_op(ldexp);
+blocktensor_binary_op(ldexp);
 
 /// @brief Returns a new block tensor with the natural logarithm of
 /// the absolute value of the gamma function of the elements of
 /// `input`
-unary_op(lgamma);
+blocktensor_unary_op(lgamma);
 
 /// @brief Returns a new block tensor with the natural logarithm of
 /// the elements of `input`
-unary_op(log);
+blocktensor_unary_op(log);
 
 /// @brief Returns a new block tensor with the logarithm to the
 /// base-10 of the elements of `input`
-unary_op(log10);
+blocktensor_unary_op(log10);
 
 /// @brief Returns a new block tensor with the natural logarithm of
 /// (1 + the elements of `input`)
-unary_op(log1p);
+blocktensor_unary_op(log1p);
 
 /// @brief Returns a new block tensor with the logarithm to the
 /// base-2 of the elements of `input`
-unary_op(log2);
+blocktensor_unary_op(log2);
 
 /// @brief Returns a new block-vector with the logarithm of the sum
 /// of exponentiations of the elements of `input`
-binary_op(logaddexp);
+blocktensor_binary_op(logaddexp);
 
 /// @brief Returns a new block-vector with the logarithm of the sum
 /// of exponentiations of the elements of `input` in base-2
-binary_op(logaddexp2);
+blocktensor_binary_op(logaddexp2);
 
 /// @brief Returns a new block tensor with the element-wise logical
 /// AND of the elements of `input` and `other`
-binary_op(logical_and)
+blocktensor_binary_op(logical_and)
 
     /// @brief Returns a new block tensor with the element-wise logical
     /// NOT of the elements of `input`
-    unary_op(logical_not)
+    blocktensor_unary_op(logical_not)
 
     /// @brief Returns a new block tensor with the element-wise logical
     /// OR of the elements of `input` and `other`
-    binary_op(logical_or)
+    blocktensor_binary_op(logical_or)
 
     /// @brief Returns a new block tensor with the element-wise logical
     /// XOR of the elements of `input` and `other`
-    binary_op(logical_xor);
+    blocktensor_binary_op(logical_xor);
 
 /// logit
 
 /// @brief Given the legs of a right triangle, return its hypotenuse
-binary_op(hypot);
+blocktensor_binary_op(hypot);
 
 /// @brief Returns a new block tensor with the element-wise zeroth
 /// order modified Bessel function of the first kind for each
 /// element of `input`
-unary_op(i0);
+blocktensor_unary_op(i0);
 
 /// @brief Returns a new block tensor with the regularized lower
 /// incomplete gamma function of each element of `input`
-binary_special_op(gammainc);
+blocktensor_binary_special_op(gammainc);
 
 /// @brief Alias for gammainc()
-binary_op(igamma);
+blocktensor_binary_op(igamma);
 
 /// @brief Returns a new block tensor with the regularized upper
 /// incomplete gamma function of each element of `input`
-binary_special_op(gammaincc);
+blocktensor_binary_special_op(gammaincc);
 
 /// @brief Alias for gammainc()
-binary_op(igammac);
+blocktensor_binary_op(igammac);
 
 /// @brief Returns a new block tensor with the product of each
 /// element of `input` and `other`
-binary_op(mul);
+blocktensor_binary_op(mul);
 
 /// @brief Alias for mul()
-binary_op(multiply);
+blocktensor_binary_op(multiply);
 
 /// @brief Returns a new block tensor with the negative of the
 /// elements of `input`
-unary_op(neg);
+blocktensor_unary_op(neg);
 
 /// @brief Alias for neg()
-unary_op(negative);
+blocktensor_unary_op(negative);
 
 /// @brief Return a new block tensor with the next elementwise
 /// floating-point value after `input` towards `other`
-binary_op(nextafter);
+blocktensor_binary_op(nextafter);
 
 /// @brief Returns a new block tensor with the `input`
-unary_op(positive);
+blocktensor_unary_op(positive);
 
 /// @brief Returns a new block tensor with the power of each element
 /// in `input` with exponent `other`
-binary_op(pow);
+blocktensor_binary_op(pow);
 
 /// @brief Returns a new block tensor with each of the elements of
 /// `input` converted from angles in radians to degrees
-unary_op(rad2deg);
+blocktensor_unary_op(rad2deg);
 
 /// @brief Returns a new block tensor with the real values of the
 /// elements of `input`
-unary_op(real);
+blocktensor_unary_op(real);
 
 /// @brief Returns a new block tensor with the reciprocal of the
 /// elements of `input`
-unary_op(reciprocal);
+blocktensor_unary_op(reciprocal);
 
 /// @brief Returns a new block tensor with the modulus of the
 /// elements of `input`
-binary_op(remainder);
+blocktensor_binary_op(remainder);
 
 /// @brief Returns a new block tensor with the elements of `input`
 /// rounded to the nearest integer
-unary_op(round);
+blocktensor_unary_op(round);
 
 /// @brief Returns a new block tensor with the reciprocal of the
 /// square-root of the elements of `input`
-unary_op(rsqrt);
+blocktensor_unary_op(rsqrt);
 
 /// @brief Returns a new block tensor with the expit (also known as
 /// the logistic sigmoid function) of the elements of `input`
-unary_special_op(expit);
+blocktensor_unary_special_op(expit);
 
 /// @brief Alias for expit()
-unary_op(sigmoid);
+blocktensor_unary_op(sigmoid);
 
 /// @brief Returns a new block tensor with the signs of the elements
 /// of `input`
-unary_op(sign);
+blocktensor_unary_op(sign);
 
 /// @brief Returns a new block tensor with the signs of the elements
 /// of `input`, extension to complex value
-unary_op(sgn);
+blocktensor_unary_op(sgn);
 
 /// @brief Tests if each element of `input` has its sign bit set
 /// (is less than zero) or not
-unary_op(signbit);
+blocktensor_unary_op(signbit);
 
 /// @brief Returns a new block tensor with the sine of the elements
 /// of `input`
-unary_op(sin);
+blocktensor_unary_op(sin);
 
 /// @brief Returns a new block tensor with the normalized sinc of
 /// the elements of `input`
-unary_op(sinc);
+blocktensor_unary_op(sinc);
 
 /// @brief Returns a new block tensor with the hyperbolic sine of
 /// the elements of `input`
-unary_op(sinh);
+blocktensor_unary_op(sinh);
 
 /// @brief Returns a new block tensor with the square-root of the
 /// elements of `input`
-unary_op(sqrt);
+blocktensor_unary_op(sqrt);
 
 /// @brief Returns a new block tensor with the square of the
 /// elements of `input`
-unary_op(square);
+blocktensor_unary_op(square);
 
 /// @brief Subtracts other, scaled by alpha, from input
 template <typename T, typename U, typename V, std::size_t... Dims>
@@ -1562,18 +1562,18 @@ inline auto subtract(const BlockTensor<T, Dims...> &input,
 
 /// @brief Returns a new tensor with the tangent of the elements of
 /// input
-unary_op(tan);
+blocktensor_unary_op(tan);
 
 /// @brief Returns a new tensor with the hyperbolic tangent of the
 /// elements of input
-unary_op(tanh);
+blocktensor_unary_op(tanh);
 
 /// @brief Returns a new tensor with the truncated integer values of
 /// the elements of input
-unary_op(trunc)
+blocktensor_unary_op(trunc)
 
     /// @brief Computes input * log(other)
-    binary_op(xlogy);
+    blocktensor_binary_op(xlogy);
 
 /// @brief Adds one compile-time block tensor to another and returns
 /// a new compile-time block tensor

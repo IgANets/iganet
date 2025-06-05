@@ -2,7 +2,7 @@
 # CMakeLists.txt
 #
 # Author: Matthias Moller
-# Copyright (C) 2021-2023 by the IgANet authors
+# Copyright (C) 2021-2024 by the IgANet authors
 #
 # This file is part of the IgANet project
 #
@@ -14,9 +14,10 @@
 #
 # IGANET_BUILD_DOCS
 # IGANET_BUILD_EXAMPLES
+# IGANET_BUILD_MEX
 # IGANET_BUILD_PCH
 # IGANET_BUILD_PERFTESTS
-# IGANET_BUILD_PYIGANET
+# IGANET_BUILD_PYTHON
 # IGANET_BUILD_UNITTESTS
 # IGANET_BUILD_WEBAPPS
 #
@@ -103,9 +104,10 @@ list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 option(IGANET_BUILD_CPUONLY     "Build CPU-only code"       OFF)
 option(IGANET_BUILD_DOCS        "Build documentation"       OFF)
 option(IGANET_BUILD_EXAMPLES    "Build examples"            ON )
+option(IGANET_BUILD_MEX         "Build Matlab bindings"     OFF)
 option(IGANET_BUILD_PCH         "Build precompiled headers" ON )
-option(IGANET_BUILD_PYIGANET    "Build Python bindings"     OFF)
 option(IGANET_BUILD_PERFTESTS   "Build perftests"           OFF)
+option(IGANET_BUILD_PYTHON      "Build Python bindings"     OFF)
 option(IGANET_BUILD_UNITTESTS   "Build unittests"           OFF)
 option(IGANET_BUILD_WEBAPPS     "Build WebApps"             OFF)
 option(IGANET_WITH_GISMO        "With G+Smo support"        OFF)
@@ -118,6 +120,11 @@ option(IGANET_WITH_OPENMP       "With OpenMP support"       ON )
 ########################################################################
 find_package(Torch REQUIRED)
 list(APPEND CMAKE_CXX_FLAGS ${TORCH_CXX_FLAGS})
+
+if(DEFINED HIP_COMPILER AND IGANET_BUILD_PCH)
+  message(WARNING "HIP compiler does not (yet) support precompiled headers")
+  set(IGANET_BUILD_PCH OFF CACHE BOOL "Build precompiled headers" FORCE)
+endif()
 
 find_package(IPEX)
 
@@ -283,11 +290,13 @@ endif()
 
 message("")
 message("Options:")
+message("IGANET_BUILD_CPUONLY...............: ${IGANET_BUILD_CPUONLY}")
 message("IGANET_BUILD_DOCS..................: ${IGANET_BUILD_DOCS}")
 message("IGANET_BUILD_EXAMPLES..............: ${IGANET_BUILD_EXAMPLES}")
+message("IGANET_BUILD_MEX...................: ${IGANET_BUILD_MEX}")
 message("IGANET_BUILD_PCH...................: ${IGANET_BUILD_PCH}")
 message("IGANET_BUILD_PERFTESTS.............: ${IGANET_BUILD_PERFTESTS}")
-message("IGANET_BUILD_PYIGANET..............: ${IGANET_BUILD_PYIGANET}")
+message("IGANET_BUILD_PYTHON................: ${IGANET_BUILD_PYTHON}")
 message("IGANET_BUILD_UNITTESTS.............: ${IGANET_BUILD_UNITTESTS}")
 message("IGANET_BUILD_WEBAPPS...............: ${IGANET_BUILD_WEBAPPS}")
 
@@ -307,10 +316,24 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 add_subdirectory(${PROJECT_SOURCE_DIR}/include)
 
 ########################################################################
+# Add documentation (if enabled)
+########################################################################
+if (IGANET_BUILD_DOCS)
+  add_subdirectory(${PROJECT_SOURCE_DIR}/docs)
+endif()
+
+########################################################################
 # Add examples (if enabled)
 ########################################################################
 if (IGANET_BUILD_EXAMPLES)
   add_subdirectory(${PROJECT_SOURCE_DIR}/examples)
+endif()
+
+########################################################################
+# Add Matlab bindings (if enabled)
+########################################################################
+if (IGANET_BUILD_MEX)
+  add_subdirectory(${PROJECT_SOURCE_DIR}/mex/src)
 endif()
 
 ########################################################################
@@ -324,8 +347,8 @@ endif()
 ########################################################################
 # Add Python bindings (if enabled)
 ########################################################################
-if (IGANET_BUILD_PYIGANET)
-  add_subdirectory(${PROJECT_SOURCE_DIR}/pyiganet/src)
+if (IGANET_BUILD_PYTHON)
+  add_subdirectory(${PROJECT_SOURCE_DIR}/python/src)
 endif()
 
 ########################################################################

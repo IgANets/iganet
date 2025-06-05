@@ -5,15 +5,16 @@ key.pem
 build/
 
 # Editor directories and files
-.idea
-.vscode
 *.dll
 *.dylib
-*.suo
-*.ntvs*
+*.egg-info
 *.njsproj
+*.ntvs*
+*.pdf
 *.sln
 *.so
+*.suo
 *.sw?
-*.egg-info
+.idea
+.vscode
 __pycache__

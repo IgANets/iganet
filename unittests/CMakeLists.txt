@@ -2,7 +2,7 @@
 # CMakeLists.txt
 #
 # Author: Matthias Moller
-# Copyright (C) 2021-2023 by the IgANet authors
+# Copyright (C) 2021-2025 by the IgANet authors
 #
 # This file is part of the IgANet project
 #
@@ -55,8 +55,9 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 ########################################################################
 FetchContent_Declare(
   bsplinelib
-  URL https://github.com/tataratat/BSplineLib/archive/refs/heads/tataratat.zip
+  URL https://github.com/tataratat/BSplineLib/archive/refs/heads/main.zip
   )
+set(BSPLINELIB_SHARED ON CACHE BOOL "" FORCE)
 set(BSPLINELIB_BUILD_PUGIXML OFF CACHE BOOL "" FORCE)
 set(pugixml_DIR ${pugixml_BINARY_DIR})
 FetchContent_MakeAvailable(googletest bsplinelib)
@@ -66,6 +67,9 @@ include_directories(${bsplinelib_SOURCE_DIR}/Sources)
 ########################################################################
 # Collect unittest sources
 ########################################################################
+
+add_custom_target(iganet_unittests)
+
 file(GLOB UNITTESTS *.cxx)
 
 foreach(unittest ${UNITTESTS})
@@ -76,6 +80,7 @@ foreach(unittest ${UNITTESTS})
 
   get_filename_component(name ${unittest} NAME_WE)
   add_executable(${name} ${unittest})
+  add_dependencies(iganet_unittests ${name})
 
   if(IGANET_BUILD_PCH AND NOT WIN32 AND NOT ${CMAKE_VERSION} VERSION_LESS "3.16.0")
     target_precompile_headers(${name} REUSE_FROM iganet_pch)

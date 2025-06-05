@@ -2,7 +2,7 @@
 # pybind11.cmake
 #
 # Author: Matthias Moller
-# Copyright (C) 2021-2023 by the IgaNet authors
+# Copyright (C) 2021-2025 by the IgaNet authors
 #
 # This file is part of the IgaNet project
 #

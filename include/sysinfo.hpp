@@ -499,11 +499,19 @@ inline std::string getExtraLibsVersion() {
        std::to_string((CUDA_VERSION % 100) / 10);
 #endif
 
-  // Intel MKL library
-#if defined(INTEL_MKL_VERSION)
+#if defined(HIP_VERSION)
   if (!s.empty())
     s += ", ";
-  s += "MKL " + std::to_string(INTEL_MKL_VERSION);
+  s += "HIP " + std::to_string(HIP_VERSION_MAJOR) + "." +
+       std::to_string(HIP_VERSION_MINOR) + "." +
+       std::to_string(HIP_VERSION_PATCH);
+#endif
+
+  // G+Smo
+#if defined(GISMO_VERSION)
+  if (!s.empty())
+    s += ", ";
+  s += "G+Smo " + std::string(GISMO_VERSION);
 #endif
 
   // LibTorch
@@ -512,19 +520,14 @@ inline std::string getExtraLibsVersion() {
     s += ", ";
   s += "LibTorch " + std::to_string(TORCH_VERSION_MAJOR) + "." +
        std::to_string(TORCH_VERSION_MINOR) + "." +
-       std::to_string(TORCH_VERSION_PATCH) +
-       " (#intraop threads: " + std::to_string(at::get_num_threads()) +
-       ", #interop threads: " + std::to_string(at::get_num_interop_threads()) +
-       ")";
+       std::to_string(TORCH_VERSION_PATCH);
 #endif
 
-  // ROCm
-#if defined(ROCM_VERSION_MAJOR)
+  // Intel MKL library
+#if defined(INTEL_MKL_VERSION)
   if (!s.empty())
     s += ", ";
-  s += "ROCm " + std::to_string(ROCM_VERSION_MAJOR) + "." +
-       std::to_string(ROCM_VERSION_MINOR) + "." +
-       std::to_string(ROCM_VERSION_PATCH);
+  s += "MKL " + std::to_string(INTEL_MKL_VERSION);
 #endif
 
   return s;
@@ -663,7 +666,13 @@ inline std::string getVersion() {
          " (version " + getIgANetVersion() + ")\n" + "Compiled by " +
          getCompilerVersion() + " (" + getCppVersion() + ", " +
          getStdLibVersion() + ", " + getExtraLibsVersion() + ")\n" +
-         "Running on " + getCpuInfo() + " (memory " + getMemoryInfo() + ")\n";
+         "Running on " + getCpuInfo() + " (memory " + getMemoryInfo() +
+         ", #intraop threads: " + std::to_string(at::get_num_threads()) +
+         ", #interop threads: " +
+         std::to_string(at::get_num_interop_threads()) + ", devices: CPU" +
+         (torch::cuda::is_available() ? ", CUDA" : "") +
+         (torch::mps::is_available() ? ", MPS" : "") +
+         (torch::xpu::is_available() ? ", XPU" : "") + ")\n";
 }
 
 } // namespace iganet

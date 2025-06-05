@@ -238,48 +238,84 @@ inline auto to_json(const gismo::gsTensorBSpline<d, T> &bspline) {
   return json;
 }
 
-/// @brief Converts a gismo::gsMultiPatch object to a JSON object
-template <typename T> inline auto to_json(const gismo::gsMultiPatch<T> &mp) {
+/// @brief Converts a gismo::gsGeometry object to a JSON object
+template <typename T>
+inline auto to_json(const gismo::gsGeometry<T> &geometry) {
 
-  if (mp.nPatches() > 1) {
-    // This must be revised in the protocol
-    auto json = nlohmann::json::array();
+  if (auto patch = dynamic_cast<const gismo::gsBSpline<T> *>(&geometry))
+    return to_json(*patch);
+  else if (auto patch = dynamic_cast<const gismo::gsTensorBSpline<2, T> *>(&geometry))
+    return to_json(*patch);
+  else if (auto patch = dynamic_cast<const gismo::gsTensorBSpline<3, T> *>(&geometry))
+    return to_json(*patch);
+  else if (auto patch = dynamic_cast<const gismo::gsTensorBSpline<4, T> *>(&geometry))
+    return to_json(*patch);
+  else
+    return nlohmann::json("{ Invalid patch type }");
+}
 
-    for (std::size_t i = 0; i < mp.nPatches(); ++i) {
-
-      if (auto patch = dynamic_cast<const gsBSpline<T> *>(&mp.patch(i)))
-        json.push_back(to_json(*patch));
-      else if (auto patch =
-                   dynamic_cast<const gsTensorBSpline<2, T> *>(&mp.patch(i)))
-        json.push_back(to_json(*patch));
-      else if (auto patch =
-                   dynamic_cast<const gsTensorBSpline<3, T> *>(&mp.patch(i)))
-        json.push_back(to_json(*patch));
-      else if (auto patch =
-                   dynamic_cast<const gsTensorBSpline<4, T> *>(&mp.patch(i)))
-        json.push_back(to_json(*patch));
-      else
-        json.push_back("{ Invalid patch type }");
-    }
-
-    return json;
-
-  } else {
-
-    if (auto patch = dynamic_cast<const gsBSpline<T> *>(&mp.patch(0)))
-      return to_json(*patch);
-    else if (auto patch =
-                 dynamic_cast<const gsTensorBSpline<2, T> *>(&mp.patch(0)))
-      return to_json(*patch);
-    else if (auto patch =
-                 dynamic_cast<const gsTensorBSpline<3, T> *>(&mp.patch(0)))
-      return to_json(*patch);
-    else if (auto patch =
-                 dynamic_cast<const gsTensorBSpline<4, T> *>(&mp.patch(0)))
-      return to_json(*patch);
-    else
-      return nlohmann::json("{ Invalid patch type }");
+/// @brief Converts a gismo::gsMultiPatch::InterfaceRep object to a JSON object
+template <typename T>
+inline auto to_json(const typename gismo::gsMultiPatch<T>::ifContainer &interfaces) {
+  
+  auto json = nlohmann::json::array();
+  
+  for (auto const &interface : interfaces) {
+    auto interface_json = nlohmann::json();
+    
+    interface_json["patches"] = { interface.first().patchIndex(), interface.second().patchIndex() };
+    interface_json["sides"] = { interface.first().side().index(), interface.second().side().index() };
+    interface_json["direction"] = "NOT IMPLEMENTED YET";
+    interface_json["orientation"] = "NOT IMPLEMENTED YET";
+      
+    json.push_back(interface_json);
   }
+  
+  return json;
+}
+
+/// @brief Converts a gismo::gsMultiPatch::BoundaryRep object to a JSON object
+template <typename T>
+inline auto to_json(const typename gismo::gsMultiPatch<T>::bContainer &boundaries) {
+
+  auto json = nlohmann::json::array();
+
+  for (auto const &boundary : boundaries) {
+    auto boundary_json = nlohmann::json();
+
+    boundary_json["patch"] = boundary.patchIndex();
+    boundary_json["side"] = boundary.side().index();
+    
+    json.push_back(boundary_json);
+  }
+  
+  return json;
+}
+  
+/// @brief Converts a gismo::gsMultiPatch object to a JSON object
+  template <typename T> inline auto to_json(const gismo::gsMultiPatch<T> &mp, bool verbose=false) {
+
+  auto json = nlohmann::json();
+
+  // Create list of patch indices
+  auto patches_json = nlohmann::json::array();
+  for (std::size_t i = 0; i < mp.nPatches(); ++i)
+    patches_json.push_back(i);
+  
+  json["patches"] = patches_json;
+  json["interfaces"] = to_json<T>(mp.interfaces());
+  json["boundaries"] = to_json<T>(mp.boundaries());
+  
+  if (verbose) {    
+    auto patches_json = nlohmann::json::array();
+
+    for (std::size_t i = 0; i < mp.nPatches(); ++i)
+      patches_json.push_back(to_json(mp.patch(i)));
+
+    json["patches"] = patches_json;
+  }
+  
+  return json;
 }
 #endif
 

@@ -34,6 +34,11 @@
 #include <utils/tensorarray.hpp>
 #include <utils/vslice.hpp>
 
+#if defined(SYCL_LANGUAGE_VERSION)
+#include <sycl/sycl.hpp>
+#include <ATen/xpu/XPUContext.h>
+#endif
+
 #if defined(__CUDACC__)
 #include <ATen/cuda/CUDAContext.h>
 #endif
@@ -60,7 +65,93 @@ greville_kernel(torch::PackedTensorAccessor64<real_t, 1> greville,
     greville[k] /= real_t(degree);
   }
 }
+
+/**
+   @brief Compute knot vector
+*/
+template <typename real_t>
+__global__ void knots_kernel(torch::PackedTensorAccessor64<real_t, 1> knots,
+                             int64_t ncoeffs, short_t degree) {
+  for (int64_t k = blockIdx.x * blockDim.x + threadIdx.x;
+       k < ncoeffs + degree + 1; k += blockDim.x * gridDim.x) {
+    knots[k] = (k < degree        ? static_cast<real_t>(0)
+                : k < ncoeffs + 1 ? static_cast<real_t>(k - degree) /
+                                        static_cast<real_t>(ncoeffs - degree)
+                                  : static_cast<real_t>(1));
+  }
+}
 } // namespace cuda
+} // namespace iganet
+#endif
+
+#if defined(SYCL_LANGUAGE_VERSION)
+namespace iganet {
+namespace xpu {
+/**
+   @brief Compute Greville abscissae
+ */
+template<typename real_t>
+struct GrevilleKernel
+{
+  GrevilleKernel(real_t* greville,
+                 const real_t* knots,
+                 int64_t ncoeffs, short_t degree, bool interior)
+    : greville_(greville), knots_(knots), ncoeffs_(ncoeffs), degree_(degree), interior_(interior) {}
+
+  void operator()(sycl::nd_item<1> item) const {
+    // This function will be compiled into a gpu device kernel.
+
+    // item.get_group(0) is blockIdx.x
+    // item.get_local_range(0) is blockDim.x
+    // item.get_local_id(0) is threadIdx.x
+    // item.get_group_range(0) is gridDim.x
+    int64_t k = item.get_group(0) * item.get_local_range(0) + item.get_local_id(0);
+    for (; k < ncoeffs_ - (interior_ ? 2 : 0); k += item.get_local_range(0) * item.get_group_range(0)) {
+      for (short_t l = 1; l <= degree_; ++l)
+        greville_[k] += knots_[k + (interior_ ? 1 : 0) + l];
+      greville_[k] /= static_cast<real_t>(degree_);
+    }
+  }
+
+private:
+  real_t* greville_;
+  const real_t* knots_;
+  int64_t ncoeffs_;
+  short_t degree_;
+  bool interior_;
+};
+
+/**
+ * @brief Compute knot vector
+ */
+template<typename real_t>
+struct KnotsKernel
+{
+  KnotsKernel(real_t* knots, int64_t ncoeffs, short_t degree)
+    : knots_(knots), ncoeffs_(ncoeffs), degree_(degree) {}
+
+  void operator()(sycl::nd_item<1> item) const {
+    // This function will be comipled into a gpu device kernel.
+
+    // item.get_group(0) is blockIdx.x
+    // item.get_local_range(0) is blockDim.x
+    // item.get_local_id(0) is threadIdx.x
+    // item.get_group_range(0) is gridDim.x
+    int64_t k = item.get_group(0) * item.get_local_range(0) + item.get_local_id(0);
+    for (; k < ncoeffs_ + degree_ + 1; k += item.get_local_range(0) * item.get_group_range(0)) {
+      knots_[k] = (k < degree_ ? static_cast<real_t>(0)
+                               : k < ncoeffs_ + 1 ? static_cast<real_t>(k - degree_) /
+                                                    static_cast<real_t>(ncoeffs_ - degree_)
+                                                  : static_cast<real_t>(1));
+    }
+  }
+
+private:
+  real_t* knots_;
+  const int64_t ncoeffs_;
+  const short_t degree_;
+};
+} // namespace xpu
 } // namespace iganet
 #endif
 
@@ -405,6 +496,11 @@ public:
     // Initialize knot vectors
     init_knots();
 
+    // Check compatibility
+    for (short_t i = 0; i < geoDim_; ++i)
+      if (coeffs[i].numel() != ncumcoeffs())
+        throw std::runtime_error("Invalid number of coefficients");
+
     // Copy/clone coefficients
     if (clone)
       for (short_t i = 0; i < geoDim_; ++i)
@@ -719,10 +815,9 @@ public:
   ///
   /// @result Array of Greville abscissae
   inline auto greville(bool interior = false) const {
-    if constexpr (parDim_ == 0)
-      return torch::zeros(ncoeffs_[0] - (interior ? 2 : 0), options_);
-
-    else {
+    if constexpr (parDim_ == 0) {
+      return torch::zeros(1, options_);
+    } else {
       utils::TensorArray<parDim_> coeffs;
 
       // Fill coefficients with the tensor-product of Greville
@@ -759,6 +854,39 @@ public:
               throw std::runtime_error(
                   "Code must be compiled with CUDA or HIP enabled");
 #endif
+      } else if (greville_.is_xpu() && knots_[j].is_xpu()) {
+
+#if defined(SYCL_LANGUAGE_VERSION)
+              auto greville = greville_.template data_ptr<real_t>();
+              auto const knots = knots_[j].template data_ptr<real_t>();
+
+              constexpr int dim = 1;
+              constexpr int blockSize = 256;
+
+              // All the work items in total to be launched. For SYCL programming, it does not provide the gridSize counter part directly.
+              // However, we can calculate the grid_size by dividing the global_range by local_range.
+              auto gridSize = (ncoeffs_[i] + blockSize - 1) / blockSize;
+              sycl::range<dim> global_range(gridSize * blockSize);
+
+              // local_range is sort of like blockSize.
+              sycl::range<dim> local_range(blockSize);
+
+              // Create sycl kernel functor.
+              using greville_kernel_t = xpu::GrevilleKernel<real_t>;
+              auto greville_kernel = greville_kernel_t(greville, knots, ncoeffs_[i], degrees_[i], false);
+
+              // The kernel functor is passed to the sycl_kernel_submit function.
+              auto cgf = [&](::sycl::handler& cgh) {
+                cgh.parallel_for<greville_kernel_t>(sycl::nd_range<dim>(global_range, local_range), greville_kernel);
+              };
+
+              sycl::queue& q = at::xpu::getCurrentXPUStream().queue();
+              q.submit(cgf);
+#else
+              throw std::runtime_error(
+                                       "Code must be compiled with SYCL enabled");
+#endif
+
             } else {
               auto greville_accessor = greville_.template accessor<real_t, 1>();
               auto knots_accessor = knots_[j].template accessor<real_t, 1>();
@@ -853,9 +981,8 @@ public:
 
       for (short_t i = 0; i < geoDim_; ++i)
         result.set(i, (eval_(i, parDim_ - 1)).view(sizes));
-
-      return result;
     }
+    return result;
   }
   /// @}
 
@@ -1329,6 +1456,88 @@ public:
                   k / real_t(ncoeffs_[2] - 1), l / real_t(ncoeffs_[3] - 1)});
               for (short_t d = 0; d < geoDim_; ++d)
                 coeffs_[d]
+                    .detach()[l * ncoeffs_[0] * ncoeffs_[1] * ncoeffs_[2] +
+                              k * ncoeffs_[0] * ncoeffs_[1] + j * ncoeffs_[0] +
+                              i] = c[d];
+            }
+          }
+        }
+      }
+    } else
+      throw std::runtime_error("Unsupported parametric dimension");
+
+    return *this;
+  }
+
+  /// @brief Transforms the coefficients based on the given mapping
+  template <std::size_t N>
+  inline UniformBSplineCore &
+  transform(const std::function<
+                std::array<real_t, N>(const std::array<real_t, parDim_> &)>
+                transformation,
+            std::array<short_t, N> dims) {
+    static_assert(parDim_ <= 4, "Unsupported parametric dimension");
+
+    // 0D
+    if constexpr (parDim_ == 0) {
+      auto c = transformation(std::array<real_t, parDim_>{});
+      for (std::size_t d = 0; d < N; ++d)
+        coeffs_[dims[d]].detach()[0] = c[d];
+    }
+
+    // 1D
+    else if constexpr (parDim_ == 1) {
+#pragma omp parallel for
+      for (int64_t i = 0; i < ncoeffs_[0]; ++i) {
+        auto c = transformation(
+            std::array<real_t, parDim_>{i / real_t(ncoeffs_[0] - 1)});
+        for (std::size_t d = 0; d < N; ++d)
+          coeffs_[dims[d]].detach()[i] = c[d];
+      }
+    }
+
+    // 2D
+    else if constexpr (parDim_ == 2) {
+#pragma omp parallel for collapse(2)
+      for (int64_t j = 0; j < ncoeffs_[1]; ++j) {
+        for (int64_t i = 0; i < ncoeffs_[0]; ++i) {
+          auto c = transformation(std::array<real_t, parDim_>{
+              i / real_t(ncoeffs_[0] - 1), j / real_t(ncoeffs_[1] - 1)});
+          for (std::size_t d = 0; d < N; ++d)
+            coeffs_[dims[d]].detach()[j * ncoeffs_[0] + i] = c[d];
+        }
+      }
+    }
+
+    // 3D
+    else if constexpr (parDim_ == 3) {
+#pragma omp parallel for collapse(3)
+      for (int64_t k = 0; k < ncoeffs_[2]; ++k) {
+        for (int64_t j = 0; j < ncoeffs_[1]; ++j) {
+          for (int64_t i = 0; i < ncoeffs_[0]; ++i) {
+            auto c = transformation(std::array<real_t, parDim_>{
+                i / real_t(ncoeffs_[0] - 1), j / real_t(ncoeffs_[1] - 1),
+                k / real_t(ncoeffs_[2] - 1)});
+            for (std::size_t d = 0; d < N; ++d)
+              coeffs_[dims[d]].detach()[k * ncoeffs_[0] * ncoeffs_[1] +
+                                        j * ncoeffs_[0] + i] = c[d];
+          }
+        }
+      }
+    }
+
+    // 4D
+    else if constexpr (parDim_ == 4) {
+#pragma omp parallel for collapse(4)
+      for (int64_t l = 0; l < ncoeffs_[3]; ++l) {
+        for (int64_t k = 0; k < ncoeffs_[2]; ++k) {
+          for (int64_t j = 0; j < ncoeffs_[1]; ++j) {
+            for (int64_t i = 0; i < ncoeffs_[0]; ++i) {
+              auto c = transformation(std::array<real_t, parDim_>{
+                  i / real_t(ncoeffs_[0] - 1), j / real_t(ncoeffs_[1] - 1),
+                  k / real_t(ncoeffs_[2] - 1), l / real_t(ncoeffs_[3] - 1)});
+              for (std::size_t d = 0; d < N; ++d)
+                coeffs_[dims[d]]
                     .detach()[l * ncoeffs_[0] * ncoeffs_[1] * ncoeffs_[2] +
                               k * ncoeffs_[0] * ncoeffs_[1] + j * ncoeffs_[0] +
                               i] = c[d];
@@ -1876,6 +2085,9 @@ public:
     for (short_t i = 0; i < parDim_; ++i)
       result *= (ncoeffs(i) == other.ncoeffs(i));
 
+    if (!result)
+      return result;
+
     for (short_t i = 0; i < parDim_; ++i)
       result *= torch::allclose(knots(i), other.knots(i), rtol, atol);
 
@@ -2036,9 +2248,59 @@ public:
 
       if (knots_[i].is_cuda()) {
 
-        int64_t index(0);
         auto knots = knots_[i].template packed_accessor64<real_t, 1>();
 
+#if defined(__CUDACC__)
+        int blockSize, minGridSize, gridSize;
+        cudaOccupancyMaxPotentialBlockSize(
+            &minGridSize, &blockSize, (const void *)cuda::knots_kernel<real_t>,
+            0, 0);
+        gridSize = (ncoeffs_[i] + blockSize - 1) / blockSize;
+        cuda::knots_kernel<<<gridSize, blockSize>>>(knots, ncoeffs_[i],
+                                                    degrees_[i]);
+#elif defined(__HIPCC__)
+        int blockSize, minGridSize, gridSize;
+        static_cast<void>(hipOccupancyMaxPotentialBlockSize(
+            &minGridSize, &blockSize, (const void *)cuda::knots_kernel<real_t>,
+            0, 0));
+        gridSize = (ncoeffs_[i] + blockSize - 1) / blockSize;
+        cuda::knots_kernel<<<gridSize, blockSize>>>(knots, ncoeffs_[i],
+                                                    degrees_[i]);
+#else
+        throw std::runtime_error(
+            "Code must be compiled with CUDA or HIP enabled");
+#endif
+      } else if (knots_[i].is_xpu()) {
+
+#if defined(SYCL_LANGUAGE_VERSION)
+        auto knots = knots_[i].template data_ptr<real_t>();
+
+        constexpr int dim = 1;
+        constexpr int blockSize = 256;
+  
+        // All the work items in total to be launched. For SYCL programming, it does not provide the gridSize counter part directly.
+        // However, we can calculate the grid_size by dividing the global_range by local_range.
+        auto gridSize = (ncoeffs_[i] + blockSize - 1) / blockSize;
+        sycl::range<dim> global_range(gridSize * blockSize);
+  
+        // local_range is sort of like blockSize.
+        sycl::range<dim> local_range(blockSize);
+
+        // Create sycl kernel functor.
+        using knots_kernel_t = xpu::KnotsKernel<real_t>;
+        auto knots_kernel = knots_kernel_t(knots, ncoeffs_[i], degrees_[i]);
+  
+        // The kernel functor is passed to the sycl_kernel_submit function.
+        auto cgf = [&](::sycl::handler& cgh) {
+          cgh.parallel_for<knots_kernel_t>(sycl::nd_range<dim>(global_range, local_range), knots_kernel);
+        };
+
+        sycl::queue& q = at::xpu::getCurrentXPUStream().queue();
+        q.submit(cgf);
+#else
+        throw std::runtime_error(
+                                 "Code must be compiled with SYCL enabled");
+#endif
       } else {
 
         int64_t index(0);
@@ -2146,7 +2408,7 @@ public:
         for (short_t j = 0; j < parDim_; ++j) {
           if (i == j) {
             auto greville_ = torch::zeros(ncoeffs_[j], options_);
-            if (greville_.is_cuda()) {
+            if (greville_.is_cuda() && knots_[j].is_cuda()) {
 
               auto greville = greville_.template packed_accessor64<real_t, 1>();
               auto knots = knots_[j].template packed_accessor64<real_t, 1>();
@@ -2172,6 +2434,38 @@ public:
                   "Code must be compiled with CUDA or HIP enabled");
 #endif
 
+      } else if (greville_.is_xpu() && knots_[j].is_xpu()) {
+
+#if defined(SYCL_LANGUAGE_VERSION)
+        auto greville = greville_.template data_ptr<real_t>();
+        auto const knots = knots_[j].template data_ptr<real_t>();
+
+        constexpr int dim = 1;
+              constexpr int blockSize = 256;
+        
+              // All the work items in total to be launched. For SYCL programming, it does not provide the gridSize counter part directly.
+              // However, we can calculate the grid_size by dividing the global_range by local_range.
+              auto gridSize = (ncoeffs_[i] + blockSize - 1) / blockSize;
+              sycl::range<dim> global_range(gridSize * blockSize);
+        
+              // local_range is sort of like blockSize.
+              sycl::range<dim> local_range(blockSize);
+
+              // Create sycl kernel functor.
+              using greville_kernel_t = xpu::GrevilleKernel<real_t>;
+              auto greville_kernel = greville_kernel_t(greville, knots, ncoeffs_[i], degrees_[i], false);
+        
+              // The kernel functor is passed to the sycl_kernel_submit function.
+              auto cgf = [&](::sycl::handler& cgh) {
+                cgh.parallel_for<greville_kernel_t>(sycl::nd_range<dim>(global_range, local_range), greville_kernel);
+              };
+
+              sycl::queue& q = at::xpu::getCurrentXPUStream().queue();
+              q.submit(cgf);
+#else
+        throw std::runtime_error(
+                                 "Code must be compiled with SYCL enabled");
+#endif
             } else {
               auto greville = greville_.template accessor<real_t, 1>();
               auto knots = knots_[j].template accessor<real_t, 1>();
@@ -2522,7 +2816,7 @@ public:
           utils::to_tensorAccessor<real_t, 1>(coeffs_[g], torch::kCPU);
       auto coeffs_cpu_ptr = coeffs_cpu.template data_ptr<real_t>();
       coefs.col(g) =
-          gsAsConstVector<real_t>(coeffs_cpu_ptr, coeffs_cpu.size(0));
+        gismo::gsAsConstVector<real_t>(coeffs_cpu_ptr, coeffs_cpu.size(0));
     }
 
     std::array<gismo::gsKnotVector<real_t>, parDim_> kv;
@@ -2599,7 +2893,7 @@ public:
             utils::to_tensorAccessor<real_t, 1>(coeffs_[g], torch::kCPU);
         auto coeffs_cpu_ptr = coeffs_cpu.template data_ptr<real_t>();
         bspline.coefs().col(g) =
-            gsAsConstVector<real_t>(coeffs_cpu_ptr, coeffs_cpu.size(0));
+          gismo::gsAsConstVector<real_t>(coeffs_cpu_ptr, coeffs_cpu.size(0));
       }
     }
 
@@ -2635,7 +2929,7 @@ public:
             utils::to_tensorAccessor<real_t, 1>(coeffs_[g], torch::kCPU);
         auto coeffs_cpu_ptr = coeffs_cpu.template data_ptr<real_t>();
         bspline.coefs().col(g) =
-            gsAsConstVector<real_t>(coeffs_cpu_ptr, coeffs_cpu.size(0));
+          gismo::gsAsConstVector<real_t>(coeffs_cpu_ptr, coeffs_cpu.size(0));
       }
     }
 
@@ -4836,25 +5130,30 @@ public:
       return utils::BlockTensor<torch::Tensor, 1, 1>{
           torch::zeros_like(BSplineCore::coeffs_[0])};
     else {
-      auto hessu =
-          hess<memory_optimized>(xi, knot_indices, coeff_indices).slice(0);
+      utils::BlockTensor<torch::Tensor, BSplineCore::parDim_, BSplineCore::parDim_, BSplineCore::geoDim_> hessu;
 
-      {
-        auto igradG =
-            igrad<memory_optimized>(G, xi, knot_indices, coeff_indices,
-                                    knot_indices_G, coeff_indices_G);
-        auto hessG = G.template hess<memory_optimized>(xi, knot_indices_G,
-                                                       coeff_indices_G);
-        assert(igradG.cols() == hessG.slices());
-        for (short_t k = 0; k < hessG.slices(); ++k)
-          hessu -= igradG(0, k) * hessG.slice(k);
+      auto hessG = G.template hess<memory_optimized>(xi, knot_indices_G,
+                                                     coeff_indices_G);
+      auto ijacG = ijac<memory_optimized>(G, xi, knot_indices, coeff_indices,
+                                          knot_indices_G, coeff_indices_G);
+
+      for (short_t component = 0; component < BSplineCore::geoDim_; ++component) {
+          auto hess_component = hess<memory_optimized>(xi, knot_indices, coeff_indices).slice(component);
+
+          for (short_t k = 0; k < hessG.slices(); ++k) {
+              hess_component -= ijacG(component, k) * hessG.slice(k);
+          }
+
+          auto jacInv = G.template jac<memory_optimized>(xi, knot_indices_G, coeff_indices_G).ginv();
+          auto hessu_component = jacInv.tr() * hess_component * jacInv;
+          
+          for (short_t i = 0; i < BSplineCore::parDim_; ++i)
+            for (short_t j = 0; j < BSplineCore::parDim_; ++j)
+              hessu.set(i, j, component, hessu_component(i, j));
       }
 
-      auto jacInv =
-          G.template jac<memory_optimized>(xi, knot_indices_G, coeff_indices_G)
-              .ginv();
+      return hessu;
 
-      return jacInv.tr() * hessu * jacInv;
     }
   }
 
@@ -6150,7 +6449,7 @@ public:
       auto f = matplot::figure<Backend>(true);
       auto ax = f->current_axes();
 
-      // Cretae surface
+      // Create surface
       utils::TensorArray<2> meshgrid = utils::to_array<2>(
           torch::meshgrid({torch::linspace(0, 1, res0, BSplineCore::options_),
                            torch::linspace(0, 1, res1, BSplineCore::options_)},
@@ -6552,6 +6851,159 @@ public:
     }
 
     os << "\n)";
+  }
+
+  /// @brief Returns a new B-spline object whose coefficients are the
+  /// sum of that of two compatible B-spline objects
+  ///
+  /// @note This method does not check if the knot vectors of the two
+  /// B-spline objects are compatible. It simply adds the two
+  /// coefficients arrays and throws an error if their sizes do not
+  /// match. Any compatibility checks must be performed outside.
+  BSplineCommon operator+(const BSplineCommon &other) const {
+
+    BSplineCommon result{*this};
+
+    for (short_t i = 0; i < BSplineCore::geoDim(); ++i)
+      result.coeffs(i) += other.coeffs(i);
+
+    return result;
+  }
+
+  /// @brief Returns a new B-spline object whose coefficients are the
+  /// difference of that of two compatible B-spline objects
+  ///
+  /// @note This method does not check if the knot vectors of the two
+  /// B-spline objects are compatible. It simply subtracts the
+  /// coefficients arrays of two B-spline objects from each other and
+  /// throws an error if their sizes do not match. Any compatibility
+  /// checks must be performed outside.
+  BSplineCommon operator-(const BSplineCommon &other) const {
+
+    BSplineCommon result{*this};
+
+    for (short_t i = 0; i < BSplineCore::geoDim(); ++i)
+      result.coeffs(i) -= other.coeffs(i);
+
+    return result;
+  }
+
+  /// @brief Returns a new B-spline object whose coefficients are
+  /// scaled by a scalar
+  BSplineCommon operator*(typename BSplineCore::value_type s) const {
+
+    BSplineCommon result{*this};
+
+    for (short_t i = 0; i < BSplineCore::geoDim(); ++i)
+      result.coeffs(i) *= s;
+
+    return result;
+  }
+
+  /// @brief Returns a new B-spline object whose coefficients are
+  /// scaled by a vector
+  BSplineCommon operator*(
+      std::array<typename BSplineCore::value_type, BSplineCore::geoDim()> v)
+      const {
+
+    BSplineCommon result{*this};
+
+    for (short_t i = 0; i < BSplineCore::geoDim(); ++i)
+      result.coeffs(i) *= v[i];
+
+    return result;
+  }
+
+  /// @brief Returns a new B-spline object whose coefficients are
+  /// scaled by a scalar
+  BSplineCommon operator/(typename BSplineCore::value_type s) const {
+
+    BSplineCommon result{*this};
+
+    for (short_t i = 0; i < BSplineCore::geoDim(); ++i)
+      result.coeffs(i) /= s;
+
+    return result;
+  }
+
+  /// @brief Returns a new B-spline object whose coefficients are
+  /// scaled by a vector
+  BSplineCommon operator/(
+      std::array<typename BSplineCore::value_type, BSplineCore::geoDim()> v)
+      const {
+
+    BSplineCommon result{*this};
+
+    for (short_t i = 0; i < BSplineCore::geoDim(); ++i)
+      result.coeffs(i) /= v[i];
+
+    return result;
+  }
+
+  /// @brief Adds the coefficients of another B-spline object
+  ///
+  /// @note This method does not check if the knot vectors of the two
+  /// B-spline objects are compatible. It simply adds the two
+  /// coefficients arrays and throws an error if their sizes do not
+  /// match. Any compatibility checks must be performed outside.
+  BSplineCommon &operator+=(const BSplineCommon &other) {
+
+    for (short_t i = 0; i < BSplineCore::geoDim(); ++i)
+      BSplineCore::coeffs(i) += other.coeffs(i);
+
+    return *this;
+  }
+
+  /// @brief Substracts the coefficients of another B-spline object
+  ///
+  /// @note This method does not check if the knot vectors of the two
+  /// B-spline objects are compatible. It simply substracts the two
+  /// coefficients arrays and throws an error if their sizes do not
+  /// match. Any compatibility checks must be performed outside.
+  BSplineCommon &operator-=(const BSplineCommon &other) {
+
+    for (short_t i = 0; i < BSplineCore::geoDim(); ++i)
+      BSplineCore::coeffs(i) -= other.coeffs(i);
+
+    return *this;
+  }
+
+  /// @brief Scales the coefficients by a scalar
+  BSplineCommon &operator*=(typename BSplineCore::value_type s) {
+
+    for (short_t i = 0; i < BSplineCore::geoDim(); ++i)
+      BSplineCore::coeffs(i) *= s;
+
+    return *this;
+  }
+
+  /// @brief Scales the coefficients by a vector
+  BSplineCommon &operator*=(
+      std::array<typename BSplineCore::value_type, BSplineCore::geoDim()> v) {
+
+    for (short_t i = 0; i < BSplineCore::geoDim(); ++i)
+      BSplineCore::coeffs(i) *= v[i];
+
+    return *this;
+  }
+
+  /// @brief Scales the coefficients by a scalar
+  BSplineCommon &operator/=(typename BSplineCore::value_type s) {
+
+    for (short_t i = 0; i < BSplineCore::geoDim(); ++i)
+      BSplineCore::coeffs(i) /= s;
+
+    return *this;
+  }
+
+  /// @brief Scales the coefficients by a vector
+  BSplineCommon &operator/=(
+      std::array<typename BSplineCore::value_type, BSplineCore::geoDim()> v) {
+
+    for (short_t i = 0; i < BSplineCore::geoDim(); ++i)
+      BSplineCore::coeffs(i) /= v[i];
+
+    return *this;
   }
 };
 

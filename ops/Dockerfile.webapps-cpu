@@ -1,5 +1,5 @@
 # Build stage
-FROM ubuntu:22.04 as build-stage
+FROM ubuntu:22.04 AS build-stage
 
 # CMake build type
 ARG CMAKE_BUILD_TYPE=Release
@@ -25,10 +25,10 @@ ARG IGANET_UNITTESTS_COEFF_TYPE=float
 ARG IGANET_WEBAPPS_COEFF_TYPE=double
 
 # Docker configurations
-ARG CMAKE_VERSION=3.29.2
+ARG CMAKE_VERSION=3.31.1
 ARG CMAKE_OS=linux
 ARG CMAKE_ARCH=x86_64
-ARG LIBTORCH_VERSION=2.3.0
+ARG LIBTORCH_VERSION=2.5.1
 ARG NJOBS=1
 
 # Install dependencies
@@ -62,7 +62,11 @@ RUN curl -fsSL --insecure -o libtorch.zip ${LIBTORCH_URL} \
 WORKDIR /opt/iganet
 COPY ./ .
 
-RUN rm -f /opt/iganet/webapps/models/Poisson2d.cxx
+RUN rm -f /opt/iganet/webapps/models/iganet/BSplineCurve.cxx
+RUN rm -f /opt/iganet/webapps/models/iganet/BSplineSurface.cxx
+RUN rm -f /opt/iganet/webapps/models/iganet/BSplineVolume.cxx
+RUN rm -f /opt/iganet/webapps/models/iganet/Poisson2d.cxx
+
 RUN rm -f /opt/iganet/webapps/models/gismo/GismoLinearElasticity2d.cxx
 RUN rm -f /opt/iganet/webapps/models/gismo/GismoLinearElasticity3d.cxx
 
@@ -88,7 +92,7 @@ RUN rm -rf * \
         && make -j ${NJOBS}
 
 # Production stage
-FROM ubuntu:22.04 as production-stage
+FROM ubuntu:22.04 AS production-stage
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential libz-dev
 
@@ -97,20 +101,20 @@ COPY --from=build-stage /opt/libtorch /opt/libtorch
 ENV LD_LIBRARY_PATH=/opt/libtorch/lib:$LD_LIBRARY_PATH
 
 # Copy IgANet installation
-COPY --from=build-stage /opt/iganet/build/_deps/boost_preprocessor-src/include /opt/iganet/include
-COPY --from=build-stage /opt/iganet/build/_deps/nlohmann_json-src/single_include /opt/iganet/include
+COPY --from=build-stage /opt/iganet/build/_deps/boost_preprocessor-src/include /opt/iganet/include/
+COPY --from=build-stage /opt/iganet/build/_deps/nlohmann_json-src/single_include /opt/iganet/include/
 COPY --from=build-stage /opt/iganet/build/_deps/pugixml-build/libpugixml.a /usr/lib/
 COPY --from=build-stage /opt/iganet/build/_deps/pugixml-src/src/*.hpp /opt/iganet/include/
 COPY --from=build-stage /opt/iganet/build/webapps/*.hpp /opt/iganet/webapps/
-COPY --from=build-stage /opt/iganet/build/webapps/models/*.hpp /opt/iganet/webapps/models/
-COPY --from=build-stage /opt/iganet/build/webapps/models/lib* /opt/iganet/webapps/models/
+COPY --from=build-stage /opt/iganet/build/webapps/models/gismo/lib* /opt/iganet/webapps/models/gismo/
+#COPY --from=build-stage /opt/iganet/build/webapps/models/iganet/lib* /opt/iganet/webapps/models/iganet/
 COPY --from=build-stage /opt/iganet/build/webapps/server /opt/iganet/webapps/
 COPY --from=build-stage /opt/iganet/include/*.h /opt/iganet/include/
 COPY --from=build-stage /opt/iganet/include/*.hpp /opt/iganet/include/
 COPY --from=build-stage /opt/iganet/include/utils/*.hpp /opt/iganet/include/utils/
 COPY --from=build-stage /opt/iganet/webapps/*.hpp /opt/iganet/webapps/
-COPY --from=build-stage /opt/iganet/webapps/models/*.hpp /opt/iganet/webapps/models/
-COPY --from=build-stage /opt/iganet/webapps/models/gismo/*.hpp /opt/iganet/webapps/models/gismo
+COPY --from=build-stage /opt/iganet/webapps/models/gismo/*.hpp /opt/iganet/webapps/models/gismo/
+#COPY --from=build-stage /opt/iganet/webapps/models/iganet/*.hpp /opt/iganet/webapps/models/
 
 # Copy SSL files and server configuration
 COPY ./cert.pem /opt/iganet/webapps/

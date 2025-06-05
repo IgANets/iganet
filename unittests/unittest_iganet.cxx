@@ -18,6 +18,8 @@
 #include <gtest/gtest.h>
 #include <unittest_config.hpp>
 
+#pragma nv_diag_suppress 20208
+
 template <typename Optimizer, typename GeometryMap, typename Variable>
 class IgANet : public iganet::IgANet<Optimizer, GeometryMap, Variable> {
 private:
@@ -695,5 +697,9 @@ TEST(BSpline, IgANet_NonUniformBSpline_4d) {
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
   iganet::init();
-  return RUN_ALL_TESTS();
+  int result = RUN_ALL_TESTS();
+  iganet::finalize();
+  return result;
 }
+
+#pragma nv_diag_default 20208

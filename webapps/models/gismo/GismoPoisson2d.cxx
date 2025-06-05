@@ -12,7 +12,6 @@
    file, You can obtain one at http://mozilla.org/MPL/2.0/.
 */
 
-#include <jit.hpp>
 #include <modelmanager.hpp>
 
 #include <GismoPoissonModel.hpp>
@@ -30,10 +29,12 @@ extern "C"
 #pragma clang diagnostic ignored "-Wreturn-type-c-linkage"
 
   /// @brief Create a G+Smo Poisson solver
-  std::shared_ptr<iganet::Model> create(const nlohmann::json &json) {
+  std::shared_ptr<iganet::Model<iganet::real_t>> create(
+      const nlohmann::json &json) {
     std::array<iganet::short_t, 2> degrees = {1, 1};
     std::array<int64_t, 2> ncoeffs = {4, 4};
     std::array<int64_t, 2> npatches = {1, 1};
+    std::array<iganet::real_t, 2> dimensions = {1.0, 1.0};
 
     if (json.contains("data")) {
 
@@ -45,11 +46,15 @@ extern "C"
 
       if (json["data"].contains("npatches"))
         npatches = json["data"]["npatches"].get<std::array<int64_t, 2>>();
+
+      if (json["data"].contains("dimensions"))
+        dimensions =
+            json["data"]["dimensions"].get<std::array<iganet::real_t, 2>>();
     }
 
     return std::make_shared<
-        iganet::webapp::GismoPoissonModel<2, iganet::real_t>>(degrees, ncoeffs,
-                                                              npatches);
+        iganet::webapp::GismoPoissonModel<2, iganet::real_t>>(
+        degrees, ncoeffs, npatches, dimensions);
   }
 
 #pragma clang diagnostic pop

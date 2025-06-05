@@ -36,39 +36,40 @@ int main() {
 
   // Export as ParaView file
   std::string out = "Geometry";
-  gsWriteParaview(bspline_gismo, out);
+  gismo::gsWriteParaview(bspline_gismo, out);
 
   out = "Basis";
-  gsWriteParaview(bspline_gismo.basis(), out);
+  gismo::gsWriteParaview(bspline_gismo.basis(), out);
 
-  gsMesh<real_t> mesh;
+  gismo::gsMesh<real_t> mesh;
   bspline_gismo.controlNet(mesh);
 
   out = "ContolNet";
-  gsWriteParaview(mesh, out);
+  gismo::gsWriteParaview(mesh, out);
 
   // Optimize parametrization with PDE-based approach
-  gsBarrierPatch<2, real_t> opt(bspline_gismo, false);
+  gismo::gsBarrierPatch<2, real_t> opt(bspline_gismo, false);
   opt.options().setInt("ParamMethod", 1);
   opt.compute();
 
   // Convert result back into B-spline object
-  gsMultiPatch<real_t> mp = opt.result();
+  gismo::gsMultiPatch<real_t> mp = opt.result();
   bspline.from_gismo(
-      dynamic_cast<const gsTensorBSpline<2, real_t> &>(mp.patch(0)));
+                     dynamic_cast<const gismo::gsTensorBSpline<2, real_t> &>(mp.patch(0)));
 
   // Export as ParaView file
   out = "Geometry_opt";
-  gsWriteParaview(mp.patch(0), out);
+  gismo::gsWriteParaview(mp.patch(0), out);
 
   out = "Basis_opt";
-  gsWriteParaview(mp.patch(0).basis(), out);
+  gismo::gsWriteParaview(mp.patch(0).basis(), out);
 
   mp.patch(0).controlNet(mesh);
 
   out = "ContolNet_opt";
-  gsWriteParaview(mesh, out);
+  gismo::gsWriteParaview(mesh, out);
 #endif
 
+  iganet::finalize();
   return 0;
 }

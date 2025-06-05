@@ -19,38 +19,6 @@
 
 namespace iganet {
 
-/// @brief Enumerator for specifying the capabilities
-enum class capability {
-  /*! Model create/remove */
-  create = 0, /*!< create object */
-  remove = 1, /*!< remove object */
-
-  /*! Model parameters */
-  parameters = 2, /*!< model has extra parameters */
-
-  /*!< Model evaluation and adaption */
-  eval = 3,     /*!< evaluates object */
-  refine = 4,   /*!< h-refines object */
-  elevate = 5,  /*!< p-refines object */
-  increase = 6, /*!< p-refines object */
-
-  /*!< Model reparameterization */
-  reparameterize = 7, /*!< reparameterizes the model's geometry */
-
-  /*!< Model loading/saving */
-  load = 8, /*!< loads model from PyTorch file */
-  save = 9, /*!< saves model to PyTorch file */
-
-  /*!< Model import/export */
-  importXML = 10, /*!< imports object from G+Smo XML file */
-  exportXML = 11, /*!< exports object to G+Smo XML file */
-
-  /*!< Error computation */
-  computeL1error = 12, /*!< computes model's L1-error */
-  computeL2error = 13, /*!< computes model's L2-error */
-  computeH1error = 14  /*!< computes model's H1-error */
-};
-
 /// @brief Enumerator for specifying the output type
 enum class io {
   scalar = 0,               /*!< scalar value */
@@ -75,6 +43,30 @@ struct InvalidModelAttributeException : public std::exception {
   const char *what() const throw() { return "Invalid model attribute"; }
 };
 
+/// @brief Model add patch
+class ModelAddPatch {
+public:
+  /// @brief Adds a patch to a model
+  virtual void addPatch(const nlohmann::json &json) = 0;
+
+  // @brief Returns model capabilities
+  std::vector<std::string> getCapabilities() const {
+    return std::vector{std::string("addpatch")};
+  }
+};
+
+/// @brief Model remove patch
+class ModelRemovePatch {
+public:
+  /// @brief Adds a patch to a model
+  virtual void removePatch(const nlohmann::json &json) = 0;
+
+  // @brief Returns model capabilities
+  std::vector<std::string> getCapabilities() const {
+    return std::vector{std::string("removepatch")};
+  }
+};  
+  
 /// @brief Model error computation
 class ModelComputeError {
 public:
@@ -105,7 +97,8 @@ public:
 class ModelEval {
 public:
   /// @brief Evaluates model
-  virtual nlohmann::json eval(const std::string &component,
+  virtual nlohmann::json eval(const std::string &patch,
+                              const std::string &component,
                               const nlohmann::json &json) const = 0;
 
   // @brief Returns model capabilities
@@ -169,19 +162,27 @@ public:
 class ModelXML {
 public:
   /// @brief Imports model from XML (as JSON object)
-  virtual void importXML(const nlohmann::json &json,
-                         const std::string &component, int id) = 0;
+  virtual void importXML(const std::string &patch,
+                         const std::string &component,
+                         const nlohmann::json &json,
+                         int id) = 0;
 
   /// @brief Imports model from XML (as XML object)
-  virtual void importXML(const pugi::xml_node &xml,
-                         const std::string &component, int id) = 0;
+  virtual void importXML(const std::string &patch,
+                         const std::string &component,
+                         const pugi::xml_node &xml,
+                         int id) = 0;
 
   /// @brief Exports model to XML (as JSON object)
-  virtual nlohmann::json exportXML(const std::string &component, int id) = 0;
+  virtual nlohmann::json exportXML(const std::string &patch,
+                                   const std::string &component,
+                                   int id) = 0;
 
   /// @brief Exports model to XML (as XML object)
-  virtual pugi::xml_node &exportXML(pugi::xml_node &root,
-                                    const std::string &component, int id) = 0;
+  virtual pugi::xml_node &exportXML(const std::string &patch,
+                                    const std::string &component,
+                                    pugi::xml_node &root,
+                                    int id) = 0;
 
   // @brief Returns model capabilities
   std::vector<std::string> getCapabilities() const {
@@ -190,10 +191,10 @@ public:
 };
 
 /// @brief Model interface
-class Model {
+template <typename T> class Model {
 public:
   /// @brief Constructor
-  Model() : transform_(torch::eye(4, Options<iganet::real_t>{})){};
+  Model(){};
 
   /// @brief Destructor
   virtual ~Model(){};
@@ -240,6 +241,10 @@ public:
     json.push_back("create");
     json.push_back("remove");
 
+    if (auto m = dynamic_cast<const ModelAddPatch *>(this))
+      for (auto const &capability : m->getCapabilities())
+        json.push_back(capability);
+    
     if (auto m = dynamic_cast<const ModelComputeError *>(this))
       for (auto const &capability : m->getCapabilities())
         json.push_back(capability);
@@ -260,6 +265,10 @@ public:
       for (auto const &capability : m->getCapabilities())
         json.push_back(capability);
 
+    if (auto m = dynamic_cast<const ModelRemovePatch *>(this))
+      for (auto const &capability : m->getCapabilities())
+        json.push_back(capability);
+    
     if (auto m = dynamic_cast<const ModelReparameterize *>(this))
       for (auto const &capability : m->getCapabilities())
         json.push_back(capability);
@@ -276,55 +285,21 @@ public:
   }
 
   /// @brief Serializes the model to JSON
-  virtual nlohmann::json to_json(const std::string &component,
+  virtual nlohmann::json to_json(const std::string &patch,
+                                 const std::string &component,
                                  const std::string &attribute) const {
-    if (component == "transform") {
 
-      nlohmann::json json;
-      json["matrix"] = utils::to_json<iganet::real_t, 1>(transform_.flatten());
-
-      return json;
-    }
-
-    else
-      return "{ INVALID REQUEST }";
+    return "{ INVALID REQUEST }";
   }
 
   /// @brief Updates the attributes of the model
-  virtual nlohmann::json updateAttribute(const std::string &component,
+  virtual nlohmann::json updateAttribute(const std::string &patch,
+                                         const std::string &component,
                                          const std::string &attribute,
                                          const nlohmann::json &json) {
-    if (attribute == "transform") {
-      if (!json.contains("data"))
-        throw InvalidModelAttributeException();
-      if (!json["data"].contains("matrix"))
-        throw InvalidModelAttributeException();
 
-      auto matrix = json["data"]["matrix"].get<std::vector<iganet::real_t>>();
-
-      if (matrix.size() != 16)
-        throw IndexOutOfBoundsException();
-
-      auto transform_cpu =
-          utils::to_tensorAccessor<iganet::real_t, 2>(transform_, torch::kCPU);
-      auto transformAccessor = std::get<1>(transform_cpu);
-
-      std::size_t index(0);
-      for (const auto &entry : matrix) {
-        transformAccessor[index / 4][index % 4] = entry;
-        index++;
-      }
-
-      return "{}";
-    }
-
-    else
-      return "{ INVALID REQUEST }";
+    return "{ INVALID REQUEST }";
   }
-
-protected:
-  /// @brief Global transformation matrix
-  torch::Tensor transform_;
 };
 
 } // namespace iganet

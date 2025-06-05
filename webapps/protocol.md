@@ -48,6 +48,7 @@ _Version: 0.11 (025-09-2023)_
 - **Session** is the 'scene' presented to one or more users. A back-end can run one or more sessions at the same time. Each session can be identified by its UUID. A front-end application can only connect to a single session at a time but multiple front-end applications can connect to the same session to enable collaborative design.
 - **Model** is the blueprint of a particular type of physical model (e.g. Poisson's equation in 2d). It is realized as library that is loaded dynamically by the back-end application during startup. Each instance of a model blueprint can be customized (e.g., number of control knots per spatial direction) during its creation process. The list of available models is communicated when creating a new session or connecting to an existing one.
 - **Instance** is a customized model instantiation running in a session. A session can contain one or more instances of the same or different models. Instances are identified by their number (integer value starting at 0 and being increased for each new instance that is created).
+- **Patch** is a part of an instance. It is topologically equivalent to a unit interval, unit square or unit cube. In order to create more complex geometries, an instance consists of multiple matches, a so-called *multi-patch* construction.
 - **Component** is a part of a model, e.g., the geometry, the loadvector, or the solution field, that can be addressed individually. Components are separated into **inputs** and **outputs**. Inputs such as the geometry are components that can be modified by the user in the UI. Outputs such as the solution are fields that can be selected for visualization.
 
 ## Overview
@@ -109,19 +110,30 @@ In what follows, only the non-generic parts of the protocol are specified in mor
 
 _Client request_
 ```json
-"request" : "get"
+"request" : "get/sessions"
 ```
 
 _Server response_
 ```json
 "status"  : success (0)
-"data"    : { "ids" : [<comma-separated list of session ids>] }
+"data"    : { "ids" : [<comma-separated list of session ids>],
+              "sessions" : [<comma-separated list of session informations>] }
 ```
 or
 ```json
 "status"  : invalidGetRequest (6)
 "reason"  : <string>
 ```
+-   The `session information` list describes the sessions running onthe server.
+
+      -   Each list entry has the form
+          ```json
+          { "id"            : session-id,
+             "creationTime" : <string>,
+             "accessTime"   : <time stamp>,
+             "hasHash"      : <time stamp>,
+             "nmodels"      : <integer> }
+          ```
 
 ### Create a new session
 
@@ -146,7 +158,7 @@ or
 
       -   Each list entry has the form
           ```json
-          { "name"        : <string>,
+          { "name"         : <string>,
              "description" : <string>,
              "options"     : [<comma-separated list of options>],
              "inputs"      : [<comma-separated list of inputs>],
@@ -416,11 +428,62 @@ or
 "reason"  : <string>
 ```
 
-### Get all attributes of all components of a specific model
+### Get all patches of a specific model
 
 _Client request_
 ```json
 "request" : "get/<session-id>/<instance>"
+```
+
+_Server response_
+```json
+"status"  : success (0)
+"data"    : {
+               "patches"    : [<list of integers>],
+               "interfaces" : [<list of interface definitions>],
+               "boundaries"   : [<list of boundary definitions]
+            }
+```
+
+#### Interface definition
+
+An interface is defined as follows
+```json
+{
+   "patches"      : [integer, integer],
+   "sides"        : [integer, integer],
+   "directionMap" : [<list of integers>],
+   "orientations" : [<list of bools>]
+}
+```
+with
+- `patches` denoting the two patches adjacent to the interface,
+- `sides` denoting the respective sides of the patches (i.e. 1 : "west", 2 : "east", 3 : "south", 4 : "north", 5 : "front", 6 : "back", 7 : "stime", 8 : "etime")
+- `directionMap` denoting the mapping of parameter directions, e.g., for bivariate splines, the values `[0, 1]` mean $u \mapsto u$ and $v \mapsto v$, and for trivariate splines, the values `[1, 0, 2]` mean $ u\mapsto v$, $v \mapsto u$ and $w \mapsto w$
+- `orientation` denoting wether or not the matching is flipped (i.e. `false` means $X_\text{left}(u) = X_\text{right}(u)$ and `true` means $X_\text{left}(u) = X_\text{right}(1-u)$)
+
+#### Boundary definition
+
+A boundary is defined as follows
+```json
+{
+   "patch" : integer,
+   "side"  : integer
+}
+```
+with the same convention for `patch` and `side` in above.
+
+or
+```json
+"status"  : invalidGetRequest (6)
+"reason"  : <string>
+```
+
+### Get all attributes of all components of a specific model
+
+_Client request_
+```json
+"request" : "get/<session-id>/<instance>/<patch>"
 ```
 
 The attributes for the different models are given in [Models](protocol.md#models).
@@ -440,7 +503,7 @@ or
 
 _Client request_
 ```json
-"request" : "get/<session-id>/<instance>/<component>"
+"request" : "get/<session-id>/<instance>/<patch>/<component>"
 ```
 
 The attributes for the different models are given in [Models](protocol.md#models).
@@ -460,7 +523,7 @@ or
 
 _Client request_
 ```json
-"request" : "get/<session-id>/<instance>/<component>/<attribute>"
+"request" : "get/<session-id>/<instance>/<patch>/<component>/<attribute>"
 ```
 
 The attributes for the different models are given in [Models](protocol.md#models).
@@ -481,7 +544,7 @@ The `data` will be formatted in the same format as in the _get all attributes_ c
 
 _Client request_
 ```json
-"request" : "put/<session-id>/<instance>/<global attribute>
+"request" : "put/<session-id>/<instance>/<patch>/<global attribute>
 ```
 
 The updatable _global_ attributes for the different models are given in [Models](protocol.md#models).
@@ -501,7 +564,7 @@ or
 
 _Client request_
 ```json
-"request" : "put/<session-id>/<instance>/<component>/<attribute>"
+"request" : "put/<session-id>/<instance>/<patch>/<component>/<attribute>"
 ```
 
 The updatable attributes for the different models are given in [Models](protocol.md#models).
@@ -521,9 +584,9 @@ or
 
 _Client request_
 ```json
-"request" : "eval/<session-id>/<instance>/<component>"
+"request" : "eval/<session-id>/<instance>/<patch>/<component>"
 "data"    : {
-               "resolution" : [<list of integers]
+               "resolution" : [<list of integers>]
             }
 ```
 The `component` must be one of the model's outputs (i.e. the `name` attribute) defined during [session creation](protocol.md#Create-a-new-session).

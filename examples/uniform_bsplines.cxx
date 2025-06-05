@@ -201,5 +201,6 @@ int main() {
     auto xi = iganet::utils::to_tensorArray({0.0, 0.5, 1.0}, {0.0, 0.5, 0.5});
   }
 
+  iganet::finalize();
   return 0;
 }

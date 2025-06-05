@@ -1,0 +1,57 @@
+name: Build and Deploy Docs
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:  # Allows manual triggers of this workflow
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Doxygen and BibTeX
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y doxygen sphinx texlive-bibtex-extra
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r docs/requirements.txt
+
+      - name: Install PyTorch - Linux
+        run: >
+          wget https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.5.1%2Bcpu.zip -O libtorch.zip &&
+          unzip libtorch.zip -d $HOME &&
+          rm -f libtorch.zip
+
+      - name: Configure CMake - Linux / GCC
+        # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
+        # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
+        run: >
+          cmake -B ./build
+          -DIGANET_BUILD_DOCS=ON
+          -DIGANET_BUILD_EXAMPLES=OFF
+          -DIGANET_BUILD_PCH=OFF
+          -DTorch_DIR=$HOME/libtorch/share/cmake/Torch
+          -S ${{ github.workspace }}
+
+      - name: Generate Documentation
+        run: cmake --build ./build
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./build/docs/doxygen/html
+          publish_branch: gh-pages

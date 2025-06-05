@@ -33,87 +33,86 @@ private:
   using Base = GismoPdeModel<d, T>;
 
   /// @brief Type of the geometry mapping
-  using geometryMap_type = typename gsExprAssembler<T>::geometryMap;
+  using geometryMap_type = typename gismo::gsExprAssembler<T>::geometryMap;
 
   /// @brief Type of the variable
-  using variable_type = typename gsExprAssembler<T>::variable;
+  using variable_type = typename gismo::gsExprAssembler<T>::variable;
 
   /// @brief Type of the function space
-  using space_type = typename gsExprAssembler<T>::space;
+  using space_type = typename gismo::gsExprAssembler<T>::space;
 
   /// @brief Type of the solution
-  using solution_type = typename gsExprAssembler<T>::solution;
+  using solution_type = typename gismo::gsExprAssembler<T>::solution;
 
   /// @brief Multi-patch basis
-  gsMultiBasis<T> basis_;
+  gismo::gsMultiBasis<T> basis_;
 
   /// @brief Boundary conditions
-  gsBoundaryConditions<T> bc_;
+  gismo::gsBoundaryConditions<T> bc_;
 
   /// @brief Right-hand side function
-  gsFunctionExpr<T> rhsFunc_;
+  gismo::gsFunctionExpr<T> rhsFunc_;
 
   /// @brief Right-hand side function defined on parametric domain (default
   /// false)
   bool rhsFuncParametric_;
 
-  /// @brief Boundary condition values
-  std::array<gsFunctionExpr<T>, 2 * d> bcFunc_;
-
-  /// @brief Boundary values defined on parametric domain (default false)
-  std::array<bool, 2 * d> bcFuncParametric_;
-
-  /// @brief Boundary condition type
-  std::array<gismo::condition_type::type, 2 * d> bcType_;
-
+  /// @brief Boundary condition look-up table
+  GismoBoundaryConditionMap<T> bcMap_;
+  
   /// @brief Expression assembler
-  gsExprAssembler<T> assembler_;
-
-  /// @brief Solution
-  gsMultiPatch<T> solution_;
+  gismo::gsExprAssembler<T> assembler_;
 
   /// @brief Solve the Poisson problem
   void solve() {
 
-    std::cout << "RHS\n";
-    std::cout << rhsFunc_ << ":" << rhsFuncParametric_ << std::endl;
-    std::cout << rhsFunc_.domainDim() << "->" << rhsFunc_.targetDim()
-              << std::endl;
-
-    std::cout << "BC\n";
-    for (auto [f, t, p] : utils::zip(bcFunc_, bcType_, bcFuncParametric_))
-      std::cout << f << ":" << p << ":" << t << "\n"
-                << f.domainDim() << "->" << f.targetDim() << std::endl;
-
     // Set up expression assembler
     auto G = assembler_.getMap(Base::geo_);
     auto u = assembler_.getSpace(basis_);
-    auto f = assembler_.getCoeff(rhsFunc_);
 
     // Impose boundary conditions
     u.setup(bc_, gismo::dirichlet::l2Projection, 0);
 
     // Set up system
     assembler_.initSystem();
-    assembler_.assemble(igrad(u, G) * igrad(u, G).tr() * meas(G) // matrix
-                        ,
-                        u * f * meas(G) // rhs vector
-    );
+    if (rhsFuncParametric_) {
+      auto f = assembler_.getCoeff(rhsFunc_);
+      assembler_.assemble(igrad(u, G) * igrad(u, G).tr() * meas(G) // matrix
+                          ,
+                          u * f * meas(G) // rhs vector
+      );
+    } else {
+      auto f = assembler_.getCoeff(rhsFunc_, G);
+      assembler_.assemble(igrad(u, G) * igrad(u, G).tr() * meas(G) // matrix
+                          ,
+                          u * f * meas(G) // rhs vector
+      );
+    }
 
     // Compute the Neumann terms defined on physical space
-    auto g_N = assembler_.getBdrFunction(G);
-    assembler_.assembleBdr(bc_.get("Neumann"), u * g_N.tr() * nv(G));
+    auto bcNeumann = bc_.get("Neumann");
+    if (!bcNeumann.empty()) {
+      auto g = assembler_.getBdrFunction(G);
+      assembler_.assembleBdr(bcNeumann, u * g * meas(G));
+    }
+
+    // Compute the Neumann terms defined on parametric space
+    auto bcNeumannParametric = bc_.get("NeumannParametric");
+    if (!bcNeumannParametric.empty()) {
+      auto g = assembler_.getBdrFunction();
+      assembler_.assembleBdr(bcNeumannParametric, u * g * meas(G));
+    }
 
     // Solve system
     typename gismo::gsSparseSolver<T>::CGDiagonal solver;
     solver.compute(assembler_.matrix());
 
-    gsMatrix<T> solutionVector;
+    gismo::gsMatrix<T> solutionVector;
     solution_type solution = assembler_.getSolution(u, solutionVector);
     solutionVector = solver.solve(assembler_.rhs());
 
     // Extract solution
-    solution.extract(solution_);
+    solution.extract(Base::solution_);
   }
 
 public:
@@ -123,37 +122,18 @@ public:
   /// @brief Constructor for equidistant knot vectors
   GismoPoissonModel(const std::array<short_t, d> degrees,
                     const std::array<int64_t, d> ncoeffs,
-                    const std::array<int64_t, d> npatches)
-      : Base(degrees, ncoeffs, npatches), basis_(Base::geo_, true),
-        rhsFuncParametric_(true),
-        rhsFunc_(d == 1   ? "2*pi^2*sin(pi*x)"
-                 : d == 2 ? "2*pi^2*sin(pi*x)*sin(pi*y)"
-                          : "2*pi^2*sin(pi*x)*sin(pi*y)*sin(pi*z)",
+                    const std::array<int64_t, d> npatches,
+                    const std::array<T, d> dimensions)
+    : Base(degrees, ncoeffs, npatches, dimensions), basis_(Base::geo_, true),
+      rhsFuncParametric_(true),
+      rhsFunc_(d == 1   ? "2*pi^2*sin(pi*x)"
+               : d == 2 ? "2*pi^2*sin(pi*x)*sin(pi*y)"
+               : "2*pi^2*sin(pi*x)*sin(pi*y)*sin(pi*z)",
                  /* rhsFuncParametric_ == false */ d),
         assembler_(1, 1) {
-
+    
     // Specify assembler options
-    gsOptionList Aopt;
-
-    Aopt.addInt("DirichletStrategy",
-                "Method for enforcement of Dirichlet BCs [11..14]", 11);
-    Aopt.addInt("DirichletValues",
-                "Method for computation of Dirichlet DoF values [100..103]",
-                101);
-    Aopt.addInt("InterfaceStrategy",
-                "Method of treatment of patch interfaces [0..3]", 1);
-    Aopt.addReal(
-        "bdA", "Estimated nonzeros per column of the matrix: bdA*deg + bdB", 2);
-    Aopt.addInt(
-        "bdB", "Estimated nonzeros per column of the matrix: bdA*deg + bdB", 1);
-    Aopt.addReal(
-        "bdO",
-        "Overhead of sparse mem. allocation: (1+bdO)(bdA*deg + bdB) [0..1]",
-        0.333);
-    Aopt.addReal("quA", "Number of quadrature points: quA*deg + quB", 1);
-    Aopt.addInt("quB", "Number of quadrature points: quA*deg + quB", 1);
-    Aopt.addInt("quRule", "Quadrature rule [1:GaussLegendre, 2:GaussLobatto]",
-                1);
+    gismo::gsOptionList Aopt = gismo::gsExprAssembler<>::defaultOptions();
 
     // Set assembler options
     assembler_.setOptions(Aopt);
@@ -161,22 +141,30 @@ public:
     // Set assembler basis
     assembler_.setIntegrationElements(basis_);
 
-    // Set all boundary conditions to parametric
-    bcFuncParametric_.fill(true);
-
-    // Set boundary conditions type and expression
-    for (const auto &side : GismoBoundarySides<d>) {
-      bcType_[side - 1] = gismo::condition_type::dirichlet;
-      bcFunc_[side - 1] = gismo::give(
-          gsFunctionExpr<T>("0", bcFuncParametric_[side - 1] ? d : 3));
-      bc_.addCondition(side, bcType_[side - 1], &bcFunc_[side - 1], 0,
-                       bcFuncParametric_[side - 1]);
+    // Initialize boundary conditions
+    for (auto const &bdr : Base::geo_.boundaries()) {
+      auto patch = bdr.patch;
+      auto side = bdr.side();
+      auto bc = bcMap_[patch][side] = { gismo::gsFunctionExpr<T>("0", d),
+                                        gismo::condition_type::dirichlet,
+                                        true };
     }
 
+    // Set boundary conditions
+    for (auto const & p : bcMap_) {
+      std::size_t patch = p.first;
+      
+      for (auto const & bc : p.second) {
+        auto side = static_cast<gismo::boundary::side>(bc.first);
+
+        bc_.addCondition(patch, side, bc.second.type, bc.second.function, 0, bc.second.isParametric);  
+      }
+    }
+    
     // Set geometry
     bc_.setGeoMap(Base::geo_);
 
-    // Generate solution
+    // Regenerate solution
     solve();
   }
 
@@ -216,12 +204,19 @@ public:
     int uiid = 0;
 
     // Lambda expression to add a JSON entry
-    auto add_json = [&json, &uiid]<typename Value>(
-                        const std::string &name, const std::string &description,
-                        const std::string &type, const Value &value) {
+    auto add_json = [&json, &uiid]<typename Type, typename Value>(int patch,
+                                                                  const std::string &name,
+                                                                  const std::string &label,
+                                                                  const std::string &group,
+                                                                  const std::string &description,
+                                                                  const Type &type,
+                                                                  const Value &value) {
       nlohmann::json item;
+      item["patch"] = patch;
       item["name"] = name;
+      item["label"] = label;
       item["description"] = description;
+      item["group"] = group;
       item["type"] = type;
       item["value"] = value;
       item["default"] = value;
@@ -231,106 +226,123 @@ public:
 
     // Lambda expression to add a JSON entry with different default type
     auto add_json_default =
-        [&json, &uiid]<typename Value, typename DefaultValue>(
-            const std::string &name, const std::string &description,
-            const std::string &type, const Value &value,
-            const DefaultValue &defaultvalue) {
-          nlohmann::json item;
+      [&json, &uiid]<typename Type, typename Value, typename DefaultValue>(int patch,
+            const std::string &name, const std::string &label,
+            const std::string &group, const std::string &description,
+            const Type &type, const Value &value,
+            const DefaultValue &defaultValue) {
+      nlohmann::json item;
+      item["patch"] = patch;
           item["name"] = name;
+          item["label"] = label;
           item["description"] = description;
+          item["group"] = group;
           item["type"] = type;
           item["value"] = value;
-          item["default"] = defaultvalue;
+          item["default"] = defaultValue;
           item["uuid"] = uiid++;
           json.push_back(item);
         };
 
-    add_json("rhs", "Right-hand side function", "text", rhsFunc_.expression(0));
-    add_json("rhs_parametric",
+    add_json(0, "rhs", "Rhs function", "rhs", "Right-hand side function", "text",
+             rhsFunc_.expression(0));
+    add_json(0, "rhs_parametric", "Parametric", "rhs",
              "Right-hand side function defined in parametric domain", "bool",
              rhsFuncParametric_);
 
-    for (const auto &[side, str] :
-         utils::zip(GismoBoundarySides<d>, GismoBoundarySideStrings<d>)) {
-      add_json("bc["s + str + "]"s,
-               "Boundary value at the "s + str + " boundary"s, "text",
-               bcFunc_[side - 1].expression(0));
-      add_json("bc_parametric["s + str + "]",
-               "Boundary value at the "s + str +
-                   " boundary defined in parametric domain"s,
-               "bool", bcFuncParametric_[side - 1]);
-      add_json_default(
-          "bc_type["s + str + "]",
-          "Type of boundary condition at the "s + str + " boundary"s, "select",
-          R"([ "Dirichlet", "Neumann" ])"_json, "Dirichlet");
-    }
+    for (auto const & p : bcMap_) {
+      std::size_t patch = p.first;
+      
+      for (auto const & bc : p.second) {
+        auto side = static_cast<gismo::boundary::side>(bc.first);
+        std::string str = *(GismoBoundarySideStrings<d>.begin()+side-1);
+
+        add_json(patch, "bc["s + std::to_string(patch) + ":" + str + "]"s, "Value", str,
+                 "Boundary value at the "s + str + " boundary of patch "s + std::to_string(patch), "text",
+                 bc.second.function.expression(0));
+        add_json(patch, "bc_parametric["s + std::to_string(patch) + ":" + str + "]", "Parametric", str,
+                 "Boundary value at the "s + str +
+                 " boundary of patch "s + std::to_string(patch) + "defined in parametric domain"s,
+                 "bool", bc.second.isParametric);
+        add_json_default(patch, "bc_type["s + std::to_string(patch) + ":" + str + "]", "Type", str,
+                         "Type of boundary condition at the "s + str + " boundary of patch "s + std::to_string(patch), "select",
+                         R"([ "Dirichlet", "Neumann" ])"_json,
+                         bc.second.type == gismo::condition_type::dirichlet ? "Dirichlet" : "Neumann");        
+      }
+    }       
 
     return json;
   }
 
   /// @brief Updates the attributes of the model
-  nlohmann::json updateAttribute(const std::string &component,
+  nlohmann::json updateAttribute(const std::string &patch,
+                                 const std::string &component,
                                  const std::string &attribute,
                                  const nlohmann::json &json) override {
 
     bool updateBC(false);
     nlohmann::json result = R"({})"_json;
 
-    for (const auto &[side, str] :
-         utils::zip(GismoBoundarySides<d>, GismoBoundarySideStrings<d>)) {
+    for (auto & p : bcMap_) {
+      std::size_t patch = p.first;
+      
+      for (auto & bc : p.second) {
+        auto side = static_cast<gismo::boundary::side>(bc.first);
+        std::string str = *(GismoBoundarySideStrings<d>.begin()+side-1);
+    
+        // bc_parametric[*]
+        if (attribute == "bc_parametric["s + std::to_string(patch) + ":" + str + "]"s) {
+          if (!json.contains("data"))
+            throw InvalidModelAttributeException();
+          if (!json["data"].contains("bc_parametric["s + std::to_string(patch) + ":" + str + "]"s))
+            throw InvalidModelAttributeException();
 
-      // bc_parametric[*]
-      if (attribute == "bc_parametric["s + str + "]"s) {
-        if (!json.contains("data"))
-          throw InvalidModelAttributeException();
-        if (!json["data"].contains("bc_parametric["s + str + "]"s))
-          throw InvalidModelAttributeException();
+          bc.second.isParametric =
+            json["data"]["bc_parametric["s + std::to_string(patch) + ":" + str + "]"s].template get<bool>();
 
-        bcFuncParametric_[side - 1] =
-            json["data"]["bc_parametric["s + str + "]"s].template get<bool>();
+          bc.second.function =
+            gismo::give(gismo::gsFunctionExpr<T>(bc.second.function.expression(0),
+                                          bc.second.isParametric ? d : 3));
 
-        updateBC = true;
-        break;
-      }
+          updateBC = true;
+          break;
+        }
 
-      // bc_type[*]
-      if (attribute == "bc_type["s + str + "]"s) {
-        if (!json.contains("data"))
-          throw InvalidModelAttributeException();
-        if (!json["data"].contains("bc_type["s + str + "]"s))
-          throw InvalidModelAttributeException();
+        // bc_type[*]
+        else if (attribute == "bc_type["s + std::to_string(patch) + ":" + str + "]"s) {
+          if (!json.contains("data"))
+            throw InvalidModelAttributeException();
+          if (!json["data"].contains("bc_type["s + std::to_string(patch) + ":" + str + "]"s))
+            throw InvalidModelAttributeException();
 
-        std::string bc_type =
-            json["data"]["bc_type["s + str + "]"s].template get<std::string>();
+          std::string bc_type =
+            json["data"]["bc_type["s + std::to_string(patch) + ":" + str + "]"s].template get<std::string>();
 
-        if (bc_type == "Dirichlet")
-          bcType_[side - 1] = gismo::condition_type::type::dirichlet;
-        else if (bc_type == "Neumann")
-          bcType_[side - 1] = gismo::condition_type::type::neumann;
-        else
-          throw InvalidModelAttributeException();
+          if (bc_type == "Dirichlet")
+            bc.second.type = gismo::condition_type::type::dirichlet;
+          else if (bc_type == "Neumann")
+            bc.second.type = gismo::condition_type::type::neumann;
+          else
+            throw InvalidModelAttributeException();
 
-        bcFunc_[side - 1] =
-            gismo::give(gsFunctionExpr<T>(bcFunc_[side - 1].expression(0),
-                                          bcFuncParametric_[side - 1] ? d : 3));
+          updateBC = true;
+          break;
+        }
 
-        updateBC = true;
-        break;
-      }
+        // bc[*]
+        else if (attribute == "bc["s + std::to_string(patch) + ":" + str + "]"s) {
+          if (!json.contains("data"))
+            throw InvalidModelAttributeException();
+          if (!json["data"].contains("bc["s + std::to_string(patch) + ":" + str + "]"s))
+            throw InvalidModelAttributeException();
 
-      // bc[*]
-      if (attribute == "bc["s + str + "]"s) {
-        if (!json.contains("data"))
-          throw InvalidModelAttributeException();
-        if (!json["data"].contains("bc["s + str + "]"s))
-          throw InvalidModelAttributeException();
+          bc.second.function =gismo::give(gismo::gsFunctionExpr<T>(
+            json["data"]["bc["s + std::to_string(patch) + ":" + str + "]"s].template get<std::string>(),
+            bc.second.isParametric ? d : 3));
 
-        bcFunc_[side - 1] = gismo::give(gsFunctionExpr<T>(
-            json["data"]["bc["s + str + "]"s].template get<std::string>(),
-            bcFuncParametric_[side - 1] ? d : 3));
-
-        updateBC = true;
-        break;
+          updateBC = true;
+          break;
+        }
       }
     }
 
@@ -341,7 +353,7 @@ public:
       if (!json["data"].contains("rhs_parametric"))
         throw InvalidModelAttributeException();
       rhsFuncParametric_ = json["data"]["rhs_parametric"].get<bool>();
-      rhsFunc_ = gismo::give(gsFunctionExpr<T>(rhsFunc_.expression(0),
+      rhsFunc_ = gismo::give(gismo::gsFunctionExpr<T>(rhsFunc_.expression(0),
                                                rhsFuncParametric_ ? d : 3));
     }
 
@@ -351,20 +363,26 @@ public:
         throw InvalidModelAttributeException();
       if (!json["data"].contains("rhs"))
         throw InvalidModelAttributeException();
-      rhsFunc_ = gismo::give(gsFunctionExpr<T>(
+      rhsFunc_ = gismo::give(gismo::gsFunctionExpr<T>(
           json["data"]["rhs"].get<std::string>(), rhsFuncParametric_ ? d : 3));
     }
 
     else if (!updateBC)
-      result = Base::updateAttribute(component, attribute, json);
+      result = Base::updateAttribute(patch, component, attribute, json);
 
     if (updateBC) {
       bc_.clear();
 
-      // Set boundary condition types
-      for (short_t i = 0; i < 2 * d; ++i)
-        bc_.addCondition(i + 1, bcType_[i], &bcFunc_[i], 0,
-                         bcFuncParametric_[i]);
+      // Set boundary conditions
+      for (auto & p : bcMap_) {
+        std::size_t patch = p.first;
+      
+        for (auto & bc : p.second) {
+          auto side = static_cast<gismo::boundary::side>(bc.first);
+
+          bc_.addCondition(patch, side, bc.second.type, bc.second.function, 0, bc.second.isParametric);           
+        }
+      }
     }
 
     // Solve updated problem
@@ -374,16 +392,22 @@ public:
   }
 
   /// @brief Evaluates the model
-  nlohmann::json eval(const std::string &component,
+  nlohmann::json eval(const std::string &patch, const std::string &component,
                       const nlohmann::json &json) const override {
 
+    int patchIndex(-1);
+
+    try {
+      patchIndex = stoi(patch);
+    } catch (...) {
+      // Invalid patchIndex
+      return R"({ INVALID REQUEST })"_json;
+    }
+    
     if (component == "Solution" || component == "Rhs") {
 
-      // Create uniform grid
-      gsMatrix<T> ab = Base::geo_.patch(0).support();
-      gsVector<T> a = ab.col(0);
-      gsVector<T> b = ab.col(1);
-      gsVector<unsigned> npts(Base::geo_.parDim());
+      // Get grid resolution
+      gismo::gsVector<unsigned> npts(Base::geo_.parDim());
       npts.setConstant(25);
 
       if (json.contains("data"))
@@ -394,34 +418,38 @@ public:
             npts(i) = res[i];
         }
 
-      // Uniform parameters for evaluation
-      gsMatrix<T> pts = gsPointGrid(a, b, npts);
+      if (component == "Solution" ||
+          component == "Rhs" && !rhsFuncParametric_) {
 
-      if (component == "Solution") {
-        gsMatrix<T> eval = solution_.patch(0).eval(pts);
+        // Create uniform grid in physical domain
+        gismo::gsMatrix<T> ab = Base::geo_.patch(patchIndex).support();
+        gismo::gsVector<T> a = ab.col(0);
+        gismo::gsVector<T> b = ab.col(1);
+        gismo::gsMatrix<T> pts = gismo::gsPointGrid(a, b, npts);
+
+        if (component == "Solution") {
+          gismo::gsMatrix<T> eval = Base::solution_.patch(patchIndex).eval(pts);
+          return utils::to_json(eval, true, false);
+        } else {
+          gismo::gsMatrix<T> eval = rhsFunc_.eval(Base::geo_.patch(patchIndex).eval(pts));
+          return utils::to_json(eval, true, false);
+        }
+
+      } else {
+
+        // Create uniform grid in parametric domain
+        gismo::gsMatrix<T> ab = Base::geo_.patch(patchIndex).parameterRange();
+        gismo::gsVector<T> a = ab.col(0);
+        gismo::gsVector<T> b = ab.col(1);
+        gismo::gsMatrix<T> pts = gismo::gsPointGrid(a, b, npts);
+
+        gismo::gsMatrix<T> eval = rhsFunc_.eval(pts);
         return utils::to_json(eval, true, false);
-      } else if (component == "Rhs") {
-        gsMatrix<T> eval;
+      }
+    }
 
-        std::cout << rhsFunc_ << std::endl;
-        std::cout << rhsFunc_.domainDim() << "->" << rhsFunc_.targetDim()
-                  << std::endl;
-
-        if (rhsFuncParametric_) {
-
-          gsMatrix<T> ab = Base::geo_.patch(0).parameterRange();
-          gsVector<T> a = ab.col(0);
-          gsVector<T> b = ab.col(1);
-          gsMatrix<T> pts = gsPointGrid(a, b, npts);
-
-          eval = rhsFunc_.eval(pts);
-        } else
-          eval = rhsFunc_.eval(Base::geo_.patch(0).eval(pts));
-        return utils::to_json(eval, true, false);
-      } else
-        return R"({ INVALID REQUEST })"_json;
-    } else
-      return Base::eval(component, json);
+    else
+      return Base::eval(patch, component, json);
   }
 
   /// @brief Elevates the model's degrees, preserves smoothness
@@ -441,7 +469,7 @@ public:
       bc_.setGeoMap(Base::geo_);
     }
 
-    int num = 1, dim = -1;
+    int num(1), dim(-1), patchIndex(-1);
 
     if (json.contains("data")) {
       if (json["data"].contains("num"))
@@ -449,15 +477,21 @@ public:
 
       if (json["data"].contains("dim"))
         dim = json["data"]["dim"].get<int>();
+
+      if (json["data"].contains("patch"))
+        patchIndex = json["data"]["patch"].get<int>();
     }
 
     // Degree elevate basis of solution space
-    basis_.basis(0).degreeElevate(num, dim);
+    if (patchIndex == -1)
+      basis_.degreeElevate(num, dim);
+    else
+      basis_.basis(patchIndex).degreeElevate(num, dim);
 
     // Set assembler basis
     assembler_.setIntegrationElements(basis_);
 
-    // Generate solution
+    // Regenerate solution
     solve();
   }
 
@@ -478,7 +512,7 @@ public:
       bc_.setGeoMap(Base::geo_);
     }
 
-    int num = 1, dim = -1;
+    int num(1), dim(-1), patchIndex(-1);
 
     if (json.contains("data")) {
       if (json["data"].contains("num"))
@@ -486,15 +520,21 @@ public:
 
       if (json["data"].contains("dim"))
         dim = json["data"]["dim"].get<int>();
+
+      if (json["data"].contains("patch"))
+        patchIndex = json["data"]["patch"].get<int>();
     }
 
     // Degree increase basis of solution space
-    basis_.basis(0).degreeIncrease(num, dim);
+    if (patchIndex == -1)
+      basis_.degreeIncrease(num, dim);
+    else
+      basis_.basis(patchIndex).degreeIncrease(num, dim);
 
     // Set assembler basis
     assembler_.setIntegrationElements(basis_);
 
-    // Generate solution
+    // Regenerate solution
     solve();
   }
 
@@ -515,7 +555,7 @@ public:
       bc_.setGeoMap(Base::geo_);
     }
 
-    int num = 1, dim = -1;
+    int num(1), dim(-1), patchIndex(-1);
 
     if (json.contains("data")) {
       if (json["data"].contains("num"))
@@ -523,15 +563,61 @@ public:
 
       if (json["data"].contains("dim"))
         dim = json["data"]["dim"].get<int>();
+
+      if (json["data"].contains("patch"))
+        patchIndex = json["data"]["patch"].get<int>();
     }
 
     // Refine basis of solution space
-    basis_.basis(0).uniformRefine(num, 1, dim);
-
+    if (patchIndex == -1)
+      basis_.uniformRefine(num, 1, dim);
+    else
+      basis_.basis(patchIndex).uniformRefine(num, 1, dim);
+    
     // Set assembler basis
     assembler_.setIntegrationElements(basis_);
+    
+    // Regenerate solution
+    solve();
+  }
 
-    // Generate solution
+  /// @brief Add new patch to the model
+  void addPatch(const nlohmann::json &json = NULL) override {
+
+    // Add patch from geometry
+    Base::addPatch(json);
+
+    // Set geometry
+    bc_.setGeoMap(Base::geo_);
+    
+    throw std::runtime_error("Adding patches is not yet implemented in G+Smo");
+
+    // Regenerate solution
+    solve();
+  }
+  
+  /// @brief Remove existing patch from the model
+  void removePatch(const nlohmann::json &json = NULL) override {
+
+    // Remove patch from geometry
+    Base::removePatch(json);
+
+    // Set geometry
+    bc_.setGeoMap(Base::geo_);
+    
+    int patchIndex(-1);
+
+    if (json.contains("data")) {      
+      if (json["data"].contains("patch"))
+        patchIndex = json["data"]["patch"].get<int>();
+    }
+
+    // if (patchIndex == -1)
+    //   throw std::runtime_error("Invalid patch index");
+
+    // throw std::runtime_error("Removing patches is not yet implemented in G+Smo");
+
+    // Regenerate solution
     solve();
   }
 };

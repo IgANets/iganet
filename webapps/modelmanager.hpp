@@ -27,7 +27,7 @@
 #endif
 
 #include <model.hpp>
-#include <utils/fqn.hpp>
+#include <webapps_config.hpp>
 
 namespace iganet {
 
@@ -129,9 +129,11 @@ public:
               try {
                 auto handler =
                     std::make_shared<ModelHandler>(entry.path().c_str());
-                std::shared_ptr<Model> (*create)(const nlohmann::json &);
-                create = reinterpret_cast<std::shared_ptr<Model> (*)(
-                    const nlohmann::json &)>(handler->getSymbol("create"));
+                std::shared_ptr<Model<iganet::real_t>> (*create)(
+                    const nlohmann::json &);
+                create =
+                    reinterpret_cast<std::shared_ptr<Model<iganet::real_t>> (*)(
+                        const nlohmann::json &)>(handler->getSymbol("create"));
                 models[create({})->getName()] = handler;
               } catch (...) {
                 std::clog << "Unable to create model " << entry << std::endl;
@@ -147,17 +149,15 @@ public:
 
   /// @brief Returns a new instance of the requested model and
   /// throws an exception if model cannot be found
-  inline std::shared_ptr<Model>
+  inline std::shared_ptr<Model<iganet::real_t>>
   create(const std::string &name, const nlohmann::json &json = NULL) const {
     try {
       auto model = models.find(name);
       if (model == models.end())
         throw InvalidModelException();
-
-      std::shared_ptr<Model> (*create)(const nlohmann::json &);
-      create =
-          reinterpret_cast<std::shared_ptr<Model> (*)(const nlohmann::json &)>(
-              model->second->getSymbol("create"));
+      std::shared_ptr<Model<iganet::real_t>> (*create)(const nlohmann::json &);
+      create = reinterpret_cast<std::shared_ptr<Model<iganet::real_t>> (*)(
+          const nlohmann::json &)>(model->second->getSymbol("create"));
       return create(json);
     } catch (...) {
       throw InvalidModelException();
@@ -166,12 +166,13 @@ public:
 
   /// @brief Returns a new model instance from binary data stream
   /// throws an exception if model cannot be created
-  inline std::shared_ptr<Model> load(const nlohmann::json &json) const {
+  inline std::shared_ptr<Model<iganet::real_t>>
+  load(const nlohmann::json &json) const {
 
     for (auto &model : models) {
       try {
-        std::shared_ptr<Model> (*load)(const nlohmann::json &);
-        load = reinterpret_cast<std::shared_ptr<Model> (*)(
+        std::shared_ptr<Model<iganet::real_t>> (*load)(const nlohmann::json &);
+        load = reinterpret_cast<std::shared_ptr<Model<iganet::real_t>> (*)(
             const nlohmann::json &)>(model.second->getSymbol("load"));
         return load(json);
       } catch (...) { /* try next model */

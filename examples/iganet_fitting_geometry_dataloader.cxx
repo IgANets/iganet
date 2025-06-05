@@ -132,6 +132,7 @@ int main() {
   nlohmann::json json;
   json["res0"] = 50;
   json["res1"] = 50;
+  json["cnet"] = true;
 
   using namespace iganet::literals;
   using optimizer_t = torch::optim::Adam;
@@ -185,11 +186,11 @@ int main() {
         for (int64_t nneurons :
              iganet::utils::getenv("IGANET_NNEURONS", {10})) {
 
-          iganet::Log(iganet::log::info)
-              << "#coeff: " << ncoeffs << ", #layers: " << nlayers
-              << ", #neurons: " << nneurons << std::endl;
+#ifdef IGANET_WITH_MPI
+          if (pg->getRank() == 0)
+#endif
 
-          std::vector<int64_t> layers(nlayers, nneurons);
+            std::vector<int64_t> layers(nlayers, nneurons);
           std::vector<std::vector<std::any>> activations(nlayers, activation);
           activations.emplace_back(
               std::vector<std::any>{iganet::activation::none});
@@ -200,9 +201,14 @@ int main() {
                   // Activation functions
                   activations,
                   // Number of B-spline coefficients of the geometry
-                  std::tuple(iganet::utils::to_array(25_i64, 25_i64)),
+                  iganet::utils::to_array(25_i64, 25_i64),
                   // Number of B-spline coefficients of the variable
-                  std::tuple(iganet::utils::to_array(ncoeffs, ncoeffs)));
+                  iganet::utils::to_array(ncoeffs, ncoeffs));
+
+          iganet::Log(iganet::log::info)
+              << "#coeff: " << ncoeffs << ", #layers: " << nlayers
+              << ", #neurons: " << nneurons
+              << ", #parameters: " << net.nparameters() << std::endl;
 
           // Set maximum number of epochs
           net.options().max_epoch(
@@ -224,22 +230,48 @@ int main() {
 
           // Stop time measurement
           auto t2 = std::chrono::high_resolution_clock::now();
-          iganet::Log(iganet::log::info)
-              << "Training took "
-              << std::chrono::duration_cast<std::chrono::duration<double>>(t2 -
-                                                                           t1)
-                     .count()
-              << " seconds\n";
 
+#ifdef IGANET_WITH_MPI
+          if (pg->getRank() == 0)
+#endif
+            iganet::Log(iganet::log::info)
+                << "Training took "
+                << std::chrono::duration_cast<std::chrono::duration<double>>(
+                       t2 - t1)
+                       .count()
+                << " seconds\n";
+
+#ifdef IGANET_WITH_MATPLOT
+          // Load XML file
+          pugi::xml_document xml;
+          xml.load_file(IGANET_DATA_DIR "surfaces/2d/geo02.xml");
+
+          // Load geometry parameterization from XML
+          net.G().from_xml(xml);
+
+          // Evaluate network
+          net.eval();
+
+          // Evaluate position of collocation points in physical domain
+          auto colPts = net.G().eval(net.collPts().first);
+
+          // Plot the solution
+          net.G()
+              .space()
+              .plot(net.u().space(),
+                    std::array<torch::Tensor, 2>{*colPts[0], *colPts[1]}, json)
+              ->show();
+#endif
+          
 #ifdef IGANET_WITH_GISMO
           // Convert B-spline objects to G+Smo
           auto G_gismo = net.G().space().to_gismo();
           auto u_gismo = net.u().space().to_gismo();
-          gsFunctionExpr<real_t> f_gismo("sin(pi*x)*sin(pi*y)", 2);
+          gismo::gsFunctionExpr<real_t> f_gismo("sin(pi*x)*sin(pi*y)", 2);
 
           // Set up expression assembler
-          gsExprAssembler<real_t> A(1, 1);
-          gsMultiBasis<real_t> basis(u_gismo, true);
+          gismo::gsExprAssembler<real_t> A(1, 1);
+          gismo::gsMultiBasis<real_t> basis(u_gismo, true);
 
           A.setIntegrationElements(basis);
 
@@ -248,24 +280,32 @@ int main() {
           auto f = A.getCoeff(f_gismo, G);
 
           // Compute L2- and H2-error
-          gsExprEvaluator<real_t> ev(A);
+          gismo::gsExprEvaluator<real_t> ev(A);
 
-          iganet::Log(iganet::log::info)
-              << "L2-error : "
-              << gismo::math::sqrt(ev.integral((u - f).sqNorm() * meas(G)))
-              << std::endl;
+#ifdef IGANET_WITH_MPI
+          if (pg->getRank() == 0)
+#endif
+            iganet::Log(iganet::log::info)
+                << "L2-error : "
+                << gismo::math::sqrt(ev.integral((u - f).sqNorm() * meas(G)))
+                << std::endl;
 
-          iganet::Log(iganet::log::info)
-              << "H1-error : "
-              << gismo::math::sqrt(ev.integral(
-                     (gismo::expr::igrad(u, G) - gismo::expr::igrad(f, G))
-                         .sqNorm() *
-                     meas(G)))
-              << std::endl;
+#ifdef IGANET_WITH_MPI
+          if (pg->getRank() == 0)
+#endif
+            iganet::Log(iganet::log::info)
+                << "H1-error : "
+                << gismo::math::sqrt(ev.integral(
+                       (gismo::expr::igrad(u, G) - gismo::expr::igrad(f, G))
+                           .sqNorm() *
+                       meas(G)))
+                << std::endl;
 #endif
         }
       }
     }
   }
+
+  iganet::finalize();
   return 0;
 }

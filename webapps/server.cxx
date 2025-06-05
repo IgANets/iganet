@@ -45,7 +45,9 @@ enum class status : short_t {
   invalidSaveRequest = 14,           /*!<  invalid save request             */
   invalidImportRequest = 15,         /*!<  invalid import request           */
   invalidExportRequest = 16,         /*!<  invalid export request           */
-  invalidComputeErrorRequest = 17    /*!<  invalid compute error request    */
+  invalidComputeErrorRequest = 17,   /*!<  invalid compute error request    */
+  invalidAddPatchRequest = 18,       /*!<  invalid add patch request        */
+  invalidRemovePatchRequest = 19     /*!<  invalid remove patch request     */  
 };
 
 /// @brief InvalidSessionId exception
@@ -105,7 +107,7 @@ public:
   inline auto &getModels() { return models; }
 
   /// @brief Returns the requested model or throws an exception
-  inline std::shared_ptr<Model> getModel(int64_t id) {
+  inline std::shared_ptr<Model<iganet::real_t>> getModel(int64_t id) {
     auto it = models.find(id);
     if (it == models.end())
       throw InvalidModelIdException();
@@ -114,7 +116,7 @@ public:
   }
 
   /// @brief Returns the model and removes it from the list of models
-  inline std::shared_ptr<Model> removeModel(int64_t id) {
+  inline std::shared_ptr<Model<iganet::real_t>> removeModel(int64_t id) {
     auto it = models.find(id);
     if (it == models.end())
       throw InvalidModelIdException();
@@ -145,7 +147,7 @@ public:
   }
 
   /// @brief List of models
-  std::map<int64_t, std::shared_ptr<Model>> models;
+  std::map<int64_t, std::shared_ptr<Model<iganet::real_t>>> models;
 };
 
 /// @brief Sessions structure
@@ -390,6 +392,7 @@ int main(int argc, char const *argv[]) {
                      .upgrade = nullptr,
                      .open =
                          [](auto *ws) {
+                           ws->subscribe("broadcast");
 #ifndef NDEBUG
                            std::stringstream msg;
                            msg << "[Thread " << std::this_thread::get_id()
@@ -414,9 +417,10 @@ int main(int argc, char const *argv[]) {
 
 #ifndef NDEBUG
                              std::stringstream msg;
+                             msg << "[Thread " << std::this_thread::get_id()
+                                 << "] ";
                              for (auto const &token : tokens)
-                               msg << "[Thread " << std::this_thread::get_id()
-                                   << "] " << token << "/";
+                               msg << token << "/";
                              msg << std::endl;
                              std::clog << msg.str();
 #endif
@@ -429,47 +433,70 @@ int main(int argc, char const *argv[]) {
 
                                try {
 
-                                 if (tokens.size() == 1) {
+                                 if (tokens.size() == 2) {
                                    //
-                                   // request: get
-                                   //
-
-                                   // Get list of all active sessions
-                                   std::vector<std::string> ids;
-                                   for (const auto &session :
-                                        ws->getUserData()->getSessions())
-                                     ids.push_back(session.first);
-                                   response["data"]["ids"] = ids;
-                                   ws->send(response.dump(), uWS::OpCode::TEXT,
-                                            true);
-                                 }
-
-                                 else if (tokens.size() == 2) {
-                                   //
-                                   // request: get/<session-id>
+                                   // request: get/sessions OR get/<session-id>
                                    //
 
-                                   // Get session
-                                   auto session =
+                                   if (tokens[1] == "sessions") {
+                                     
+                                     std::vector<std::string> ids;
+                                     auto sessions = nlohmann::json::array();
+                                     
+                                     for (const auto &session :
+                                            ws->getUserData()->getSessions()) {
+                                       ids.push_back(session.first);
+
+                                       auto json = nlohmann::json();
+                                       auto creation_time =
+                                         std::chrono::system_clock::to_time_t(
+                                                                              session.second->getCreationTime());
+                                       auto access_time =
+                                         std::chrono::system_clock::to_time_t(
+                                                                              session.second->getAccessTime());
+                                       json["id"] = session.first;
+                                       json["creationTime"] =
+                                         std::ctime(&creation_time);
+                                       json["accessTime"] =
+                                         std::ctime(&access_time);
+                                       json["hasHash"] =
+                                         session.second->hasHash();
+
+                                       json["nmodels"] =
+                                         session.second->getModels().size();
+
+                                       sessions.push_back(json);
+                                     }
+                                     
+                                     response["data"]["ids"] = ids;
+                                     response["data"]["sessions"] = sessions;
+                                     ws->send(response.dump(), uWS::OpCode::TEXT,
+                                              true);
+                                   }
+                                   
+                                   else {
+                                     // Get session
+                                     auto session =
                                        ws->getUserData()->getSession(tokens[1]);
 
-                                   // Get list of all active models in session
-                                   std::vector<int64_t> ids;
-                                   auto models = nlohmann::json::array();
-                                   for (const auto &model :
-                                        session->getModels()) {
-                                     ids.push_back(model.first);
-                                     models.push_back(model.second->getModel());
+                                     // Get list of all active models in session
+                                     std::vector<int64_t> ids;
+                                     auto models = nlohmann::json::array();
+                                     for (const auto &model :
+                                            session->getModels()) {
+                                       ids.push_back(model.first);
+                                       models.push_back(model.second->getModel());
+                                     }
+                                     response["data"]["ids"] = ids;
+                                     response["data"]["models"] = models;
+                                     ws->send(response.dump(), uWS::OpCode::TEXT,
+                                              true);
                                    }
-                                   response["data"]["ids"] = ids;
-                                   response["data"]["models"] = models;
-                                   ws->send(response.dump(), uWS::OpCode::TEXT,
-                                            true);
                                  }
 
                                  else if (tokens.size() == 3) {
                                    //
-                                   // request: get/<session-id>/<model-instance>
+                                   // request: get/<session-id>/<model-id>
                                    //
 
                                    // Get session
@@ -481,7 +508,8 @@ int main(int argc, char const *argv[]) {
                                        session->getModel(stoi(tokens[2]));
 
                                    // Serialize model to JSON
-                                   response["data"] = model->to_json("", "");
+                                   response["data"] =
+                                       model->to_json("", "", "");
                                    response["data"]["model"] =
                                        model->getModel();
                                    ws->send(response.dump(), uWS::OpCode::TEXT,
@@ -490,13 +518,7 @@ int main(int argc, char const *argv[]) {
 
                                  else if (tokens.size() == 4) {
                                    //
-                                   // request:
-                                   // get/<session-id>/<model-instance>/<model-component>
-                                   //
-                                   // or
-                                   //
-                                   // request:
-                                   // get/<session-id>/<model-instance>/<attribute>
+                                   // request: get/<session-id>/<model-id>/<patch-id>
                                    //
 
                                    // Get session
@@ -507,17 +529,39 @@ int main(int argc, char const *argv[]) {
                                    auto model =
                                        session->getModel(stoi(tokens[2]));
 
-                                   // Serialize model component to JSON
+                                   // Serialize model patch to JSON
                                    response["data"] =
-                                       model->to_json(tokens[3], "");
+                                       model->to_json(tokens[3], "", "");
+                                   response["data"]["model"] =
+                                       model->getModel();
                                    ws->send(response.dump(), uWS::OpCode::TEXT,
                                             true);
                                  }
 
                                  else if (tokens.size() == 5) {
                                    //
-                                   // request:
-                                   // get/<session-id>/<model-instance>/<model-component>/<attribute>
+                                   // request: get/<session-id>/<model-id>/<patch-id>/<component>
+                                   //
+
+                                   // Get session
+                                   auto session =
+                                       ws->getUserData()->getSession(tokens[1]);
+
+                                   // Get model
+                                   auto model =
+                                       session->getModel(stoi(tokens[2]));
+
+                                   // Serialize model component or attribute to
+                                   // JSON
+                                   response["data"] =
+                                       model->to_json(tokens[3], tokens[4], "");
+                                   ws->send(response.dump(), uWS::OpCode::TEXT,
+                                            true);
+                                 }
+
+                                 else if (tokens.size() == 6) {
+                                   //
+                                   // request: get/<session-id>/<model-id>/<patch-id>/<component>/<attribute>
                                    //
 
                                    // Get session
@@ -530,8 +574,8 @@ int main(int argc, char const *argv[]) {
 
                                    // Serialize attribute of model component to
                                    // JSON
-                                   response["data"] =
-                                       model->to_json(tokens[3], tokens[4]);
+                                   response["data"] = model->to_json(
+                                       tokens[3], tokens[4], tokens[5]);
                                    ws->send(response.dump(), uWS::OpCode::TEXT,
                                             true);
                                  }
@@ -546,13 +590,14 @@ int main(int argc, char const *argv[]) {
                                  response["reason"] =
                                      "Invalid GET request. Valid GET requests "
                                      "are "
-                                     "\"get\", \"get/<session-id>\", "
-                                     "\"get/<session-id>/<model-instance>\", "
-                                     "and "
-                                     "\"get/<session-id>/<model-instance>/"
-                                     "<model-component>\", and "
-                                     "\"get/<session-id>/<model-instance>/"
-                                     "<model-component>/<attribute>\"";
+                                     "\"get/sessions\", \"get/<session-id>\", "
+                                     "\"get/<session-id>/<model-id>\", "
+                                     "\"get/<session-id>/<model-id>/"
+                                     "<patch-id>\", "
+                                     "\"get/<session-id>/<model-id>/"
+                                     "<patch-id>/<component>\", and "
+                                     "\"get/<session-id>/<model-id>/"
+                                     "<patch-id>/<component>/<attribute>\"";
                                  ws->send(response.dump(), uWS::OpCode::TEXT,
                                           true);
                                }
@@ -566,10 +611,9 @@ int main(int argc, char const *argv[]) {
 
                                try {
 
-                                 if (tokens.size() == 4) {
+                                 if (tokens.size() == 5) {
                                    //
-                                   // request:
-                                   // put/<session-id>/<model-instance>/<attribute>
+                                   // request: put/<session-id>/<model-id>/<patch-id>/<attribute>
                                    //
 
                                    // Get session
@@ -582,26 +626,26 @@ int main(int argc, char const *argv[]) {
 
                                    // Update model attribute
                                    response["data"] = model->updateAttribute(
-                                       "", tokens[3], request);
+                                       tokens[3], "", tokens[4], request);
                                    ws->send(response.dump(), uWS::OpCode::TEXT,
                                             true);
 
-                                   // Broadcast update of model instance
+                                   // Broadcast model update
                                    nlohmann::json broadcast;
                                    broadcast["id"] = session->getUUID();
-                                   broadcast["request"] = "update/instance";
+                                   broadcast["request"] = "update/model";
                                    broadcast["data"]["id"] = stoi(tokens[2]);
+                                   broadcast["data"]["patch"] = tokens[3];
                                    broadcast["data"]["component"] = "";
-                                   broadcast["data"]["attribute"] = tokens[3];
+                                   broadcast["data"]["attribute"] = tokens[4];
                                    ws->publish(session->getUUID(),
                                                broadcast.dump(),
                                                uWS::OpCode::TEXT);
                                  }
 
-                                 else if (tokens.size() == 5) {
+                                 else if (tokens.size() == 6) {
                                    //
-                                   // request:
-                                   // put/<session-id>/<model-instance>/<model-component>/<attribute>
+                                   // request: put/<session-id>/<model-id>/<patch-id>/<component>/<attribute>
                                    //
 
                                    // Get session
@@ -614,17 +658,19 @@ int main(int argc, char const *argv[]) {
 
                                    // Update model attribute
                                    response["data"] = model->updateAttribute(
-                                       tokens[3], tokens[4], request);
+                                       tokens[3], tokens[4], tokens[5],
+                                       request);
                                    ws->send(response.dump(), uWS::OpCode::TEXT,
                                             true);
 
-                                   // Broadcast update of model instance
+                                   // Broadcast model update
                                    nlohmann::json broadcast;
                                    broadcast["id"] = session->getUUID();
-                                   broadcast["request"] = "update/instance";
+                                   broadcast["request"] = "update/model";
                                    broadcast["data"]["id"] = stoi(tokens[2]);
-                                   broadcast["data"]["component"] = tokens[3];
-                                   broadcast["data"]["attribute"] = tokens[4];
+                                   broadcast["data"]["patch"] = tokens[3];
+                                   broadcast["data"]["component"] = tokens[4];
+                                   broadcast["data"]["attribute"] = tokens[5];
                                    ws->publish(session->getUUID(),
                                                broadcast.dump(),
                                                uWS::OpCode::TEXT);
@@ -640,10 +686,10 @@ int main(int argc, char const *argv[]) {
                                  response["reason"] =
                                      "Invalid PUT request. Valid PUT requests "
                                      "are "
-                                     "\"put/<session-id>/<model-instance>/"
-                                     "<attribute>\", and "
-                                     "\"put/<session-id>/<model-instance>/"
-                                     "<model-component>/<attribute>\"";
+                                     "\"put/<session-id>/<model-id>/"
+                                     "<patch-id>/<attribute>\", and "
+                                     "\"put/<session-id>/<model-id>/"
+                                     "<patch-id>/<component>/<attribute>\"";
                                  ws->send(response.dump(), uWS::OpCode::TEXT,
                                           true);
                                }
@@ -691,7 +737,7 @@ int main(int argc, char const *argv[]) {
                                    broadcast["id"] = uuid;
                                    broadcast["request"] = "create/session";
                                    broadcast["data"]["id"] = uuid;
-                                   ws->publish(uuid, broadcast.dump(),
+                                   ws->publish("broadcast", broadcast.dump(),
                                                uWS::OpCode::TEXT);
                                  }
 
@@ -712,7 +758,7 @@ int main(int argc, char const *argv[]) {
                                                            1
                                                      : 0);
 
-                                   // Create a new model instance
+                                   // Create a new model
                                    session->models[id] =
                                        ws->getUserData()->getModels().create(
                                            tokens[2], request);
@@ -722,10 +768,10 @@ int main(int argc, char const *argv[]) {
                                    ws->send(response.dump(), uWS::OpCode::TEXT,
                                             true);
 
-                                   // Broadcast creation of a new model instance
+                                   // Broadcast model creation
                                    nlohmann::json broadcast;
                                    broadcast["id"] = session->getUUID();
-                                   broadcast["request"] = "create/instance";
+                                   broadcast["request"] = "create/model";
                                    broadcast["data"]["id"] = id;
                                    broadcast["data"]["model"] =
                                        session->models[id]->getModel();
@@ -784,7 +830,7 @@ int main(int argc, char const *argv[]) {
                                  else if (tokens.size() == 3) {
                                    //
                                    // request:
-                                   // remove/<session-id>/<model-instance>
+                                   // remove/<session-id>/<model-id>
                                    //
 
                                    // Get session
@@ -797,11 +843,54 @@ int main(int argc, char const *argv[]) {
                                    ws->send(response.dump(), uWS::OpCode::TEXT,
                                             true);
 
-                                   // Broadcast removal of model instance
+                                   // Broadcast model removal
                                    nlohmann::json broadcast;
                                    broadcast["id"] = session->getUUID();
-                                   broadcast["request"] = "remove/instance";
+                                   broadcast["request"] = "remove/model";
                                    broadcast["data"]["id"] = stoi(tokens[2]);
+                                   ws->publish(session->getUUID(),
+                                               broadcast.dump(),
+                                               uWS::OpCode::TEXT);
+                                 }
+
+                                 else if (tokens.size() == 4) {
+                                   //
+                                   // request:
+                                   // remove/<session-id>/<model-id>/<patch-id>
+                                   //
+
+                                   // Get session
+                                   auto session =
+                                       ws->getUserData()->getSession(tokens[1]);
+
+                                   // Get model
+                                   auto model =
+                                     session->getModel(stoi(tokens[2]));
+
+                                   // Remove an existing model
+                                   if (auto m = std::dynamic_pointer_cast<
+                                           iganet::ModelRemovePatch>(model))
+                                     m->removePatch(request);
+                                   else {
+                                     response["status"] = iganet::webapp::
+                                         status::invalidRemovePatchRequest;
+                                     response["reason"] =
+                                         "Invalid REMOVE request. Valid REMOVE "
+                                         "requests are "
+                                         "are "
+                                         "\"remove/<session-id>\", "
+                                         "\"remove/<session-id>/<model-id>\" and "
+                                         "\"remove/<session-id>/<model-id>/<patch-id>\"";
+                                   }
+                                   ws->send(response.dump(), uWS::OpCode::TEXT,
+                                            true);                                                                      
+
+                                   // Broadcast patch removal
+                                   nlohmann::json broadcast;
+                                   broadcast["id"] = session->getUUID();
+                                   broadcast["request"] = "remove/patch";
+                                   broadcast["data"]["id"] = stoi(tokens[2]);
+                                   broadcast["data"]["patch"] = tokens[3];
                                    ws->publish(session->getUUID(),
                                                broadcast.dump(),
                                                uWS::OpCode::TEXT);
@@ -818,8 +907,9 @@ int main(int argc, char const *argv[]) {
                                      "Invalid REMOVE request. Valid REMOVE "
                                      "requests "
                                      "are "
-                                     "\"remove/<session-id>\" and "
-                                     "\"remove/<session-id>/<model-instance>\"";
+                                     "\"remove/<session-id>\", "
+                                     "\"remove/<session-id>/<model-id>\" and "
+                                     "\"remove/<session-id>/<model-id>/<patch-id>\"";
                                  ws->send(response.dump(), uWS::OpCode::TEXT,
                                           true);
                                }
@@ -934,10 +1024,9 @@ int main(int argc, char const *argv[]) {
 
                                try {
 
-                                 if (tokens.size() == 4) {
+                                 if (tokens.size() == 5) {
                                    //
-                                   // request:
-                                   // eval/<session-id>/<model-instance>/<model-component>
+                                   // request: eval/<session-id>/<model-id>/<patch-id>/<component>
                                    //
 
                                    // Get session
@@ -952,7 +1041,7 @@ int main(int argc, char const *argv[]) {
                                    if (auto m = std::dynamic_pointer_cast<
                                            iganet::ModelEval>(model))
                                      response["data"] =
-                                         m->eval(tokens[3], request);
+                                         m->eval(tokens[3], tokens[4], request);
                                    else {
                                      response["status"] = iganet::webapp::
                                          status::invalidEvalRequest;
@@ -960,8 +1049,8 @@ int main(int argc, char const *argv[]) {
                                          "Invalid EVAL request. Valid EVAL "
                                          "requests "
                                          "are "
-                                         "\"eval/<session-id>/<model-instance>/"
-                                         "<model-component>\"";
+                                         "\"eval/<session-id>/<model-id>/"
+                                         "<component>\"";
                                    }
                                    ws->send(response.dump(), uWS::OpCode::TEXT,
                                             true);
@@ -977,8 +1066,8 @@ int main(int argc, char const *argv[]) {
                                  response["reason"] =
                                      "Invalid EVAL request. Valid EVAL "
                                      "requests are "
-                                     "\"eval/<session-id>/<model-instance>/"
-                                     "<model-component>\"";
+                                     "\"eval/<session-id>/<model-id>/"
+                                     "<patch-id>/<component>\"";
                                  ws->send(response.dump(), uWS::OpCode::TEXT,
                                           true);
                                }
@@ -1024,7 +1113,7 @@ int main(int argc, char const *argv[]) {
                                      nlohmann::json request;
                                      request["data"]["binary"] = instance;
 
-                                     // Create a new model instance from binary
+                                     // Create a new model from binary
                                      // data stream
                                      session->models[id] =
                                          ws->getUserData()->getModels().load(
@@ -1034,10 +1123,9 @@ int main(int argc, char const *argv[]) {
                                          session->models[id]->getModel());
 
                                      // Broadcast creation of a new model
-                                     // instance
                                      nlohmann::json broadcast;
                                      broadcast["id"] = session->getUUID();
-                                     broadcast["request"] = "create/instance";
+                                     broadcast["request"] = "create/model";
                                      broadcast["data"]["id"] = id;
                                      broadcast["data"]["model"] =
                                          session->models[id]->getModel();
@@ -1102,8 +1190,7 @@ int main(int argc, char const *argv[]) {
 
                                  else if (tokens.size() == 3) {
                                    //
-                                   // request:
-                                   // save/<session-id>/<model-instance>
+                                   // request: save/<session-id>/<model-id>
                                    //
 
                                    // Get session
@@ -1127,7 +1214,7 @@ int main(int argc, char const *argv[]) {
                                          "are "
                                          "\"save/<session-id>\" and "
                                          "\"save/<session-id>/"
-                                         "<model-instance>\"";
+                                         "<model-id>\"";
                                    }
                                    ws->send(response.dump(), uWS::OpCode::TEXT,
                                             true);
@@ -1144,7 +1231,7 @@ int main(int argc, char const *argv[]) {
                                      "Invalid SAVE request. Valid SAVE "
                                      "requests are "
                                      "\"save/<session-id>\" and "
-                                     "\"save/<session-id>/<model-instance>\"";
+                                     "\"save/<session-id>/<model-id>\"";
                                  ws->send(response.dump(), uWS::OpCode::TEXT,
                                           true);
                                }
@@ -1172,7 +1259,7 @@ int main(int argc, char const *argv[]) {
                                         session->getModels()) {
                                      if (auto m = std::dynamic_pointer_cast<
                                              iganet::ModelXML>(model.second)) {
-                                       m->importXML(request, "", model.first);
+                                       m->importXML("", "", request, model.first);
                                      } else {
                                        response["status"] = iganet::webapp::
                                            status::invalidImportRequest;
@@ -1182,10 +1269,16 @@ int main(int argc, char const *argv[]) {
                                            "requests are "
                                            "\"importxml/<session-id>\", "
                                            "\"importxml/<session-id>/"
-                                           "<model-instance>\" and "
+                                           "<model-id>\", "
                                            "\"importxml/<session-id>/"
-                                           "<model-instance>/"
-                                           "<model-component>\"";
+                                           "<model-id>/"
+                                           "<component>\", "
+                                           "\"importxml/<session-id>/"
+                                           "<model-id>/"
+                                           "<patch-id>\", and "
+                                           "\"importxml/<session-id>/"
+                                           "<model-id>/"
+                                           "<patch-id>/<component>\"";
                                        ws->send(response.dump(),
                                                 uWS::OpCode::TEXT, true);
                                        break;
@@ -1194,16 +1287,16 @@ int main(int argc, char const *argv[]) {
                                    ws->send(response.dump(), uWS::OpCode::TEXT,
                                             true);
 
-                                   // Broadcast update of model instances
+                                   // Broadcast model updates
                                    std::vector<int64_t> ids;
                                    for (const auto &model :
                                         session->getModels())
                                      ids.push_back(model.first);
 
-                                   // Broadcast update of model instance
+                                   // Broadcast model update
                                    nlohmann::json broadcast;
                                    broadcast["id"] = session->getUUID();
-                                   broadcast["request"] = "update/instance";
+                                   broadcast["request"] = "update/model";
                                    broadcast["data"]["ids"] = ids;
                                    ws->publish(session->getUUID(),
                                                broadcast.dump(),
@@ -1212,8 +1305,7 @@ int main(int argc, char const *argv[]) {
 
                                  else if (tokens.size() == 3) {
                                    //
-                                   // request:
-                                   // importxml/<session-id>/<model-instance>
+                                   // request: importxml/<session-id>/<model-id>
                                    //
 
                                    // Get session
@@ -1227,29 +1319,34 @@ int main(int argc, char const *argv[]) {
                                    // Import an existing model from XML
                                    if (auto m = std::dynamic_pointer_cast<
                                            iganet::ModelXML>(model))
-                                     m->importXML(request, "", -1);
+                                     m->importXML("", "", request, -1);
                                    else {
                                      response["status"] = iganet::webapp::
-                                         status::invalidImportRequest;
+                                       status::invalidImportRequest;
                                      response["reason"] =
-                                         "Invalid IMPORTXML request. Valid "
-                                         "IMPORTXML "
-                                         "requests are "
-                                         "\"importxml/<session-id>\", "
-                                         "\"importxml/<session-id>/"
-                                         "<model-instance>\" "
-                                         "and "
-                                         "\"importxml/<session-id>/"
-                                         "<model-instance>/"
-                                         "<model-component>\"";
+                                           "Invalid IMPORTXML request. Valid "
+                                           "IMPORTXML "
+                                           "requests are "
+                                           "\"importxml/<session-id>\", "
+                                           "\"importxml/<session-id>/"
+                                           "<model-id>\", "
+                                           "\"importxml/<session-id>/"
+                                           "<model-id>/"
+                                           "<component>\", "
+                                           "\"importxml/<session-id>/"
+                                           "<model-id>/"
+                                           "<patch-id>\", and "
+                                           "\"importxml/<session-id>/"
+                                           "<model-id>/"
+                                           "<patch-id>/<component>\"";
                                    }
                                    ws->send(response.dump(), uWS::OpCode::TEXT,
                                             true);
 
-                                   // Broadcast update of model instance
+                                   // Broadcast model update
                                    nlohmann::json broadcast;
                                    broadcast["id"] = session->getUUID();
-                                   broadcast["request"] = "update/instance";
+                                   broadcast["request"] = "update/model";
                                    broadcast["data"]["id"] = stoi(tokens[2]);
                                    ws->publish(session->getUUID(),
                                                broadcast.dump(),
@@ -1258,8 +1355,8 @@ int main(int argc, char const *argv[]) {
 
                                  else if (tokens.size() == 4) {
                                    //
-                                   // request:
-                                   // importxml/<session-id>/<model-instance>/<model-component>
+                                   // request: importxml/<session-id>/<model-id>/<component> OR
+                                   //          importxml/<session-id>/<model-id>/<patch-id>
                                    //
 
                                    // Get session
@@ -1273,30 +1370,94 @@ int main(int argc, char const *argv[]) {
                                    // Import an existing model component from
                                    // XML
                                    if (auto m = std::dynamic_pointer_cast<
-                                           iganet::ModelXML>(model))
-                                     m->importXML(request, tokens[3], -1);
+                                       iganet::ModelXML>(model)) {
+                                     try {
+                                       (void)stoi(tokens[3]);
+                                       m->importXML(tokens[3], "", request, -1);  
+                                     } catch (...) {
+                                       m->importXML("", tokens[3], request, -1);  
+                                     }
+                                   }
+                                     
                                    else {
                                      response["status"] = iganet::webapp::
-                                         status::invalidImportRequest;
+                                       status::invalidImportRequest;
                                      response["reason"] =
-                                         "Invalid IMPORTXML request. Valid "
-                                         "IMPORTXML "
-                                         "requests are "
-                                         "\"importxml/<session-id>\", "
-                                         "\"importxml/<session-id>/"
-                                         "<model-instance>\" "
-                                         "and "
-                                         "\"importxml/<session-id>/"
-                                         "<model-instance>/"
-                                         "<model-component>\"";
+                                           "Invalid IMPORTXML request. Valid "
+                                           "IMPORTXML "
+                                           "requests are "
+                                           "\"importxml/<session-id>\", "
+                                           "\"importxml/<session-id>/"
+                                           "<model-id>\", "
+                                           "\"importxml/<session-id>/"
+                                           "<model-id>/"
+                                           "<component>\", "
+                                           "\"importxml/<session-id>/"
+                                           "<model-id>/"
+                                           "<patch-id>\", and "
+                                           "\"importxml/<session-id>/"
+                                           "<model-id>/"
+                                           "<patch-id>/<component>\"";
                                    }
                                    ws->send(response.dump(), uWS::OpCode::TEXT,
                                             true);
 
-                                   // Broadcast update of model instance
+                                   // Broadcast model update
                                    nlohmann::json broadcast;
                                    broadcast["id"] = session->getUUID();
-                                   broadcast["request"] = "update/instance";
+                                   broadcast["request"] = "update/model";
+                                   broadcast["data"]["id"] = stoi(tokens[2]);
+                                   ws->publish(session->getUUID(),
+                                               broadcast.dump(),
+                                               uWS::OpCode::TEXT);
+                                 }
+
+                                 else if (tokens.size() == 5) {
+                                   //
+                                   // request: importxml/<session-id>/<model-id>/<patch-id>/<component>
+                                   //
+
+                                   // Get session
+                                   auto session =
+                                       ws->getUserData()->getSession(tokens[1]);
+
+                                   // Get model
+                                   auto model =
+                                       session->getModel(stoi(tokens[2]));
+
+                                   // Import an existing model component from
+                                   // XML
+                                   if (auto m = std::dynamic_pointer_cast<
+                                       iganet::ModelXML>(model))
+                                     m->importXML(tokens[3], tokens[4], request, -1);  
+                                     
+                                   else {
+                                     response["status"] = iganet::webapp::
+                                       status::invalidImportRequest;
+                                     response["reason"] =
+                                           "Invalid IMPORTXML request. Valid "
+                                           "IMPORTXML "
+                                           "requests are "
+                                           "\"importxml/<session-id>\", "
+                                           "\"importxml/<session-id>/"
+                                           "<model-id>\", "
+                                           "\"importxml/<session-id>/"
+                                           "<model-id>/"
+                                           "<component>\", "
+                                           "\"importxml/<session-id>/"
+                                           "<model-id>/"
+                                           "<patch-id>\", and "
+                                           "\"importxml/<session-id>/"
+                                           "<model-id>/"
+                                           "<patch-id>/<component>\"";
+                                   }
+                                   ws->send(response.dump(), uWS::OpCode::TEXT,
+                                            true);
+
+                                   // Broadcast model update
+                                   nlohmann::json broadcast;
+                                   broadcast["id"] = session->getUUID();
+                                   broadcast["request"] = "update/model";
                                    broadcast["data"]["id"] = stoi(tokens[2]);
                                    ws->publish(session->getUUID(),
                                                broadcast.dump(),
@@ -1316,10 +1477,10 @@ int main(int argc, char const *argv[]) {
                                      "IMPORTXML "
                                      "requests are \"importxml/<session-id>\", "
                                      "\"importxml/<session-id>/"
-                                     "<model-instance>\" and "
+                                     "<model-id>\" and "
                                      "\"importxml/<session-id>/"
-                                     "<model-instance>/"
-                                     "<model-component>\"";
+                                     "<model-id>/"
+                                     "<component>\"";
                                  ws->send(response.dump(), uWS::OpCode::TEXT,
                                           true);
                                }
@@ -1350,7 +1511,7 @@ int main(int argc, char const *argv[]) {
                                         session->getModels()) {
                                      if (auto m = std::dynamic_pointer_cast<
                                              iganet::ModelXML>(model.second))
-                                       xml = m->exportXML(xml, "", model.first);
+                                       xml = m->exportXML("", "", xml, model.first);
                                      else
                                        throw std::runtime_error(
                                            "Invalid EXPORTXML request");
@@ -1365,8 +1526,7 @@ int main(int argc, char const *argv[]) {
 
                                  else if (tokens.size() == 3) {
                                    //
-                                   // request:
-                                   // exportxml/<session-id>/<model-instance>
+                                   // request: exportxml/<session-id>/<model-id>
                                    //
 
                                    // Get session
@@ -1381,7 +1541,7 @@ int main(int argc, char const *argv[]) {
                                    if (auto m = std::dynamic_pointer_cast<
                                            iganet::ModelXML>(model))
                                      response["data"]["xml"] =
-                                         m->exportXML("", stoi(tokens[2]));
+                                       m->exportXML("", "", stoi(tokens[2]));
                                    else
                                      throw std::runtime_error(
                                          "Invalid EXPORTXML request");
@@ -1392,8 +1552,38 @@ int main(int argc, char const *argv[]) {
 
                                  else if (tokens.size() == 4) {
                                    //
-                                   // request:
-                                   // exportxml/<session-id>/<model-instance>/<model-component>
+                                   // request: exportxml/<session-id>/<model-id>/<component> OR
+                                   //          exportxml/<session-id>/<model-id>/<patch-id>
+                                   //
+
+                                   // Get session
+                                   auto session =
+                                       ws->getUserData()->getSession(tokens[1]);
+
+                                   // Get model
+                                   auto model =
+                                       session->getModel(stoi(tokens[2]));
+
+                                   // Export an existing model to XML
+                                   if (auto m = std::dynamic_pointer_cast<
+                                       iganet::ModelXML>(model))
+                                     try {
+                                       (void)stoi(tokens[3]);
+                                       response["data"]["xml"] = m->exportXML(tokens[3], "", stoi(tokens[2]));
+                                     } catch (...) {
+                                       response["data"]["xml"] = m->exportXML("", tokens[3], stoi(tokens[2]));
+                                     }
+                                   else
+                                     throw std::runtime_error(
+                                         "Invalid EXPORTXML request");
+
+                                   ws->send(response.dump(), uWS::OpCode::TEXT,
+                                            true);
+                                 }
+
+                                 else if (tokens.size() == 5) {
+                                   //
+                                   // request: exportxml/<session-id>/<model-id>/<patch-id>/<component>
                                    //
 
                                    // Get session
@@ -1408,7 +1598,7 @@ int main(int argc, char const *argv[]) {
                                    if (auto m = std::dynamic_pointer_cast<
                                            iganet::ModelXML>(model))
                                      response["data"]["xml"] = m->exportXML(
-                                         tokens[3], stoi(tokens[2]));
+                                                                            tokens[3], tokens[4], stoi(tokens[2]));
                                    else
                                      throw std::runtime_error(
                                          "Invalid EXPORTXML request");
@@ -1430,11 +1620,11 @@ int main(int argc, char const *argv[]) {
                                      "EXPORTXML "
                                      "requests are \"exportxml/<session-id>\", "
                                      "\"exportxml/<session-id>/"
-                                     "<model-instance>\" and "
+                                     "<model-id>\" and "
                                      "and "
                                      "\"exportxml/<session-id>/"
-                                     "<model-instance>/"
-                                     "<model-component>\"";
+                                     "<model-id>/"
+                                     "<component>\"";
                                  ws->send(response.dump(), uWS::OpCode::TEXT,
                                           true);
                                }
@@ -1450,8 +1640,7 @@ int main(int argc, char const *argv[]) {
 
                                  if (tokens.size() == 3) {
                                    //
-                                   // request:
-                                   // refine/<session-id>/<model-instance>
+                                   // request: refine/<session-id>/<model-id>
                                    //
 
                                    // Get session
@@ -1473,15 +1662,15 @@ int main(int argc, char const *argv[]) {
                                          "Invalid REFINE request. Valid REFINE "
                                          "requests are "
                                          "\"refine/<session-id>/"
-                                         "<model-instance>\"";
+                                         "<model-id>\"";
                                    }
                                    ws->send(response.dump(), uWS::OpCode::TEXT,
                                             true);
 
-                                   // Broadcast refinement of model instance
+                                   // Broadcast model refinement
                                    nlohmann::json broadcast;
                                    broadcast["id"] = session->getUUID();
-                                   broadcast["request"] = "refine/instance";
+                                   broadcast["request"] = "refine/model";
                                    broadcast["data"]["id"] = stoi(tokens[2]);
                                    ws->publish(session->getUUID(),
                                                broadcast.dump(),
@@ -1499,7 +1688,7 @@ int main(int argc, char const *argv[]) {
                                      "Invalid REFINE request. Valid REFINE "
                                      "requests "
                                      "are "
-                                     "\"refine/<session-id>/<model-instance>\"";
+                                     "\"refine/<session-id>/<model-id>\"";
                                  ws->send(response.dump(), uWS::OpCode::TEXT,
                                           true);
                                }
@@ -1515,8 +1704,7 @@ int main(int argc, char const *argv[]) {
 
                                  if (tokens.size() == 3) {
                                    //
-                                   // request:
-                                   // elevate/<session-id>/<model-instance>
+                                   // request: elevate/<session-id>/<model-id>
                                    //
 
                                    // Get session
@@ -1539,16 +1727,15 @@ int main(int argc, char const *argv[]) {
                                          "ELEVATE "
                                          "requests are "
                                          "\"elevate/<session-id>/"
-                                         "<model-instance>\"";
+                                         "<model-id>\"";
                                    }
                                    ws->send(response.dump(), uWS::OpCode::TEXT,
                                             true);
 
-                                   // Broadcast degree elevation of model
-                                   // instance
+                                   // Broadcast model degree elevation
                                    nlohmann::json broadcast;
                                    broadcast["id"] = session->getUUID();
-                                   broadcast["request"] = "elevate/instance";
+                                   broadcast["request"] = "elevate/model";
                                    broadcast["data"]["id"] = stoi(tokens[2]);
                                    ws->publish(session->getUUID(),
                                                broadcast.dump(),
@@ -1567,7 +1754,7 @@ int main(int argc, char const *argv[]) {
                                      "requests "
                                      "are "
                                      "\"elevate/<session-id>/"
-                                     "<model-instance>\"";
+                                     "<model-id>\"";
                                  ws->send(response.dump(), uWS::OpCode::TEXT,
                                           true);
                                }
@@ -1583,8 +1770,7 @@ int main(int argc, char const *argv[]) {
 
                                  if (tokens.size() == 3) {
                                    //
-                                   // request:
-                                   // increase/<session-id>/<model-instance>
+                                   // request: increase/<session-id>/<model-id>
                                    //
 
                                    // Get session
@@ -1607,16 +1793,15 @@ int main(int argc, char const *argv[]) {
                                          "INCREASE "
                                          "requests are "
                                          "\"increase/<session-id>/"
-                                         "<model-instance>\"";
+                                         "<model-id>\"";
                                    }
                                    ws->send(response.dump(), uWS::OpCode::TEXT,
                                             true);
 
-                                   // Broadcast degree increase of model
-                                   // instance
+                                   // Broadcast model degree increase
                                    nlohmann::json broadcast;
                                    broadcast["id"] = session->getUUID();
-                                   broadcast["request"] = "increase/instance";
+                                   broadcast["request"] = "increase/model";
                                    broadcast["data"]["id"] = stoi(tokens[2]);
                                    ws->publish(session->getUUID(),
                                                broadcast.dump(),
@@ -1635,7 +1820,7 @@ int main(int argc, char const *argv[]) {
                                      "requests "
                                      "are "
                                      "\"increase/<session-id>/"
-                                     "<model-instance>\"";
+                                     "<model-id>\"";
                                  ws->send(response.dump(), uWS::OpCode::TEXT,
                                           true);
                                }
@@ -1651,8 +1836,7 @@ int main(int argc, char const *argv[]) {
 
                                  if (tokens.size() == 3) {
                                    //
-                                   // request:
-                                   // reparameterize/<session-id>/<model-instance>
+                                   // request: reparameterize/<session-id>/<model-id>
                                    //
 
                                    // Get session
@@ -1675,17 +1859,16 @@ int main(int argc, char const *argv[]) {
                                          "Valid REPARAMETERIZE "
                                          "requests are "
                                          "\"reparameterize/<session-id>/"
-                                         "<model-instance>\"";
+                                         "<model-id>\"";
                                    }
                                    ws->send(response.dump(), uWS::OpCode::TEXT,
                                             true);
 
-                                   // Broadcast reparameterization of model
-                                   // instance
+                                   // Broadcast model reparameterization
                                    nlohmann::json broadcast;
                                    broadcast["id"] = session->getUUID();
                                    broadcast["request"] =
-                                       "reparameterize/instance";
+                                       "reparameterize/model";
                                    broadcast["data"]["id"] = stoi(tokens[2]);
                                    ws->publish(session->getUUID(),
                                                broadcast.dump(),
@@ -1705,70 +1888,12 @@ int main(int argc, char const *argv[]) {
                                      "requests "
                                      "are "
                                      "\"reparameterize/<session-id>/"
-                                     "<model-instance>\"";
+                                     "<model-id>\"";
                                  ws->send(response.dump(), uWS::OpCode::TEXT,
                                           true);
                                }
 
-                             } // REPARAMETERIZE
-
-                             else if (tokens[0] == "info") {
-                               //
-                               // request: info/*
-                               //
-
-                               try {
-
-                                 if (tokens.size() == 1) {
-                                   //
-                                   // request: info
-                                   //
-
-                                   // Get list of all active sessions
-                                   auto sessions = nlohmann::json::array();
-                                   for (const auto &session :
-                                        ws->getUserData()->getSessions()) {
-                                     auto json = nlohmann::json();
-                                     auto creation_time =
-                                         std::chrono::system_clock::to_time_t(
-                                             session.second->getCreationTime());
-                                     auto access_time =
-                                         std::chrono::system_clock::to_time_t(
-                                             session.second->getAccessTime());
-                                     json["id"] = session.first;
-                                     json["creation_time"] =
-                                         std::ctime(&creation_time);
-                                     json["access_time"] =
-                                         std::ctime(&access_time);
-                                     json["hasHash"] =
-                                         session.second->hasHash();
-
-                                     json["models"] =
-                                         session.second->getModels().size();
-
-                                     sessions.push_back(json);
-                                   }
-                                   response["data"]["sessions"] = sessions;
-                                   ws->send(response.dump(), uWS::OpCode::TEXT,
-                                            true);
-                                 }
-
-                                 else
-                                   throw std::runtime_error(
-                                       "Invalid INFO request");
-
-                               } catch (...) {
-                                 response["status"] =
-                                     iganet::webapp::status::invalidGetRequest;
-                                 response["reason"] = "Invalid INFO request. "
-                                                      "Valid INFO requests "
-                                                      "are "
-                                                      "\"info\"";
-                                 ws->send(response.dump(), uWS::OpCode::TEXT,
-                                          true);
-                               }
-
-                             } // INFO
+                             } // REPARAMETERIZE                             
 
                              else {
                                response["status"] =
@@ -1803,15 +1928,16 @@ int main(int argc, char const *argv[]) {
                          },
                      .ping =
                          [](auto *ws, std::string_view) {
-                           /* Not implemented yet */
+                           /* You don't need to handle this one, we automatically respond to pings as per standard */
                          },
                      .pong =
                          [](auto *ws, std::string_view) {
-                           /* Not implemented yet */
+                           /* You don't need to handle this one, we automatically respond to pings as per standard */
                          },
                      .close =
                          [](auto *ws, int code, std::string_view message) {
-        /* You may access ws->getUserData() here */
+                           /* You may access ws->getUserData() here */
+                           ws->unsubscribe("broadcast");
 #ifndef NDEBUG
                            std::stringstream msg;
                            msg << "[Thread " << std::this_thread::get_id()

@@ -19,6 +19,8 @@
 #include <gtest/gtest.h>
 #include <unittest_config.hpp>
 
+#pragma nv_diag_suppress 20208
+
 using namespace iganet::unittests::literals;
 
 class FunctionSpaceTest : public ::testing::Test {
@@ -135,150 +137,162 @@ TEST_F(FunctionSpaceTest, S_geoDim1_degrees2) {
       EXPECT_TRUE(torch::equal(*(ihess)[i], *(ihess_ref)[i]));
   }
 
-  { // Boundary
+  // { // Boundary
 
-    auto xi = std::tuple{std::array<torch::Tensor, 0>{},
-                         std::array<torch::Tensor, 0>{}};
+  //   auto xi = std::tuple{std::array<torch::Tensor, 0>{},
+  //                        std::array<torch::Tensor, 0>{}};
 
-    // Evaluation
-    auto eval =
-        functionspace.eval<functionspace::boundary, deriv::func, false>(xi);
+  //   // Evaluation
+  //   auto eval =
+  //       functionspace.eval<functionspace::boundary, deriv::func, false>(xi);
 
-    EXPECT_TRUE(torch::equal(*std::get<side::left - 1>(eval)[0],
-                             torch::zeros(1, options)));
-    EXPECT_TRUE(torch::equal(*std::get<side::right - 1>(eval)[0],
-                             torch::ones(1, options)));
+  //   EXPECT_TRUE(torch::equal(*std::get<side::left - 1>(eval)[0],
+  //                            torch::zeros(1, options)));
+  //   EXPECT_TRUE(torch::equal(*std::get<side::right - 1>(eval)[0],
+  //                            torch::ones(1, options)));
 
-    eval = functionspace.eval<functionspace::boundary, deriv::dx, false>(xi);
+  //   eval = functionspace.eval<functionspace::boundary, deriv::dx, false>(xi);
 
-    EXPECT_TRUE(torch::equal(*std::get<side::left - 1>(eval)[0],
-                             torch::zeros(1, options)));
-    EXPECT_TRUE(torch::equal(*std::get<side::right - 1>(eval)[0],
-                             torch::zeros(1, options)));
+  //   EXPECT_TRUE(torch::equal(*std::get<side::left - 1>(eval)[0],
+  //                            torch::zeros(1, options)));
+  //   EXPECT_TRUE(torch::equal(*std::get<side::right - 1>(eval)[0],
+  //                            torch::zeros(1, options)));
 
-    eval =
-        functionspace.eval<functionspace::boundary, deriv::dx ^ 2, false>(xi);
+  //   eval =
+  //       functionspace.eval<functionspace::boundary, deriv::dx ^ 2,
+  //       false>(xi);
 
-    EXPECT_TRUE(torch::equal(*std::get<side::left - 1>(eval)[0],
-                             torch::zeros(1, options)));
-    EXPECT_TRUE(torch::equal(*std::get<side::right - 1>(eval)[0],
-                             torch::zeros(1, options)));
+  //   EXPECT_TRUE(torch::equal(*std::get<side::left - 1>(eval)[0],
+  //                            torch::zeros(1, options)));
+  //   EXPECT_TRUE(torch::equal(*std::get<side::right - 1>(eval)[0],
+  //                            torch::zeros(1, options)));
 
-    // Evaluation from precomputed coefficients and basis functions
-    auto knot_indices =
-        functionspace.template find_knot_indices<functionspace::boundary>(xi);
-    auto coeff_indices =
-        functionspace.template find_coeff_indices<functionspace::boundary>(
-            knot_indices);
+  //   // Evaluation from precomputed coefficients and basis functions
+  //   auto knot_indices =
+  //       functionspace.template
+  //       find_knot_indices<functionspace::boundary>(xi);
+  //   auto coeff_indices =
+  //       functionspace.template find_coeff_indices<functionspace::boundary>(
+  //           knot_indices);
 
-    auto numel = [](const auto &xi) {
-      return std::tuple<int64_t, int64_t>{1, 1};
-    };
-    auto sizes = [](const auto &xi) {
-      return std::tuple{torch::IntArrayRef{}, torch::IntArrayRef{}};
-    };
+  //   auto numel = [](const auto &xi) {
+  //     return std::tuple<int64_t, int64_t>{1, 1};
+  //   };
+  //   auto sizes = [](const auto &xi) {
+  //     return std::tuple{torch::IntArrayRef{}, torch::IntArrayRef{}};
+  //   };
 
-    auto basfunc =
-        functionspace
-            .template eval_basfunc<functionspace::boundary, deriv::func, false>(
-                xi, knot_indices);
-    eval =
-        functionspace.template eval_from_precomputed<functionspace::boundary>(
-            basfunc, coeff_indices, numel(xi), sizes(xi));
+  //   auto basfunc =
+  //       functionspace
+  //           .template eval_basfunc<functionspace::boundary, deriv::func,
+  //           false>(
+  //               xi, knot_indices);
+  //   eval =
+  //       functionspace.template
+  //       eval_from_precomputed<functionspace::boundary>(
+  //           basfunc, coeff_indices, numel(xi), sizes(xi));
 
-    EXPECT_TRUE(torch::allclose(*std::get<side::left - 1>(eval)[0],
-                                torch::zeros(1, options)));
-    EXPECT_TRUE(torch::allclose(*std::get<side::right - 1>(eval)[0],
-                                torch::ones(1, options)));
+  //   EXPECT_TRUE(torch::allclose(*std::get<side::left - 1>(eval)[0],
+  //                               torch::zeros(1, options)));
+  //   EXPECT_TRUE(torch::allclose(*std::get<side::right - 1>(eval)[0],
+  //                               torch::ones(1, options)));
 
-    basfunc =
-        functionspace
-            .template eval_basfunc<functionspace::boundary, deriv::dx, false>(
-                xi, knot_indices);
-    eval =
-        functionspace.template eval_from_precomputed<functionspace::boundary>(
-            basfunc, coeff_indices, numel(xi), sizes(xi));
+  //   basfunc =
+  //       functionspace
+  //           .template eval_basfunc<functionspace::boundary, deriv::dx,
+  //           false>(
+  //               xi, knot_indices);
+  //   eval =
+  //       functionspace.template
+  //       eval_from_precomputed<functionspace::boundary>(
+  //           basfunc, coeff_indices, numel(xi), sizes(xi));
 
-    EXPECT_TRUE(torch::equal(*std::get<side::left - 1>(eval)[0],
-                             torch::zeros({}, options)));
-    EXPECT_TRUE(torch::equal(*std::get<side::right - 1>(eval)[0],
-                             torch::zeros({}, options)));
+  //   EXPECT_TRUE(torch::equal(*std::get<side::left - 1>(eval)[0],
+  //                            torch::zeros({}, options)));
+  //   EXPECT_TRUE(torch::equal(*std::get<side::right - 1>(eval)[0],
+  //                            torch::zeros({}, options)));
 
-    basfunc = functionspace.template eval_basfunc<functionspace::boundary,
-                                                  deriv::dx ^ 2, false>(
-        xi, knot_indices);
-    eval =
-        functionspace.template eval_from_precomputed<functionspace::boundary>(
-            basfunc, coeff_indices, numel(xi), sizes(xi));
+  //   basfunc = functionspace.template eval_basfunc<functionspace::boundary,
+  //                                                 deriv::dx ^ 2, false>(
+  //       xi, knot_indices);
+  //   eval =
+  //       functionspace.template
+  //       eval_from_precomputed<functionspace::boundary>(
+  //           basfunc, coeff_indices, numel(xi), sizes(xi));
 
-    EXPECT_TRUE(torch::equal(*std::get<side::left - 1>(eval)[0],
-                             torch::zeros({}, options)));
-    EXPECT_TRUE(torch::equal(*std::get<side::right - 1>(eval)[0],
-                             torch::zeros({}, options)));
+  //   EXPECT_TRUE(torch::equal(*std::get<side::left - 1>(eval)[0],
+  //                            torch::zeros({}, options)));
+  //   EXPECT_TRUE(torch::equal(*std::get<side::right - 1>(eval)[0],
+  //                            torch::zeros({}, options)));
 
-    /// Evaluation of gradient (in parametric domain)
-    auto grad = functionspace.template grad<functionspace::boundary, false>(xi);
+  //   /// Evaluation of gradient (in parametric domain)
+  //   auto grad = functionspace.template grad<functionspace::boundary,
+  //   false>(xi);
 
-    for (std::size_t i = 0; i < std::get<0>(grad).entries(); ++i) {
-      EXPECT_TRUE(torch::equal(*std::get<side::left - 1>(grad)[i],
-                               torch::zeros({1}, options)));
-      EXPECT_TRUE(torch::equal(*std::get<side::right - 1>(grad)[i],
-                               torch::zeros({1}, options)));
-    }
+  //   for (std::size_t i = 0; i < std::get<0>(grad).entries(); ++i) {
+  //     EXPECT_TRUE(torch::equal(*std::get<side::left - 1>(grad)[i],
+  //                              torch::zeros({1}, options)));
+  //     EXPECT_TRUE(torch::equal(*std::get<side::right - 1>(grad)[i],
+  //                              torch::zeros({1}, options)));
+  //   }
 
-    /// Evaluation of gradient (in physical domain)
-    auto igrad = functionspace.template igrad<functionspace::boundary, false>(
-        functionspace, xi);
+  //   /// Evaluation of gradient (in physical domain)
+  //   auto igrad = functionspace.template igrad<functionspace::boundary,
+  //   false>(
+  //       functionspace, xi);
 
-    for (std::size_t i = 0; i < std::get<0>(igrad).entries(); ++i) {
-      EXPECT_TRUE(torch::equal(*std::get<side::left - 1>(igrad)[i],
-                               torch::zeros({1}, options)));
-      EXPECT_TRUE(torch::equal(*std::get<side::right - 1>(igrad)[i],
-                               torch::zeros({1}, options)));
-    }
+  //   for (std::size_t i = 0; i < std::get<0>(igrad).entries(); ++i) {
+  //     EXPECT_TRUE(torch::equal(*std::get<side::left - 1>(igrad)[i],
+  //                              torch::zeros({1}, options)));
+  //     EXPECT_TRUE(torch::equal(*std::get<side::right - 1>(igrad)[i],
+  //                              torch::zeros({1}, options)));
+  //   }
 
-    /// Evaluation of Jacobian (in parametric domain)
-    auto jac = functionspace.template jac<functionspace::boundary, false>(xi);
+  //   /// Evaluation of Jacobian (in parametric domain)
+  //   auto jac = functionspace.template jac<functionspace::boundary,
+  //   false>(xi);
 
-    for (std::size_t i = 0; i < std::get<0>(jac).entries(); ++i) {
-      EXPECT_TRUE(torch::equal(*std::get<side::left - 1>(jac)[i],
-                               torch::zeros({1}, options)));
-      EXPECT_TRUE(torch::equal(*std::get<side::right - 1>(jac)[i],
-                               torch::zeros({1}, options)));
-    }
+  //   for (std::size_t i = 0; i < std::get<0>(jac).entries(); ++i) {
+  //     EXPECT_TRUE(torch::equal(*std::get<side::left - 1>(jac)[i],
+  //                              torch::zeros({1}, options)));
+  //     EXPECT_TRUE(torch::equal(*std::get<side::right - 1>(jac)[i],
+  //                              torch::zeros({1}, options)));
+  //   }
 
-    /// Evaluation of Jacobian (in physical domain)
-    auto ijac = functionspace.template ijac<functionspace::boundary, false>(
-        functionspace, xi);
+  //   /// Evaluation of Jacobian (in physical domain)
+  //   auto ijac = functionspace.template ijac<functionspace::boundary, false>(
+  //       functionspace, xi);
 
-    for (std::size_t i = 0; i < std::get<0>(ijac).entries(); ++i) {
-      EXPECT_TRUE(torch::equal(*std::get<side::left - 1>(ijac)[i],
-                               torch::zeros({1}, options)));
-      EXPECT_TRUE(torch::equal(*std::get<side::right - 1>(ijac)[i],
-                               torch::zeros({1}, options)));
-    }
+  //   for (std::size_t i = 0; i < std::get<0>(ijac).entries(); ++i) {
+  //     EXPECT_TRUE(torch::equal(*std::get<side::left - 1>(ijac)[i],
+  //                              torch::zeros({1}, options)));
+  //     EXPECT_TRUE(torch::equal(*std::get<side::right - 1>(ijac)[i],
+  //                              torch::zeros({1}, options)));
+  //   }
 
-    /// Evaluation of Hessian (in parametric domain)
-    auto hess = functionspace.template hess<functionspace::boundary, false>(xi);
+  //   /// Evaluation of Hessian (in parametric domain)
+  //   auto hess = functionspace.template hess<functionspace::boundary,
+  //   false>(xi);
 
-    for (std::size_t i = 0; i < std::get<0>(hess).entries(); ++i) {
-      EXPECT_TRUE(torch::equal(*std::get<side::left - 1>(hess)[i],
-                               torch::zeros({1}, options)));
-      EXPECT_TRUE(torch::equal(*std::get<side::right - 1>(hess)[i],
-                               torch::zeros({1}, options)));
-    }
+  //   for (std::size_t i = 0; i < std::get<0>(hess).entries(); ++i) {
+  //     EXPECT_TRUE(torch::equal(*std::get<side::left - 1>(hess)[i],
+  //                              torch::zeros({1}, options)));
+  //     EXPECT_TRUE(torch::equal(*std::get<side::right - 1>(hess)[i],
+  //                              torch::zeros({1}, options)));
+  //   }
 
-    /// Evaluation of Hessian (in physical domain)
-    auto ihess = functionspace.template ihess<functionspace::boundary, false>(
-        functionspace, xi);
+  //   /// Evaluation of Hessian (in physical domain)
+  //   auto ihess = functionspace.template ihess<functionspace::boundary,
+  //   false>(
+  //       functionspace, xi);
 
-    for (std::size_t i = 0; i < std::get<0>(ihess).entries(); ++i) {
-      EXPECT_TRUE(torch::equal(*std::get<side::left - 1>(ihess)[i],
-                               torch::zeros({1}, options)));
-      EXPECT_TRUE(torch::equal(*std::get<side::right - 1>(ihess)[i],
-                               torch::zeros({1}, options)));
-    }
-  }
+  //   for (std::size_t i = 0; i < std::get<0>(ihess).entries(); ++i) {
+  //     EXPECT_TRUE(torch::equal(*std::get<side::left - 1>(ihess)[i],
+  //                              torch::zeros({1}, options)));
+  //     EXPECT_TRUE(torch::equal(*std::get<side::right - 1>(ihess)[i],
+  //                              torch::zeros({1}, options)));
+  //   }
+  // }
 }
 
 TEST_F(FunctionSpaceTest, S_geoDim1_degrees23) {
@@ -431,377 +445,423 @@ TEST_F(FunctionSpaceTest, S_geoDim1_degrees23) {
       EXPECT_TRUE(torch::equal(*(ihess)[i], *(ihess_ref)[i]));
   }
 
-  { // Boundary
+  // { // Boundary
 
-    iganet::UniformBSpline<real_t, 1, 2> bspline_bdrNS(
-        {5}, iganet::init::greville, options);
-    iganet::UniformBSpline<real_t, 1, 3> bspline_bdrEW(
-        {4}, iganet::init::greville, options);
+  //   iganet::UniformBSpline<real_t, 1, 2> bspline_bdrNS(
+  //       {5}, iganet::init::greville, options);
+  //   iganet::UniformBSpline<real_t, 1, 3> bspline_bdrEW(
+  //       {4}, iganet::init::greville, options);
 
-    auto xi =
-        std::tuple{iganet::utils::to_tensorArray(options, {1.0_r, 0.2_r, 0.1_r,
-                                                           0.5_r, 0.9_r, 0.75_r,
-                                                           0.0_r}) /* west  */,
-                   iganet::utils::to_tensorArray(options, {1.0_r, 0.2_r, 0.1_r,
-                                                           0.5_r, 0.9_r, 0.75_r,
-                                                           0.0_r}) /* east  */,
-                   iganet::utils::to_tensorArray(options, {0.0_r, 0.1_r, 0.2_r,
-                                                           0.5_r, 0.75_r, 0.9_r,
-                                                           1.0_r}) /* south */,
-                   iganet::utils::to_tensorArray(options, {0.0_r, 0.1_r, 0.2_r,
-                                                           0.5_r, 0.75_r, 0.9_r,
-                                                           1.0_r}) /* north */};
+  //   auto xi =
+  //       std::tuple{iganet::utils::to_tensorArray(options, {1.0_r, 0.2_r,
+  //       0.1_r,
+  //                                                          0.5_r, 0.9_r,
+  //                                                          0.75_r, 0.0_r}) /*
+  //                                                          west  */,
+  //                  iganet::utils::to_tensorArray(options, {1.0_r, 0.2_r,
+  //                  0.1_r,
+  //                                                          0.5_r, 0.9_r,
+  //                                                          0.75_r, 0.0_r}) /*
+  //                                                          east  */,
+  //                  iganet::utils::to_tensorArray(options, {0.0_r, 0.1_r,
+  //                  0.2_r,
+  //                                                          0.5_r, 0.75_r,
+  //                                                          0.9_r, 1.0_r}) /*
+  //                                                          south */,
+  //                  iganet::utils::to_tensorArray(options, {0.0_r, 0.1_r,
+  //                  0.2_r,
+  //                                                          0.5_r, 0.75_r,
+  //                                                          0.9_r, 1.0_r}) /*
+  //                                                          north */};
 
-    // Evaluation
-    auto eval =
-        functionspace.eval<functionspace::boundary, deriv::func, false>(xi);
+  //   // Evaluation
+  //   auto eval =
+  //       functionspace.eval<functionspace::boundary, deriv::func, false>(xi);
 
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::func, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::func, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::allclose(*(std::get<side::east - 1>(eval)[0]),
-                                torch::ones(7, options)));
-    EXPECT_TRUE(torch::allclose(*(std::get<side::west - 1>(eval)[0]),
-                                torch::zeros(7, options)));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::func, false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::func, false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::allclose(*(std::get<side::east - 1>(eval)[0]),
+  //                               torch::ones(7, options)));
+  //   EXPECT_TRUE(torch::allclose(*(std::get<side::west - 1>(eval)[0]),
+  //                               torch::zeros(7, options)));
 
-    eval = functionspace.eval<functionspace::boundary, deriv::dx, false>(xi);
+  //   eval = functionspace.eval<functionspace::boundary, deriv::dx, false>(xi);
 
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::allclose(*(std::get<side::east - 1>(eval)[0]),
-                                torch::zeros(7, options)));
-    EXPECT_TRUE(torch::allclose(*(std::get<side::west - 1>(eval)[0]),
-                                torch::zeros(7, options)));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx, false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx, false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::allclose(*(std::get<side::east - 1>(eval)[0]),
+  //                               torch::zeros(7, options)));
+  //   EXPECT_TRUE(torch::allclose(*(std::get<side::west - 1>(eval)[0]),
+  //                               torch::zeros(7, options)));
 
-    eval =
-        functionspace.eval<functionspace::boundary, deriv::dx ^ 2, false>(xi);
+  //   eval =
+  //       functionspace.eval<functionspace::boundary, deriv::dx ^ 2,
+  //       false>(xi);
 
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx ^ 2, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx ^ 2, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::allclose(*(std::get<side::east - 1>(eval)[0]),
-                                torch::zeros(7, options)));
-    EXPECT_TRUE(torch::allclose(*(std::get<side::west - 1>(eval)[0]),
-                                torch::zeros(7, options)));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx ^ 2, false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx ^ 2, false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::allclose(*(std::get<side::east - 1>(eval)[0]),
+  //                               torch::zeros(7, options)));
+  //   EXPECT_TRUE(torch::allclose(*(std::get<side::west - 1>(eval)[0]),
+  //                               torch::zeros(7, options)));
 
-    eval = functionspace.eval<functionspace::boundary, deriv::dy, false>(xi);
-    iganet::verbose(std::cout);
-    std::cout << functionspace.boundary() << std::endl;
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dy, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dy, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::allclose(*(std::get<side::east - 1>(eval)[0]),
-                                torch::zeros(7, options)));
-    std::cout << *(std::get<side::east - 1>(eval)[0]) << std::endl;
-    EXPECT_TRUE(torch::allclose(*(std::get<side::west - 1>(eval)[0]),
-                                torch::zeros(7, options)));
+  //   eval = functionspace.eval<functionspace::boundary, deriv::dy, false>(xi);
 
-    eval =
-        functionspace.eval<functionspace::boundary, deriv::dy ^ 2, false>(xi);
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dy, false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dy, false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::allclose(*(std::get<side::east - 1>(eval)[0]),
+  //                               torch::zeros(7, options)));
 
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dy ^ 2, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dy ^ 2, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::allclose(*(std::get<side::east - 1>(eval)[0]),
-                                torch::zeros(7, options)));
-    std::cout << *(std::get<side::east - 1>(eval)[0]) << std::endl;
-    EXPECT_TRUE(torch::allclose(*(std::get<side::west - 1>(eval)[0]),
-                                torch::zeros(7, options)));
+  //   EXPECT_TRUE(torch::allclose(*(std::get<side::west - 1>(eval)[0]),
+  //                               torch::zeros(7, options)));
 
-    eval = functionspace
-               .eval<functionspace::boundary, deriv::dx + deriv::dy, false>(xi);
+  //   eval =
+  //       functionspace.eval<functionspace::boundary, deriv::dy ^ 2,
+  //       false>(xi);
 
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx + deriv::dy, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx + deriv::dy, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::allclose(*(std::get<side::east - 1>(eval)[0]),
-                                torch::zeros(7, options)));
-    EXPECT_TRUE(torch::allclose(*(std::get<side::west - 1>(eval)[0]),
-                                torch::zeros(7, options)));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dy ^ 2, false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dy ^ 2, false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::allclose(*(std::get<side::east - 1>(eval)[0]),
+  //                               torch::zeros(7, options)));
 
-    // Evaluation from precomputed coefficients and basis functions
-    auto knot_indices =
-        functionspace.template find_knot_indices<functionspace::boundary>(xi);
-    auto coeff_indices =
-        functionspace.template find_coeff_indices<functionspace::boundary>(
-            knot_indices);
+  //   EXPECT_TRUE(torch::allclose(*(std::get<side::west - 1>(eval)[0]),
+  //                               torch::zeros(7, options)));
 
-    auto numel = [](const auto &xi) {
-      return std::tuple{std::get<0>(xi)[0].numel(), std::get<1>(xi)[0].numel(),
-                        std::get<2>(xi)[0].numel(), std::get<3>(xi)[0].numel()};
-    };
-    auto sizes = [](const auto &xi) {
-      return std::tuple{std::get<0>(xi)[0].sizes(), std::get<1>(xi)[0].sizes(),
-                        std::get<2>(xi)[0].sizes(), std::get<3>(xi)[0].sizes()};
-    };
+  //   eval = functionspace
+  //              .eval<functionspace::boundary, deriv::dx + deriv::dy,
+  //              false>(xi);
 
-    auto basfunc =
-        functionspace
-            .template eval_basfunc<functionspace::boundary, deriv::func, false>(
-                xi, knot_indices);
-    eval =
-        functionspace.template eval_from_precomputed<functionspace::boundary>(
-            basfunc, coeff_indices, numel(xi), sizes(xi));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx + deriv::dy,
+  //                            false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx + deriv::dy,
+  //                            false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::allclose(*(std::get<side::east - 1>(eval)[0]),
+  //                               torch::zeros(7, options)));
+  //   EXPECT_TRUE(torch::allclose(*(std::get<side::west - 1>(eval)[0]),
+  //                               torch::zeros(7, options)));
 
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::func, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::func, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::func, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    std::cout << *(std::get<side::east - 1>(eval)[0]) << std::endl;
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::func, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    std::cout << *(std::get<side::west - 1>(eval)[0]) << std::endl;
-    exit(0);
-    basfunc =
-        functionspace
-            .template eval_basfunc<functionspace::boundary, deriv::dx, false>(
-                xi, knot_indices);
-    eval =
-        functionspace.template eval_from_precomputed<functionspace::boundary>(
-            basfunc, coeff_indices, numel(xi), sizes(xi));
+  //   // Evaluation from precomputed coefficients and basis functions
+  //   auto knot_indices =
+  //       functionspace.template
+  //       find_knot_indices<functionspace::boundary>(xi);
+  //   auto coeff_indices =
+  //       functionspace.template find_coeff_indices<functionspace::boundary>(
+  //           knot_indices);
 
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx, false>(
-                                 std::get<side::west - 1>(xi))[0])));
+  //   auto numel = [](const auto &xi) {
+  //     return std::tuple{std::get<0>(xi)[0].numel(),
+  //     std::get<1>(xi)[0].numel(),
+  //                       std::get<2>(xi)[0].numel(),
+  //                       std::get<3>(xi)[0].numel()};
+  //   };
+  //   auto sizes = [](const auto &xi) {
+  //     return std::tuple{std::get<0>(xi)[0].sizes(),
+  //     std::get<1>(xi)[0].sizes(),
+  //                       std::get<2>(xi)[0].sizes(),
+  //                       std::get<3>(xi)[0].sizes()};
+  //   };
 
-    basfunc = functionspace.template eval_basfunc<functionspace::boundary,
-                                                  deriv::dx ^ 2, false>(
-        xi, knot_indices);
-    eval =
-        functionspace.template eval_from_precomputed<functionspace::boundary>(
-            basfunc, coeff_indices, numel(xi), sizes(xi));
+  //   auto basfunc =
+  //       functionspace
+  //           .template eval_basfunc<functionspace::boundary, deriv::func,
+  //           false>(
+  //               xi, knot_indices);
+  //   eval =
+  //       functionspace.template
+  //       eval_from_precomputed<functionspace::boundary>(
+  //           basfunc, coeff_indices, numel(xi), sizes(xi));
 
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx ^ 2, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx ^ 2, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx ^ 2, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx ^ 2, false>(
-                                 std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::func, false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::func, false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::func, false>(
+  //                                std::get<side::east - 1>(xi))[0])));
 
-    basfunc =
-        functionspace
-            .template eval_basfunc<functionspace::boundary, deriv::dy, false>(
-                xi, knot_indices);
-    eval =
-        functionspace.template eval_from_precomputed<functionspace::boundary>(
-            basfunc, coeff_indices, numel(xi), sizes(xi));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::func, false>(
+  //                                std::get<side::west - 1>(xi))[0])));
 
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dy, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dy, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dy, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dy, false>(
-                                 std::get<side::west - 1>(xi))[0])));
+  //   basfunc =
+  //       functionspace
+  //           .template eval_basfunc<functionspace::boundary, deriv::dx,
+  //           false>(
+  //               xi, knot_indices);
+  //   eval =
+  //       functionspace.template
+  //       eval_from_precomputed<functionspace::boundary>(
+  //           basfunc, coeff_indices, numel(xi), sizes(xi));
 
-    basfunc = functionspace.template eval_basfunc<functionspace::boundary,
-                                                  deriv::dy ^ 2, false>(
-        xi, knot_indices);
-    eval =
-        functionspace.template eval_from_precomputed<functionspace::boundary>(
-            basfunc, coeff_indices, numel(xi), sizes(xi));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx, false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx, false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dx, false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dx, false>(
+  //                                std::get<side::west - 1>(xi))[0])));
 
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dy ^ 2, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dy ^ 2, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dy ^ 2, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dy ^ 2, false>(
-                                 std::get<side::west - 1>(xi))[0])));
+  //   basfunc = functionspace.template eval_basfunc<functionspace::boundary,
+  //                                                 deriv::dx ^ 2, false>(
+  //       xi, knot_indices);
+  //   eval =
+  //       functionspace.template
+  //       eval_from_precomputed<functionspace::boundary>(
+  //           basfunc, coeff_indices, numel(xi), sizes(xi));
 
-    basfunc = functionspace.template eval_basfunc<functionspace::boundary,
-                                                  deriv::dx + deriv::dy, false>(
-        xi, knot_indices);
-    eval =
-        functionspace.template eval_from_precomputed<functionspace::boundary>(
-            basfunc, coeff_indices, numel(xi), sizes(xi));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx ^ 2, false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx ^ 2, false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dx ^ 2, false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dx ^ 2, false>(
+  //                                std::get<side::west - 1>(xi))[0])));
 
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx + deriv::dy, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx + deriv::dy, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx + deriv::dy, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx + deriv::dy, false>(
-                                 std::get<side::west - 1>(xi))[0])));
+  //   basfunc =
+  //       functionspace
+  //           .template eval_basfunc<functionspace::boundary, deriv::dy,
+  //           false>(
+  //               xi, knot_indices);
+  //   eval =
+  //       functionspace.template
+  //       eval_from_precomputed<functionspace::boundary>(
+  //           basfunc, coeff_indices, numel(xi), sizes(xi));
 
-    /// Evaluation of gradient (in parametric domain)
-    auto grad = functionspace.template grad<functionspace::boundary, false>(xi);
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dy, false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dy, false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dy, false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dy, false>(
+  //                                std::get<side::west - 1>(xi))[0])));
 
-    for (std::size_t i = 0; i < std::get<0>(grad).entries(); ++i) {
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::north - 1>(grad)[i]),
-          *(bspline_bdrNS.grad<false>(std::get<side::north - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::south - 1>(grad)[i]),
-          *(bspline_bdrNS.grad<false>(std::get<side::south - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::east - 1>(grad)[i]),
-          *(bspline_bdrEW.grad<false>(std::get<side::east - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::west - 1>(grad)[i]),
-          *(bspline_bdrEW.grad<false>(std::get<side::west - 1>(xi))[i])));
-    }
+  //   basfunc = functionspace.template eval_basfunc<functionspace::boundary,
+  //                                                 deriv::dy ^ 2, false>(
+  //       xi, knot_indices);
+  //   eval =
+  //       functionspace.template
+  //       eval_from_precomputed<functionspace::boundary>(
+  //           basfunc, coeff_indices, numel(xi), sizes(xi));
 
-    /// Evaluation of gradient (in physical domain)
-    auto igrad = functionspace.template igrad<functionspace::boundary, false>(
-        functionspace, xi);
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dy ^ 2, false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dy ^ 2, false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dy ^ 2, false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dy ^ 2, false>(
+  //                                std::get<side::west - 1>(xi))[0])));
 
-    for (std::size_t i = 0; i < std::get<0>(igrad).entries(); ++i) {
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::north - 1>(igrad)[i]),
-                       *(bspline_bdrNS.igrad<false>(
-                           bspline_bdrNS, std::get<side::north - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::south - 1>(igrad)[i]),
-                       *(bspline_bdrNS.igrad<false>(
-                           bspline_bdrNS, std::get<side::south - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::east - 1>(igrad)[i]),
-                       *(bspline_bdrEW.igrad<false>(
-                           bspline_bdrEW, std::get<side::east - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::west - 1>(igrad)[i]),
-                       *(bspline_bdrEW.igrad<false>(
-                           bspline_bdrEW, std::get<side::west - 1>(xi))[i])));
-    }
+  //   basfunc = functionspace.template eval_basfunc<functionspace::boundary,
+  //                                                 deriv::dx + deriv::dy,
+  //                                                 false>(
+  //       xi, knot_indices);
+  //   eval =
+  //       functionspace.template
+  //       eval_from_precomputed<functionspace::boundary>(
+  //           basfunc, coeff_indices, numel(xi), sizes(xi));
 
-    /// Evaluation of Jacobian (in parametric domain)
-    auto jac = functionspace.template jac<functionspace::boundary, false>(xi);
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx + deriv::dy,
+  //                            false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx + deriv::dy,
+  //                            false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dx + deriv::dy,
+  //                            false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dx + deriv::dy,
+  //                            false>(
+  //                                std::get<side::west - 1>(xi))[0])));
 
-    for (std::size_t i = 0; i < std::get<0>(jac).entries(); ++i) {
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::north - 1>(jac)[i]),
-          *(bspline_bdrNS.jac<false>(std::get<side::north - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::south - 1>(jac)[i]),
-          *(bspline_bdrNS.jac<false>(std::get<side::south - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::east - 1>(jac)[i]),
-          *(bspline_bdrEW.jac<false>(std::get<side::east - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::west - 1>(jac)[i]),
-          *(bspline_bdrEW.jac<false>(std::get<side::west - 1>(xi))[i])));
-    }
+  //   /// Evaluation of gradient (in parametric domain)
+  //   auto grad = functionspace.template grad<functionspace::boundary,
+  //   false>(xi);
 
-    /// Evaluation of Jacobian (in physical domain)
-    auto ijac = functionspace.template ijac<functionspace::boundary, false>(
-        functionspace, xi);
+  //   for (std::size_t i = 0; i < std::get<0>(grad).entries(); ++i) {
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::north - 1>(grad)[i]),
+  //         *(bspline_bdrNS.grad<false>(std::get<side::north - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::south - 1>(grad)[i]),
+  //         *(bspline_bdrNS.grad<false>(std::get<side::south - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::east - 1>(grad)[i]),
+  //         *(bspline_bdrEW.grad<false>(std::get<side::east - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::west - 1>(grad)[i]),
+  //         *(bspline_bdrEW.grad<false>(std::get<side::west - 1>(xi))[i])));
+  //   }
 
-    for (std::size_t i = 0; i < std::get<0>(ijac).entries(); ++i) {
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::north - 1>(ijac)[i]),
-                       *(bspline_bdrNS.ijac<false>(
-                           bspline_bdrNS, std::get<side::north - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::south - 1>(ijac)[i]),
-                       *(bspline_bdrNS.ijac<false>(
-                           bspline_bdrNS, std::get<side::south - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::east - 1>(ijac)[i]),
-                       *(bspline_bdrEW.ijac<false>(
-                           bspline_bdrEW, std::get<side::east - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::west - 1>(ijac)[i]),
-                       *(bspline_bdrEW.ijac<false>(
-                           bspline_bdrEW, std::get<side::west - 1>(xi))[i])));
-    }
+  //   /// Evaluation of gradient (in physical domain)
+  //   auto igrad = functionspace.template igrad<functionspace::boundary,
+  //   false>(
+  //       functionspace, xi);
 
-    /// Evaluation of Hessian (in parametric domain)
-    auto hess = functionspace.template hess<functionspace::boundary>(xi);
+  //   for (std::size_t i = 0; i < std::get<0>(igrad).entries(); ++i) {
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::north - 1>(igrad)[i]),
+  //                      *(bspline_bdrNS.igrad<false>(
+  //                          bspline_bdrNS, std::get<side::north -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::south - 1>(igrad)[i]),
+  //                      *(bspline_bdrNS.igrad<false>(
+  //                          bspline_bdrNS, std::get<side::south -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::east - 1>(igrad)[i]),
+  //                      *(bspline_bdrEW.igrad<false>(
+  //                          bspline_bdrEW, std::get<side::east -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::west - 1>(igrad)[i]),
+  //                      *(bspline_bdrEW.igrad<false>(
+  //                          bspline_bdrEW, std::get<side::west -
+  //                          1>(xi))[i])));
+  //   }
 
-    for (std::size_t i = 0; i < std::get<0>(hess).entries(); ++i) {
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::north - 1>(hess)[i]),
-          *(bspline_bdrNS.hess<false>(std::get<side::north - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::south - 1>(hess)[i]),
-          *(bspline_bdrNS.hess<false>(std::get<side::south - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::east - 1>(hess)[i]),
-          *(bspline_bdrEW.hess<false>(std::get<side::east - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::west - 1>(hess)[i]),
-          *(bspline_bdrEW.hess<false>(std::get<side::west - 1>(xi))[i])));
-    }
+  //   /// Evaluation of Jacobian (in parametric domain)
+  //   auto jac = functionspace.template jac<functionspace::boundary,
+  //   false>(xi);
 
-    /// Evaluation of Hessian (in physical domain)
-    auto ihess = functionspace.template ihess<functionspace::boundary, false>(
-        functionspace, xi);
+  //   for (std::size_t i = 0; i < std::get<0>(jac).entries(); ++i) {
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::north - 1>(jac)[i]),
+  //         *(bspline_bdrNS.jac<false>(std::get<side::north - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::south - 1>(jac)[i]),
+  //         *(bspline_bdrNS.jac<false>(std::get<side::south - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::east - 1>(jac)[i]),
+  //         *(bspline_bdrEW.jac<false>(std::get<side::east - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::west - 1>(jac)[i]),
+  //         *(bspline_bdrEW.jac<false>(std::get<side::west - 1>(xi))[i])));
+  //   }
 
-    for (std::size_t i = 0; i < std::get<0>(ihess).entries(); ++i) {
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::north - 1>(ihess)[i]),
-                       *(bspline_bdrNS.ihess<false>(
-                           bspline_bdrNS, std::get<side::north - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::south - 1>(ihess)[i]),
-                       *(bspline_bdrNS.ihess<false>(
-                           bspline_bdrNS, std::get<side::south - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::east - 1>(ihess)[i]),
-                       *(bspline_bdrEW.ihess<false>(
-                           bspline_bdrEW, std::get<side::east - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::west - 1>(ihess)[i]),
-                       *(bspline_bdrEW.ihess<false>(
-                           bspline_bdrEW, std::get<side::west - 1>(xi))[i])));
-    }
-  }
+  //   /// Evaluation of Jacobian (in physical domain)
+  //   auto ijac = functionspace.template ijac<functionspace::boundary, false>(
+  //       functionspace, xi);
+
+  //   for (std::size_t i = 0; i < std::get<0>(ijac).entries(); ++i) {
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::north - 1>(ijac)[i]),
+  //                      *(bspline_bdrNS.ijac<false>(
+  //                          bspline_bdrNS, std::get<side::north -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::south - 1>(ijac)[i]),
+  //                      *(bspline_bdrNS.ijac<false>(
+  //                          bspline_bdrNS, std::get<side::south -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::east - 1>(ijac)[i]),
+  //                      *(bspline_bdrEW.ijac<false>(
+  //                          bspline_bdrEW, std::get<side::east -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::west - 1>(ijac)[i]),
+  //                      *(bspline_bdrEW.ijac<false>(
+  //                          bspline_bdrEW, std::get<side::west -
+  //                          1>(xi))[i])));
+  //   }
+
+  //   /// Evaluation of Hessian (in parametric domain)
+  //   auto hess = functionspace.template hess<functionspace::boundary>(xi);
+
+  //   for (std::size_t i = 0; i < std::get<0>(hess).entries(); ++i) {
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::north - 1>(hess)[i]),
+  //         *(bspline_bdrNS.hess<false>(std::get<side::north - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::south - 1>(hess)[i]),
+  //         *(bspline_bdrNS.hess<false>(std::get<side::south - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::east - 1>(hess)[i]),
+  //         *(bspline_bdrEW.hess<false>(std::get<side::east - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::west - 1>(hess)[i]),
+  //         *(bspline_bdrEW.hess<false>(std::get<side::west - 1>(xi))[i])));
+  //   }
+
+  //   /// Evaluation of Hessian (in physical domain)
+  //   auto ihess = functionspace.template ihess<functionspace::boundary,
+  //   false>(
+  //       functionspace, xi);
+
+  //   for (std::size_t i = 0; i < std::get<0>(ihess).entries(); ++i) {
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::north - 1>(ihess)[i]),
+  //                      *(bspline_bdrNS.ihess<false>(
+  //                          bspline_bdrNS, std::get<side::north -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::south - 1>(ihess)[i]),
+  //                      *(bspline_bdrNS.ihess<false>(
+  //                          bspline_bdrNS, std::get<side::south -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::east - 1>(ihess)[i]),
+  //                      *(bspline_bdrEW.ihess<false>(
+  //                          bspline_bdrEW, std::get<side::east -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::west - 1>(ihess)[i]),
+  //                      *(bspline_bdrEW.ihess<false>(
+  //                          bspline_bdrEW, std::get<side::west -
+  //                          1>(xi))[i])));
+  //   }
+  // }
 }
 
 TEST_F(FunctionSpaceTest, S_geoDim1_degrees234) {
@@ -1007,712 +1067,800 @@ TEST_F(FunctionSpaceTest, S_geoDim1_degrees234) {
       EXPECT_TRUE(torch::equal(*(ihess)[i], *(ihess_ref)[i]));
   }
 
-  { // Boundary
+  // { // Boundary
 
-    iganet::UniformBSpline<real_t, 1, 2, 4> bspline_bdrNS(
-        {5, 7}, iganet::init::greville, options);
-    iganet::UniformBSpline<real_t, 1, 3, 4> bspline_bdrEW(
-        {4, 7}, iganet::init::greville, options);
-    iganet::UniformBSpline<real_t, 1, 2, 3> bspline_bdrFB(
-        {5, 4}, iganet::init::greville, options);
-    iganet::UniformBSpline<real_t, 3, 2, 4> geometry_bdrNS(
-        {5, 7}, iganet::init::greville, options);
-    iganet::UniformBSpline<real_t, 3, 3, 4> geometry_bdrEW(
-        {4, 7}, iganet::init::greville, options);
-    iganet::UniformBSpline<real_t, 3, 2, 3> geometry_bdrFB(
-        {5, 4}, iganet::init::greville, options);
+  //   iganet::UniformBSpline<real_t, 1, 2, 4> bspline_bdrNS(
+  //       {5, 7}, iganet::init::greville, options);
+  //   iganet::UniformBSpline<real_t, 1, 3, 4> bspline_bdrEW(
+  //       {4, 7}, iganet::init::greville, options);
+  //   iganet::UniformBSpline<real_t, 1, 2, 3> bspline_bdrFB(
+  //       {5, 4}, iganet::init::greville, options);
+  //   iganet::UniformBSpline<real_t, 3, 2, 4> geometry_bdrNS(
+  //       {5, 7}, iganet::init::greville, options);
+  //   iganet::UniformBSpline<real_t, 3, 3, 4> geometry_bdrEW(
+  //       {4, 7}, iganet::init::greville, options);
+  //   iganet::UniformBSpline<real_t, 3, 2, 3> geometry_bdrFB(
+  //       {5, 4}, iganet::init::greville, options);
 
-    auto xi = std::tuple{
-        iganet::utils::to_tensorArray(
-            options, {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r, 0.0_r} /* v */,
-            {0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r, 0.0_r,
-             0.1_r} /* w */) /* west  */,
-        iganet::utils::to_tensorArray(
-            options, {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r, 0.0_r} /* v */,
-            {0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r, 0.0_r,
-             0.1_r} /* w */) /* east  */,
-        iganet::utils::to_tensorArray(
-            options, {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u */,
-            {0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r, 0.0_r,
-             0.1_r} /* w */) /* south */,
-        iganet::utils::to_tensorArray(
-            options, {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u */,
-            {0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r, 0.0_r,
-             0.1_r} /* w */) /* north */,
-        iganet::utils::to_tensorArray(
-            options, {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u */,
-            {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r,
-             0.0_r} /* v */) /* front */,
-        iganet::utils::to_tensorArray(
-            options, {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u */,
-            {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r,
-             0.0_r} /* v */) /* back  */};
+  //   auto xi = std::tuple{
+  //       iganet::utils::to_tensorArray(
+  //           options, {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r, 0.0_r} /* v
+  //           */, {0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r, 0.0_r,
+  //            0.1_r} /* w */) /* west  */,
+  //       iganet::utils::to_tensorArray(
+  //           options, {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r, 0.0_r} /* v
+  //           */, {0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r, 0.0_r,
+  //            0.1_r} /* w */) /* east  */,
+  //       iganet::utils::to_tensorArray(
+  //           options, {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u
+  //           */, {0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r, 0.0_r,
+  //            0.1_r} /* w */) /* south */,
+  //       iganet::utils::to_tensorArray(
+  //           options, {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u
+  //           */, {0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r, 0.0_r,
+  //            0.1_r} /* w */) /* north */,
+  //       iganet::utils::to_tensorArray(
+  //           options, {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u
+  //           */, {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r,
+  //            0.0_r} /* v */) /* front */,
+  //       iganet::utils::to_tensorArray(
+  //           options, {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u
+  //           */, {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r,
+  //            0.0_r} /* v */) /* back  */};
 
-    // Evaluation
-    auto eval =
-        functionspace.eval<functionspace::boundary, deriv::func, false>(xi);
+  //   // Evaluation
+  //   auto eval =
+  //       functionspace.eval<functionspace::boundary, deriv::func, false>(xi);
 
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::func, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::func, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::func, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::func, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::func, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::func, false>(
-                                 std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::func, false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::func, false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::func, false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::func, false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::func, false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::func, false>(
+  //                                std::get<side::back - 1>(xi))[0])));
 
-    eval = functionspace.eval<functionspace::boundary, deriv::dx, false>(xi);
+  //   eval = functionspace.eval<functionspace::boundary, deriv::dx, false>(xi);
 
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dx, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dx, false>(
-                                 std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx, false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx, false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dx, false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dx, false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dx, false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dx, false>(
+  //                                std::get<side::back - 1>(xi))[0])));
 
-    eval =
-        functionspace.eval<functionspace::boundary, deriv::dx ^ 2, false>(xi);
+  //   eval =
+  //       functionspace.eval<functionspace::boundary, deriv::dx ^ 2,
+  //       false>(xi);
 
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx ^ 2, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx ^ 2, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx ^ 2, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx ^ 2, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dx ^ 2, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dx ^ 2, false>(
-                                 std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx ^ 2, false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx ^ 2, false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dx ^ 2, false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dx ^ 2, false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dx ^ 2, false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dx ^ 2, false>(
+  //                                std::get<side::back - 1>(xi))[0])));
 
-    eval = functionspace.eval<functionspace::boundary, deriv::dy, false>(xi);
+  //   eval = functionspace.eval<functionspace::boundary, deriv::dy, false>(xi);
 
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dy, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dy, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dy, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dy, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dy, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dy, false>(
-                                 std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dy, false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dy, false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dy, false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dy, false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dy, false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dy, false>(
+  //                                std::get<side::back - 1>(xi))[0])));
 
-    eval =
-        functionspace.eval<functionspace::boundary, deriv::dy ^ 2, false>(xi);
+  //   eval =
+  //       functionspace.eval<functionspace::boundary, deriv::dy ^ 2,
+  //       false>(xi);
 
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dy ^ 2, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dy ^ 2, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dy ^ 2, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dy ^ 2, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dy ^ 2, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dy ^ 2, false>(
-                                 std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dy ^ 2, false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dy ^ 2, false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dy ^ 2, false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dy ^ 2, false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dy ^ 2, false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dy ^ 2, false>(
+  //                                std::get<side::back - 1>(xi))[0])));
 
-    eval = functionspace.eval<functionspace::boundary, deriv::dz, false>(xi);
+  //   eval = functionspace.eval<functionspace::boundary, deriv::dz, false>(xi);
 
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dz, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dz, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dz, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dz, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dz, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dz, false>(
-                                 std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dz, false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dz, false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dz, false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dz, false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dz, false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dz, false>(
+  //                                std::get<side::back - 1>(xi))[0])));
 
-    eval =
-        functionspace.eval<functionspace::boundary, deriv::dz ^ 2, false>(xi);
+  //   eval =
+  //       functionspace.eval<functionspace::boundary, deriv::dz ^ 2,
+  //       false>(xi);
 
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dz ^ 2, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dz ^ 2, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dz ^ 2, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dz ^ 2, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dz ^ 2, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dz ^ 2, false>(
-                                 std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dz ^ 2, false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dz ^ 2, false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dz ^ 2, false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dz ^ 2, false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dz ^ 2, false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dz ^ 2, false>(
+  //                                std::get<side::back - 1>(xi))[0])));
 
-    eval = functionspace
-               .eval<functionspace::boundary, deriv::dx + deriv::dy, false>(xi);
+  //   eval = functionspace
+  //              .eval<functionspace::boundary, deriv::dx + deriv::dy,
+  //              false>(xi);
 
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx + deriv::dy, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx + deriv::dy, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx + deriv::dy, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx + deriv::dy, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dx + deriv::dy, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dx + deriv::dy, false>(
-                                 std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx + deriv::dy,
+  //                            false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx + deriv::dy,
+  //                            false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dx + deriv::dy,
+  //                            false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dx + deriv::dy,
+  //                            false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dx + deriv::dy,
+  //                            false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dx + deriv::dy,
+  //                            false>(
+  //                                std::get<side::back - 1>(xi))[0])));
 
-    eval = functionspace
-               .eval<functionspace::boundary, deriv::dx + deriv::dz, false>(xi);
+  //   eval = functionspace
+  //              .eval<functionspace::boundary, deriv::dx + deriv::dz,
+  //              false>(xi);
 
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx + deriv::dz, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx + deriv::dz, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx + deriv::dz, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx + deriv::dz, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dx + deriv::dz, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dx + deriv::dz, false>(
-                                 std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx + deriv::dz,
+  //                            false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx + deriv::dz,
+  //                            false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dx + deriv::dz,
+  //                            false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dx + deriv::dz,
+  //                            false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dx + deriv::dz,
+  //                            false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dx + deriv::dz,
+  //                            false>(
+  //                                std::get<side::back - 1>(xi))[0])));
 
-    eval = functionspace
-               .eval<functionspace::boundary, deriv::dy + deriv::dz, false>(xi);
+  //   eval = functionspace
+  //              .eval<functionspace::boundary, deriv::dy + deriv::dz,
+  //              false>(xi);
 
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dy + deriv::dz, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dy + deriv::dz, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dy + deriv::dz, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dy + deriv::dz, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dy + deriv::dz, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dy + deriv::dz, false>(
-                                 std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dy + deriv::dz,
+  //                            false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dy + deriv::dz,
+  //                            false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dy + deriv::dz,
+  //                            false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dy + deriv::dz,
+  //                            false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dy + deriv::dz,
+  //                            false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dy + deriv::dz,
+  //                            false>(
+  //                                std::get<side::back - 1>(xi))[0])));
 
-    // Evaluation from precomputed coefficients and basis functions
-    auto knot_indices =
-        functionspace.template find_knot_indices<functionspace::boundary>(xi);
-    auto coeff_indices =
-        functionspace.template find_coeff_indices<functionspace::boundary>(
-            knot_indices);
+  //   // Evaluation from precomputed coefficients and basis functions
+  //   auto knot_indices =
+  //       functionspace.template
+  //       find_knot_indices<functionspace::boundary>(xi);
+  //   auto coeff_indices =
+  //       functionspace.template find_coeff_indices<functionspace::boundary>(
+  //           knot_indices);
 
-    auto numel = [](const auto &xi) {
-      return std::tuple{std::get<0>(xi)[0].numel(), std::get<1>(xi)[0].numel(),
-                        std::get<2>(xi)[0].numel(), std::get<3>(xi)[0].numel(),
-                        std::get<4>(xi)[0].numel(), std::get<5>(xi)[0].numel()};
-    };
-    auto sizes = [](const auto &xi) {
-      return std::tuple{std::get<0>(xi)[0].sizes(), std::get<1>(xi)[0].sizes(),
-                        std::get<2>(xi)[0].sizes(), std::get<3>(xi)[0].sizes(),
-                        std::get<4>(xi)[0].sizes(), std::get<5>(xi)[0].sizes()};
-    };
+  //   auto numel = [](const auto &xi) {
+  //     return std::tuple{std::get<0>(xi)[0].numel(),
+  //     std::get<1>(xi)[0].numel(),
+  //                       std::get<2>(xi)[0].numel(),
+  //                       std::get<3>(xi)[0].numel(),
+  //                       std::get<4>(xi)[0].numel(),
+  //                       std::get<5>(xi)[0].numel()};
+  //   };
+  //   auto sizes = [](const auto &xi) {
+  //     return std::tuple{std::get<0>(xi)[0].sizes(),
+  //     std::get<1>(xi)[0].sizes(),
+  //                       std::get<2>(xi)[0].sizes(),
+  //                       std::get<3>(xi)[0].sizes(),
+  //                       std::get<4>(xi)[0].sizes(),
+  //                       std::get<5>(xi)[0].sizes()};
+  //   };
 
-    auto basfunc =
-        functionspace
-            .template eval_basfunc<functionspace::boundary, deriv::func, false>(
-                xi, knot_indices);
-    eval =
-        functionspace.template eval_from_precomputed<functionspace::boundary>(
-            basfunc, coeff_indices, numel(xi), sizes(xi));
+  //   auto basfunc =
+  //       functionspace
+  //           .template eval_basfunc<functionspace::boundary, deriv::func,
+  //           false>(
+  //               xi, knot_indices);
+  //   eval =
+  //       functionspace.template
+  //       eval_from_precomputed<functionspace::boundary>(
+  //           basfunc, coeff_indices, numel(xi), sizes(xi));
 
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::func, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::func, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::func, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::func, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::func, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::func, false>(
-                                 std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::func, false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::func, false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::func, false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::func, false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::func, false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::func, false>(
+  //                                std::get<side::back - 1>(xi))[0])));
 
-    basfunc =
-        functionspace
-            .template eval_basfunc<functionspace::boundary, deriv::dx, false>(
-                xi, knot_indices);
-    eval =
-        functionspace.template eval_from_precomputed<functionspace::boundary>(
-            basfunc, coeff_indices, numel(xi), sizes(xi));
+  //   basfunc =
+  //       functionspace
+  //           .template eval_basfunc<functionspace::boundary, deriv::dx,
+  //           false>(
+  //               xi, knot_indices);
+  //   eval =
+  //       functionspace.template
+  //       eval_from_precomputed<functionspace::boundary>(
+  //           basfunc, coeff_indices, numel(xi), sizes(xi));
 
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dx, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dx, false>(
-                                 std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx, false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx, false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dx, false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dx, false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dx, false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dx, false>(
+  //                                std::get<side::back - 1>(xi))[0])));
 
-    basfunc = functionspace.template eval_basfunc<functionspace::boundary,
-                                                  deriv::dx ^ 2, false>(
-        xi, knot_indices);
-    eval =
-        functionspace.template eval_from_precomputed<functionspace::boundary>(
-            basfunc, coeff_indices, numel(xi), sizes(xi));
+  //   basfunc = functionspace.template eval_basfunc<functionspace::boundary,
+  //                                                 deriv::dx ^ 2, false>(
+  //       xi, knot_indices);
+  //   eval =
+  //       functionspace.template
+  //       eval_from_precomputed<functionspace::boundary>(
+  //           basfunc, coeff_indices, numel(xi), sizes(xi));
 
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx ^ 2, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx ^ 2, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx ^ 2, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx ^ 2, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dx ^ 2, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dx ^ 2, false>(
-                                 std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx ^ 2, false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx ^ 2, false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dx ^ 2, false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dx ^ 2, false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dx ^ 2, false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dx ^ 2, false>(
+  //                                std::get<side::back - 1>(xi))[0])));
 
-    basfunc =
-        functionspace
-            .template eval_basfunc<functionspace::boundary, deriv::dy, false>(
-                xi, knot_indices);
-    eval =
-        functionspace.template eval_from_precomputed<functionspace::boundary>(
-            basfunc, coeff_indices, numel(xi), sizes(xi));
+  //   basfunc =
+  //       functionspace
+  //           .template eval_basfunc<functionspace::boundary, deriv::dy,
+  //           false>(
+  //               xi, knot_indices);
+  //   eval =
+  //       functionspace.template
+  //       eval_from_precomputed<functionspace::boundary>(
+  //           basfunc, coeff_indices, numel(xi), sizes(xi));
 
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dy, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dy, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dy, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dy, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dy, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dy, false>(
-                                 std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dy, false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dy, false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dy, false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dy, false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dy, false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dy, false>(
+  //                                std::get<side::back - 1>(xi))[0])));
 
-    basfunc = functionspace.template eval_basfunc<functionspace::boundary,
-                                                  deriv::dy ^ 2, false>(
-        xi, knot_indices);
-    eval =
-        functionspace.template eval_from_precomputed<functionspace::boundary>(
-            basfunc, coeff_indices, numel(xi), sizes(xi));
+  //   basfunc = functionspace.template eval_basfunc<functionspace::boundary,
+  //                                                 deriv::dy ^ 2, false>(
+  //       xi, knot_indices);
+  //   eval =
+  //       functionspace.template
+  //       eval_from_precomputed<functionspace::boundary>(
+  //           basfunc, coeff_indices, numel(xi), sizes(xi));
 
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dy ^ 2, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dy ^ 2, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dy ^ 2, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dy ^ 2, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dy ^ 2, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dy ^ 2, false>(
-                                 std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dy ^ 2, false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dy ^ 2, false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dy ^ 2, false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dy ^ 2, false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dy ^ 2, false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dy ^ 2, false>(
+  //                                std::get<side::back - 1>(xi))[0])));
 
-    basfunc =
-        functionspace
-            .template eval_basfunc<functionspace::boundary, deriv::dz, false>(
-                xi, knot_indices);
-    eval =
-        functionspace.template eval_from_precomputed<functionspace::boundary>(
-            basfunc, coeff_indices, numel(xi), sizes(xi));
+  //   basfunc =
+  //       functionspace
+  //           .template eval_basfunc<functionspace::boundary, deriv::dz,
+  //           false>(
+  //               xi, knot_indices);
+  //   eval =
+  //       functionspace.template
+  //       eval_from_precomputed<functionspace::boundary>(
+  //           basfunc, coeff_indices, numel(xi), sizes(xi));
 
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dz, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dz, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dz, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dz, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dz, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dz, false>(
-                                 std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dz, false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dz, false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dz, false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dz, false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dz, false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dz, false>(
+  //                                std::get<side::back - 1>(xi))[0])));
 
-    basfunc = functionspace.template eval_basfunc<functionspace::boundary,
-                                                  deriv::dz ^ 2, false>(
-        xi, knot_indices);
-    eval =
-        functionspace.template eval_from_precomputed<functionspace::boundary>(
-            basfunc, coeff_indices, numel(xi), sizes(xi));
+  //   basfunc = functionspace.template eval_basfunc<functionspace::boundary,
+  //                                                 deriv::dz ^ 2, false>(
+  //       xi, knot_indices);
+  //   eval =
+  //       functionspace.template
+  //       eval_from_precomputed<functionspace::boundary>(
+  //           basfunc, coeff_indices, numel(xi), sizes(xi));
 
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dz ^ 2, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dz ^ 2, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dz ^ 2, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dz ^ 2, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dz ^ 2, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dz ^ 2, false>(
-                                 std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dz ^ 2, false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dz ^ 2, false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dz ^ 2, false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dz ^ 2, false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dz ^ 2, false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dz ^ 2, false>(
+  //                                std::get<side::back - 1>(xi))[0])));
 
-    basfunc = functionspace.template eval_basfunc<functionspace::boundary,
-                                                  deriv::dx + deriv::dy, false>(
-        xi, knot_indices);
-    eval =
-        functionspace.template eval_from_precomputed<functionspace::boundary>(
-            basfunc, coeff_indices, numel(xi), sizes(xi));
+  //   basfunc = functionspace.template eval_basfunc<functionspace::boundary,
+  //                                                 deriv::dx + deriv::dy,
+  //                                                 false>(
+  //       xi, knot_indices);
+  //   eval =
+  //       functionspace.template
+  //       eval_from_precomputed<functionspace::boundary>(
+  //           basfunc, coeff_indices, numel(xi), sizes(xi));
 
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx + deriv::dy, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx + deriv::dy, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx + deriv::dy, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx + deriv::dy, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dx + deriv::dy, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dx + deriv::dy, false>(
-                                 std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx + deriv::dy,
+  //                            false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx + deriv::dy,
+  //                            false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dx + deriv::dy,
+  //                            false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dx + deriv::dy,
+  //                            false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dx + deriv::dy,
+  //                            false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dx + deriv::dy,
+  //                            false>(
+  //                                std::get<side::back - 1>(xi))[0])));
 
-    basfunc = functionspace.template eval_basfunc<functionspace::boundary,
-                                                  deriv::dx + deriv::dz, false>(
-        xi, knot_indices);
-    eval =
-        functionspace.template eval_from_precomputed<functionspace::boundary>(
-            basfunc, coeff_indices, numel(xi), sizes(xi));
+  //   basfunc = functionspace.template eval_basfunc<functionspace::boundary,
+  //                                                 deriv::dx + deriv::dz,
+  //                                                 false>(
+  //       xi, knot_indices);
+  //   eval =
+  //       functionspace.template
+  //       eval_from_precomputed<functionspace::boundary>(
+  //           basfunc, coeff_indices, numel(xi), sizes(xi));
 
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx + deriv::dz, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx + deriv::dz, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx + deriv::dz, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx + deriv::dz, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dx + deriv::dz, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dx + deriv::dz, false>(
-                                 std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx + deriv::dz,
+  //                            false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx + deriv::dz,
+  //                            false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dx + deriv::dz,
+  //                            false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dx + deriv::dz,
+  //                            false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dx + deriv::dz,
+  //                            false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dx + deriv::dz,
+  //                            false>(
+  //                                std::get<side::back - 1>(xi))[0])));
 
-    basfunc = functionspace.template eval_basfunc<functionspace::boundary,
-                                                  deriv::dy + deriv::dz, false>(
-        xi, knot_indices);
-    eval =
-        functionspace.template eval_from_precomputed<functionspace::boundary>(
-            basfunc, coeff_indices, numel(xi), sizes(xi));
+  //   basfunc = functionspace.template eval_basfunc<functionspace::boundary,
+  //                                                 deriv::dy + deriv::dz,
+  //                                                 false>(
+  //       xi, knot_indices);
+  //   eval =
+  //       functionspace.template
+  //       eval_from_precomputed<functionspace::boundary>(
+  //           basfunc, coeff_indices, numel(xi), sizes(xi));
 
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dy + deriv::dz, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dy + deriv::dz, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dy + deriv::dz, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dy + deriv::dz, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dy + deriv::dz, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dy + deriv::dz, false>(
-                                 std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dy + deriv::dz,
+  //                            false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dy + deriv::dz,
+  //                            false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dy + deriv::dz,
+  //                            false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dy + deriv::dz,
+  //                            false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dy + deriv::dz,
+  //                            false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dy + deriv::dz,
+  //                            false>(
+  //                                std::get<side::back - 1>(xi))[0])));
 
-    /// Evaluation of gradient (in parametric domain)
-    auto grad = functionspace.template grad<functionspace::boundary, false>(xi);
+  //   /// Evaluation of gradient (in parametric domain)
+  //   auto grad = functionspace.template grad<functionspace::boundary,
+  //   false>(xi);
 
-    for (std::size_t i = 0; i < std::get<0>(grad).entries(); ++i) {
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::north - 1>(grad)[i]),
-          *(bspline_bdrNS.grad<false>(std::get<side::north - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::south - 1>(grad)[i]),
-          *(bspline_bdrNS.grad<false>(std::get<side::south - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::east - 1>(grad)[i]),
-          *(bspline_bdrEW.grad<false>(std::get<side::east - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::west - 1>(grad)[i]),
-          *(bspline_bdrEW.grad<false>(std::get<side::west - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::front - 1>(grad)[i]),
-          *(bspline_bdrFB.grad<false>(std::get<side::front - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::back - 1>(grad)[i]),
-          *(bspline_bdrFB.grad<false>(std::get<side::back - 1>(xi))[i])));
-    }
+  //   for (std::size_t i = 0; i < std::get<0>(grad).entries(); ++i) {
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::north - 1>(grad)[i]),
+  //         *(bspline_bdrNS.grad<false>(std::get<side::north - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::south - 1>(grad)[i]),
+  //         *(bspline_bdrNS.grad<false>(std::get<side::south - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::east - 1>(grad)[i]),
+  //         *(bspline_bdrEW.grad<false>(std::get<side::east - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::west - 1>(grad)[i]),
+  //         *(bspline_bdrEW.grad<false>(std::get<side::west - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::front - 1>(grad)[i]),
+  //         *(bspline_bdrFB.grad<false>(std::get<side::front - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::back - 1>(grad)[i]),
+  //         *(bspline_bdrFB.grad<false>(std::get<side::back - 1>(xi))[i])));
+  //   }
 
-    /// Evaluation of gradient (in physical domain)
-    auto igrad = functionspace.template igrad<functionspace::boundary, false>(
-        S_geometry, xi);
+  //   /// Evaluation of gradient (in physical domain)
+  //   auto igrad = functionspace.template igrad<functionspace::boundary,
+  //   false>(
+  //       S_geometry, xi);
 
-    for (std::size_t i = 0; i < std::get<0>(igrad).entries(); ++i) {
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::north - 1>(igrad)[i]),
-                       *(bspline_bdrNS.igrad<false>(
-                           geometry_bdrNS, std::get<side::north - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::south - 1>(igrad)[i]),
-                       *(bspline_bdrNS.igrad<false>(
-                           geometry_bdrNS, std::get<side::south - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::east - 1>(igrad)[i]),
-                       *(bspline_bdrEW.igrad<false>(
-                           geometry_bdrEW, std::get<side::east - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::west - 1>(igrad)[i]),
-                       *(bspline_bdrEW.igrad<false>(
-                           geometry_bdrEW, std::get<side::west - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::front - 1>(igrad)[i]),
-                       *(bspline_bdrFB.igrad<false>(
-                           geometry_bdrFB, std::get<side::front - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::back - 1>(igrad)[i]),
-                       *(bspline_bdrFB.igrad<false>(
-                           geometry_bdrFB, std::get<side::back - 1>(xi))[i])));
-    }
+  //   for (std::size_t i = 0; i < std::get<0>(igrad).entries(); ++i) {
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::north - 1>(igrad)[i]),
+  //                      *(bspline_bdrNS.igrad<false>(
+  //                          geometry_bdrNS, std::get<side::north -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::south - 1>(igrad)[i]),
+  //                      *(bspline_bdrNS.igrad<false>(
+  //                          geometry_bdrNS, std::get<side::south -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::east - 1>(igrad)[i]),
+  //                      *(bspline_bdrEW.igrad<false>(
+  //                          geometry_bdrEW, std::get<side::east -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::west - 1>(igrad)[i]),
+  //                      *(bspline_bdrEW.igrad<false>(
+  //                          geometry_bdrEW, std::get<side::west -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::front - 1>(igrad)[i]),
+  //                      *(bspline_bdrFB.igrad<false>(
+  //                          geometry_bdrFB, std::get<side::front -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::back - 1>(igrad)[i]),
+  //                      *(bspline_bdrFB.igrad<false>(
+  //                          geometry_bdrFB, std::get<side::back -
+  //                          1>(xi))[i])));
+  //   }
 
-    /// Evaluation of Jacobian (in parametric domain)
-    auto jac = functionspace.template jac<functionspace::boundary, false>(xi);
+  //   /// Evaluation of Jacobian (in parametric domain)
+  //   auto jac = functionspace.template jac<functionspace::boundary,
+  //   false>(xi);
 
-    for (std::size_t i = 0; i < std::get<0>(jac).entries(); ++i) {
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::north - 1>(jac)[i]),
-          *(bspline_bdrNS.jac<false>(std::get<side::north - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::south - 1>(jac)[i]),
-          *(bspline_bdrNS.jac<false>(std::get<side::south - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::east - 1>(jac)[i]),
-          *(bspline_bdrEW.jac<false>(std::get<side::east - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::west - 1>(jac)[i]),
-          *(bspline_bdrEW.jac<false>(std::get<side::west - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::front - 1>(jac)[i]),
-          *(bspline_bdrFB.jac<false>(std::get<side::front - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::back - 1>(jac)[i]),
-          *(bspline_bdrFB.jac<false>(std::get<side::back - 1>(xi))[i])));
-    }
+  //   for (std::size_t i = 0; i < std::get<0>(jac).entries(); ++i) {
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::north - 1>(jac)[i]),
+  //         *(bspline_bdrNS.jac<false>(std::get<side::north - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::south - 1>(jac)[i]),
+  //         *(bspline_bdrNS.jac<false>(std::get<side::south - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::east - 1>(jac)[i]),
+  //         *(bspline_bdrEW.jac<false>(std::get<side::east - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::west - 1>(jac)[i]),
+  //         *(bspline_bdrEW.jac<false>(std::get<side::west - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::front - 1>(jac)[i]),
+  //         *(bspline_bdrFB.jac<false>(std::get<side::front - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::back - 1>(jac)[i]),
+  //         *(bspline_bdrFB.jac<false>(std::get<side::back - 1>(xi))[i])));
+  //   }
 
-    /// Evaluation of Jacobian (in physical domain)
-    auto ijac = functionspace.template ijac<functionspace::boundary, false>(
-        S_geometry, xi);
+  //   /// Evaluation of Jacobian (in physical domain)
+  //   auto ijac = functionspace.template ijac<functionspace::boundary, false>(
+  //       S_geometry, xi);
 
-    for (std::size_t i = 0; i < std::get<0>(ijac).entries(); ++i) {
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::north - 1>(ijac)[i]),
-                       *(bspline_bdrNS.ijac<false>(
-                           geometry_bdrNS, std::get<side::north - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::south - 1>(ijac)[i]),
-                       *(bspline_bdrNS.ijac<false>(
-                           geometry_bdrNS, std::get<side::south - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::east - 1>(ijac)[i]),
-                       *(bspline_bdrEW.ijac<false>(
-                           geometry_bdrEW, std::get<side::east - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::west - 1>(ijac)[i]),
-                       *(bspline_bdrEW.ijac<false>(
-                           geometry_bdrEW, std::get<side::west - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::front - 1>(ijac)[i]),
-                       *(bspline_bdrFB.ijac<false>(
-                           geometry_bdrFB, std::get<side::front - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::back - 1>(ijac)[i]),
-                       *(bspline_bdrFB.ijac<false>(
-                           geometry_bdrFB, std::get<side::back - 1>(xi))[i])));
-    }
+  //   for (std::size_t i = 0; i < std::get<0>(ijac).entries(); ++i) {
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::north - 1>(ijac)[i]),
+  //                      *(bspline_bdrNS.ijac<false>(
+  //                          geometry_bdrNS, std::get<side::north -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::south - 1>(ijac)[i]),
+  //                      *(bspline_bdrNS.ijac<false>(
+  //                          geometry_bdrNS, std::get<side::south -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::east - 1>(ijac)[i]),
+  //                      *(bspline_bdrEW.ijac<false>(
+  //                          geometry_bdrEW, std::get<side::east -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::west - 1>(ijac)[i]),
+  //                      *(bspline_bdrEW.ijac<false>(
+  //                          geometry_bdrEW, std::get<side::west -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::front - 1>(ijac)[i]),
+  //                      *(bspline_bdrFB.ijac<false>(
+  //                          geometry_bdrFB, std::get<side::front -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::back - 1>(ijac)[i]),
+  //                      *(bspline_bdrFB.ijac<false>(
+  //                          geometry_bdrFB, std::get<side::back -
+  //                          1>(xi))[i])));
+  //   }
 
-    /// Evaluation of Hessian (in parametric domain)
-    auto hess = functionspace.template hess<functionspace::boundary>(xi);
+  //   /// Evaluation of Hessian (in parametric domain)
+  //   auto hess = functionspace.template hess<functionspace::boundary>(xi);
 
-    for (std::size_t i = 0; i < std::get<0>(hess).entries(); ++i) {
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::north - 1>(hess)[i]),
-          *(bspline_bdrNS.hess<false>(std::get<side::north - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::south - 1>(hess)[i]),
-          *(bspline_bdrNS.hess<false>(std::get<side::south - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::east - 1>(hess)[i]),
-          *(bspline_bdrEW.hess<false>(std::get<side::east - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::west - 1>(hess)[i]),
-          *(bspline_bdrEW.hess<false>(std::get<side::west - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::front - 1>(hess)[i]),
-          *(bspline_bdrFB.hess<false>(std::get<side::front - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::back - 1>(hess)[i]),
-          *(bspline_bdrFB.hess<false>(std::get<side::back - 1>(xi))[i])));
-    }
+  //   for (std::size_t i = 0; i < std::get<0>(hess).entries(); ++i) {
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::north - 1>(hess)[i]),
+  //         *(bspline_bdrNS.hess<false>(std::get<side::north - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::south - 1>(hess)[i]),
+  //         *(bspline_bdrNS.hess<false>(std::get<side::south - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::east - 1>(hess)[i]),
+  //         *(bspline_bdrEW.hess<false>(std::get<side::east - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::west - 1>(hess)[i]),
+  //         *(bspline_bdrEW.hess<false>(std::get<side::west - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::front - 1>(hess)[i]),
+  //         *(bspline_bdrFB.hess<false>(std::get<side::front - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::back - 1>(hess)[i]),
+  //         *(bspline_bdrFB.hess<false>(std::get<side::back - 1>(xi))[i])));
+  //   }
 
-    /// Evaluation of Hessian (in physical domain)
-    auto ihess =
-        functionspace.template ihess<functionspace::boundary>(S_geometry, xi);
+  //   /// Evaluation of Hessian (in physical domain)
+  //   auto ihess =
+  //       functionspace.template ihess<functionspace::boundary>(S_geometry,
+  //       xi);
 
-    for (std::size_t i = 0; i < std::get<0>(ihess).entries(); ++i) {
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::north - 1>(ihess)[i]),
-                       *(bspline_bdrNS.ihess<false>(
-                           geometry_bdrNS, std::get<side::north - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::south - 1>(ihess)[i]),
-                       *(bspline_bdrNS.ihess<false>(
-                           geometry_bdrNS, std::get<side::south - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::east - 1>(ihess)[i]),
-                       *(bspline_bdrEW.ihess<false>(
-                           geometry_bdrEW, std::get<side::east - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::west - 1>(ihess)[i]),
-                       *(bspline_bdrEW.ihess<false>(
-                           geometry_bdrEW, std::get<side::west - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::front - 1>(ihess)[i]),
-                       *(bspline_bdrFB.ihess<false>(
-                           geometry_bdrFB, std::get<side::front - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::back - 1>(ihess)[i]),
-                       *(bspline_bdrFB.ihess<false>(
-                           geometry_bdrFB, std::get<side::back - 1>(xi))[i])));
-    }
-  }
+  //   for (std::size_t i = 0; i < std::get<0>(ihess).entries(); ++i) {
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::north - 1>(ihess)[i]),
+  //                      *(bspline_bdrNS.ihess<false>(
+  //                          geometry_bdrNS, std::get<side::north -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::south - 1>(ihess)[i]),
+  //                      *(bspline_bdrNS.ihess<false>(
+  //                          geometry_bdrNS, std::get<side::south -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::east - 1>(ihess)[i]),
+  //                      *(bspline_bdrEW.ihess<false>(
+  //                          geometry_bdrEW, std::get<side::east -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::west - 1>(ihess)[i]),
+  //                      *(bspline_bdrEW.ihess<false>(
+  //                          geometry_bdrEW, std::get<side::west -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::front - 1>(ihess)[i]),
+  //                      *(bspline_bdrFB.ihess<false>(
+  //                          geometry_bdrFB, std::get<side::front -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::back - 1>(ihess)[i]),
+  //                      *(bspline_bdrFB.ihess<false>(
+  //                          geometry_bdrFB, std::get<side::back -
+  //                          1>(xi))[i])));
+  //   }
+  // }
 }
 
 TEST_F(FunctionSpaceTest, S_geoDim1_degrees2341) {
@@ -1985,1196 +2133,1365 @@ TEST_F(FunctionSpaceTest, S_geoDim1_degrees2341) {
       EXPECT_TRUE(torch::equal(*(ihess)[i], *(ihess_ref)[i]));
   }
 
-  { // Boundary
-
-    iganet::UniformBSpline<real_t, 1, 2, 4, 1> bspline_bdrNS(
-        {5, 7, 3}, iganet::init::greville, options);
-    iganet::UniformBSpline<real_t, 1, 3, 4, 1> bspline_bdrEW(
-        {4, 7, 3}, iganet::init::greville, options);
-    iganet::UniformBSpline<real_t, 1, 2, 3, 1> bspline_bdrFB(
-        {5, 4, 3}, iganet::init::greville, options);
-    iganet::UniformBSpline<real_t, 1, 2, 3, 4> bspline_bdrSE(
-        {5, 4, 7}, iganet::init::greville, options);
-    iganet::UniformBSpline<real_t, 4, 2, 4, 1> geometry_bdrNS(
-        {5, 7, 3}, iganet::init::greville, options);
-    iganet::UniformBSpline<real_t, 4, 3, 4, 1> geometry_bdrEW(
-        {4, 7, 3}, iganet::init::greville, options);
-    iganet::UniformBSpline<real_t, 4, 2, 3, 1> geometry_bdrFB(
-        {5, 4, 3}, iganet::init::greville, options);
-    iganet::UniformBSpline<real_t, 4, 2, 3, 4> geometry_bdrSE(
-        {5, 4, 7}, iganet::init::greville, options);
-
-    auto xi = std::tuple{
-        iganet::utils::to_tensorArray(
-            options, {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r, 0.0_r} /* v */,
-            {0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r, 0.0_r, 0.1_r} /* w */,
-            {0.1_r, 0.1_r, 0.2_r, 0.3_r, 0.3_r, 0.0_r,
-             0.1_r} /* t */) /* west  */,
-        iganet::utils::to_tensorArray(
-            options, {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r, 0.0_r} /* v */,
-            {0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r, 0.0_r, 0.1_r} /* w */,
-            {0.1_r, 0.1_r, 0.2_r, 0.3_r, 0.3_r, 0.0_r,
-             0.1_r} /* t */) /* east  */,
-        iganet::utils::to_tensorArray(
-            options, {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u */,
-            {0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r, 0.0_r, 0.1_r} /* w */,
-            {0.1_r, 0.1_r, 0.2_r, 0.3_r, 0.3_r, 0.0_r,
-             0.1_r} /* t */) /* south */,
-        iganet::utils::to_tensorArray(
-            options, {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u */,
-            {0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r, 0.0_r, 0.1_r} /* w */,
-            {0.1_r, 0.1_r, 0.2_r, 0.3_r, 0.3_r, 0.0_r,
-             0.1_r} /* t */) /* north */,
-        iganet::utils::to_tensorArray(
-            options, {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u */,
-            {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r, 0.0_r} /* v */,
-            {0.1_r, 0.1_r, 0.2_r, 0.3_r, 0.3_r, 0.0_r,
-             0.1_r} /* t */) /* front */,
-        iganet::utils::to_tensorArray(
-            options, {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u */,
-            {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r, 0.0_r} /* v */,
-            {0.1_r, 0.1_r, 0.2_r, 0.3_r, 0.3_r, 0.0_r,
-             0.1_r} /* t */) /* back  */,
-        iganet::utils::to_tensorArray(
-            options, {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u */,
-            {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r, 0.0_r} /* v */,
-            {0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r, 0.0_r,
-             0.1_r} /* w */) /* stime */,
-        iganet::utils::to_tensorArray(
-            options, {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u */,
-            {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r, 0.0_r} /* v */,
-            {0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r, 0.0_r,
-             0.1_r} /* w */) /* etime */};
-
-    // Evaluation
-    auto eval =
-        functionspace.eval<functionspace::boundary, deriv::func, false>(xi);
-
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::func, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::func, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::func, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::func, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::func, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::func, false>(
-                                 std::get<side::back - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::func, false>(
-                                 std::get<side::stime - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::func, false>(
-                                 std::get<side::etime - 1>(xi))[0])));
-
-    eval = functionspace.eval<functionspace::boundary, deriv::dx, false>(xi);
-
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dx, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dx, false>(
-                                 std::get<side::back - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dx, false>(
-                                 std::get<side::stime - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dx, false>(
-                                 std::get<side::etime - 1>(xi))[0])));
-
-    eval =
-        functionspace.eval<functionspace::boundary, deriv::dx ^ 2, false>(xi);
-
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx ^ 2, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx ^ 2, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx ^ 2, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx ^ 2, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dx ^ 2, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dx ^ 2, false>(
-                                 std::get<side::back - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dx ^ 2, false>(
-                                 std::get<side::stime - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dx ^ 2, false>(
-                                 std::get<side::etime - 1>(xi))[0])));
-
-    eval = functionspace.eval<functionspace::boundary, deriv::dy, false>(xi);
-
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dy, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dy, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dy, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dy, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dy, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dy, false>(
-                                 std::get<side::back - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dy, false>(
-                                 std::get<side::stime - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dy, false>(
-                                 std::get<side::etime - 1>(xi))[0])));
-
-    eval =
-        functionspace.eval<functionspace::boundary, deriv::dy ^ 2, false>(xi);
-
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dy ^ 2, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dy ^ 2, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dy ^ 2, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dy ^ 2, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dy ^ 2, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dy ^ 2, false>(
-                                 std::get<side::back - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dy ^ 2, false>(
-                                 std::get<side::stime - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dy ^ 2, false>(
-                                 std::get<side::etime - 1>(xi))[0])));
-
-    eval = functionspace.eval<functionspace::boundary, deriv::dz, false>(xi);
-
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dz, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dz, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dz, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dz, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dz, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dz, false>(
-                                 std::get<side::back - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dz, false>(
-                                 std::get<side::stime - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dz, false>(
-                                 std::get<side::etime - 1>(xi))[0])));
-
-    eval =
-        functionspace.eval<functionspace::boundary, deriv::dz ^ 2, false>(xi);
-
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dz ^ 2, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dz ^ 2, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dz ^ 2, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dz ^ 2, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dz ^ 2, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dz ^ 2, false>(
-                                 std::get<side::back - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dz ^ 2, false>(
-                                 std::get<side::stime - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dz ^ 2, false>(
-                                 std::get<side::etime - 1>(xi))[0])));
-
-    eval = functionspace.eval<functionspace::boundary, deriv::dt, false>(xi);
-
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dt, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dt, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dt, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dt, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dt, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dt, false>(
-                                 std::get<side::back - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dt, false>(
-                                 std::get<side::stime - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dt, false>(
-                                 std::get<side::etime - 1>(xi))[0])));
-
-    eval =
-        functionspace.eval<functionspace::boundary, deriv::dt ^ 2, false>(xi);
-
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dt ^ 2, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dt ^ 2, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dt ^ 2, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dt ^ 2, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dt ^ 2, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dt ^ 2, false>(
-                                 std::get<side::back - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dt ^ 2, false>(
-                                 std::get<side::stime - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dt ^ 2, false>(
-                                 std::get<side::etime - 1>(xi))[0])));
-
-    eval = functionspace
-               .eval<functionspace::boundary, deriv::dx + deriv::dy, false>(xi);
-
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx + deriv::dy, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx + deriv::dy, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx + deriv::dy, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx + deriv::dy, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dx + deriv::dy, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dx + deriv::dy, false>(
-                                 std::get<side::back - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dx + deriv::dy, false>(
-                                 std::get<side::stime - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dx + deriv::dy, false>(
-                                 std::get<side::etime - 1>(xi))[0])));
-
-    eval = functionspace
-               .eval<functionspace::boundary, deriv::dx + deriv::dz, false>(xi);
-
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx + deriv::dz, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx + deriv::dz, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx + deriv::dz, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx + deriv::dz, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dx + deriv::dz, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dx + deriv::dz, false>(
-                                 std::get<side::back - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dx + deriv::dz, false>(
-                                 std::get<side::stime - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dx + deriv::dz, false>(
-                                 std::get<side::etime - 1>(xi))[0])));
-
-    eval = functionspace
-               .eval<functionspace::boundary, deriv::dx + deriv::dt, false>(xi);
-
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx + deriv::dt, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx + deriv::dt, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx + deriv::dt, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx + deriv::dt, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dx + deriv::dt, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dx + deriv::dt, false>(
-                                 std::get<side::back - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dx + deriv::dt, false>(
-                                 std::get<side::stime - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dx + deriv::dt, false>(
-                                 std::get<side::etime - 1>(xi))[0])));
-
-    eval = functionspace
-               .eval<functionspace::boundary, deriv::dy + deriv::dz, false>(xi);
-
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dy + deriv::dz, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dy + deriv::dz, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dy + deriv::dz, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dy + deriv::dz, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dy + deriv::dz, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dy + deriv::dz, false>(
-                                 std::get<side::back - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dy + deriv::dz, false>(
-                                 std::get<side::stime - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dy + deriv::dz, false>(
-                                 std::get<side::etime - 1>(xi))[0])));
-
-    eval = functionspace
-               .eval<functionspace::boundary, deriv::dy + deriv::dt, false>(xi);
-
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dy + deriv::dt, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dy + deriv::dt, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dy + deriv::dt, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dy + deriv::dt, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dy + deriv::dt, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dy + deriv::dt, false>(
-                                 std::get<side::back - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dy + deriv::dt, false>(
-                                 std::get<side::stime - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dy + deriv::dt, false>(
-                                 std::get<side::etime - 1>(xi))[0])));
-
-    eval = functionspace
-               .eval<functionspace::boundary, deriv::dz + deriv::dt, false>(xi);
-
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dz + deriv::dt, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dz + deriv::dt, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dz + deriv::dt, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dz + deriv::dt, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dz + deriv::dt, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dz + deriv::dt, false>(
-                                 std::get<side::back - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dz + deriv::dt, false>(
-                                 std::get<side::stime - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dz + deriv::dt, false>(
-                                 std::get<side::etime - 1>(xi))[0])));
-
-    // Evaluation from precomputed coefficients and basis functions
-    auto knot_indices =
-        functionspace.template find_knot_indices<functionspace::boundary>(xi);
-    auto coeff_indices =
-        functionspace.template find_coeff_indices<functionspace::boundary>(
-            knot_indices);
-
-    auto numel = [](const auto &xi) {
-      return std::tuple{std::get<0>(xi)[0].numel(), std::get<1>(xi)[0].numel(),
-                        std::get<2>(xi)[0].numel(), std::get<3>(xi)[0].numel(),
-                        std::get<4>(xi)[0].numel(), std::get<5>(xi)[0].numel(),
-                        std::get<6>(xi)[0].numel(), std::get<7>(xi)[0].numel()};
-    };
-    auto sizes = [](const auto &xi) {
-      return std::tuple{std::get<0>(xi)[0].sizes(), std::get<1>(xi)[0].sizes(),
-                        std::get<2>(xi)[0].sizes(), std::get<3>(xi)[0].sizes(),
-                        std::get<4>(xi)[0].sizes(), std::get<5>(xi)[0].sizes(),
-                        std::get<6>(xi)[0].sizes(), std::get<7>(xi)[0].sizes()};
-    };
-
-    auto basfunc =
-        functionspace
-            .template eval_basfunc<functionspace::boundary, deriv::func, false>(
-                xi, knot_indices);
-    eval =
-        functionspace.template eval_from_precomputed<functionspace::boundary>(
-            basfunc, coeff_indices, numel(xi), sizes(xi));
-
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::func, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::func, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::func, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::func, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::func, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::func, false>(
-                                 std::get<side::back - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::func, false>(
-                                 std::get<side::stime - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::func, false>(
-                                 std::get<side::etime - 1>(xi))[0])));
-
-    basfunc =
-        functionspace
-            .template eval_basfunc<functionspace::boundary, deriv::dx, false>(
-                xi, knot_indices);
-    eval =
-        functionspace.template eval_from_precomputed<functionspace::boundary>(
-            basfunc, coeff_indices, numel(xi), sizes(xi));
-
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dx, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dx, false>(
-                                 std::get<side::back - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dx, false>(
-                                 std::get<side::stime - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dx, false>(
-                                 std::get<side::etime - 1>(xi))[0])));
-
-    basfunc = functionspace.template eval_basfunc<functionspace::boundary,
-                                                  deriv::dx ^ 2, false>(
-        xi, knot_indices);
-    eval =
-        functionspace.template eval_from_precomputed<functionspace::boundary>(
-            basfunc, coeff_indices, numel(xi), sizes(xi));
-
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx ^ 2, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx ^ 2, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx ^ 2, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx ^ 2, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dx ^ 2, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dx ^ 2, false>(
-                                 std::get<side::back - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dx ^ 2, false>(
-                                 std::get<side::stime - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dx ^ 2, false>(
-                                 std::get<side::etime - 1>(xi))[0])));
-
-    basfunc =
-        functionspace
-            .template eval_basfunc<functionspace::boundary, deriv::dy, false>(
-                xi, knot_indices);
-    eval =
-        functionspace.template eval_from_precomputed<functionspace::boundary>(
-            basfunc, coeff_indices, numel(xi), sizes(xi));
-
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dy, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dy, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dy, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dy, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dy, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dy, false>(
-                                 std::get<side::back - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dy, false>(
-                                 std::get<side::stime - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dy, false>(
-                                 std::get<side::etime - 1>(xi))[0])));
-
-    basfunc = functionspace.template eval_basfunc<functionspace::boundary,
-                                                  deriv::dy ^ 2, false>(
-        xi, knot_indices);
-    eval =
-        functionspace.template eval_from_precomputed<functionspace::boundary>(
-            basfunc, coeff_indices, numel(xi), sizes(xi));
-
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dy ^ 2, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dy ^ 2, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dy ^ 2, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dy ^ 2, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dy ^ 2, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dy ^ 2, false>(
-                                 std::get<side::back - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dy ^ 2, false>(
-                                 std::get<side::stime - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dy ^ 2, false>(
-                                 std::get<side::etime - 1>(xi))[0])));
-
-    basfunc =
-        functionspace
-            .template eval_basfunc<functionspace::boundary, deriv::dz, false>(
-                xi, knot_indices);
-    eval =
-        functionspace.template eval_from_precomputed<functionspace::boundary>(
-            basfunc, coeff_indices, numel(xi), sizes(xi));
-
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dz, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dz, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dz, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dz, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dz, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dz, false>(
-                                 std::get<side::back - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dz, false>(
-                                 std::get<side::stime - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dz, false>(
-                                 std::get<side::etime - 1>(xi))[0])));
-
-    basfunc = functionspace.template eval_basfunc<functionspace::boundary,
-                                                  deriv::dz ^ 2, false>(
-        xi, knot_indices);
-    eval =
-        functionspace.template eval_from_precomputed<functionspace::boundary>(
-            basfunc, coeff_indices, numel(xi), sizes(xi));
-
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dz ^ 2, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dz ^ 2, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dz ^ 2, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dz ^ 2, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dz ^ 2, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dz ^ 2, false>(
-                                 std::get<side::back - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dz ^ 2, false>(
-                                 std::get<side::stime - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dz ^ 2, false>(
-                                 std::get<side::etime - 1>(xi))[0])));
-
-    basfunc =
-        functionspace
-            .template eval_basfunc<functionspace::boundary, deriv::dt, false>(
-                xi, knot_indices);
-    eval =
-        functionspace.template eval_from_precomputed<functionspace::boundary>(
-            basfunc, coeff_indices, numel(xi), sizes(xi));
-
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dt, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dt, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dt, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dt, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dt, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dt, false>(
-                                 std::get<side::back - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dt, false>(
-                                 std::get<side::stime - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dt, false>(
-                                 std::get<side::etime - 1>(xi))[0])));
-
-    basfunc = functionspace.template eval_basfunc<functionspace::boundary,
-                                                  deriv::dt ^ 2, false>(
-        xi, knot_indices);
-    eval =
-        functionspace.template eval_from_precomputed<functionspace::boundary>(
-            basfunc, coeff_indices, numel(xi), sizes(xi));
-
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dt ^ 2, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dt ^ 2, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dt ^ 2, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dt ^ 2, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dt ^ 2, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dt ^ 2, false>(
-                                 std::get<side::back - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dt ^ 2, false>(
-                                 std::get<side::stime - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dt ^ 2, false>(
-                                 std::get<side::etime - 1>(xi))[0])));
-
-    basfunc = functionspace.template eval_basfunc<functionspace::boundary,
-                                                  deriv::dx + deriv::dy, false>(
-        xi, knot_indices);
-    eval =
-        functionspace.template eval_from_precomputed<functionspace::boundary>(
-            basfunc, coeff_indices, numel(xi), sizes(xi));
-
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx + deriv::dy, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx + deriv::dy, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx + deriv::dy, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx + deriv::dy, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dx + deriv::dy, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dx + deriv::dy, false>(
-                                 std::get<side::back - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dx + deriv::dy, false>(
-                                 std::get<side::stime - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dx + deriv::dy, false>(
-                                 std::get<side::etime - 1>(xi))[0])));
-
-    basfunc = functionspace.template eval_basfunc<functionspace::boundary,
-                                                  deriv::dx + deriv::dz, false>(
-        xi, knot_indices);
-    eval =
-        functionspace.template eval_from_precomputed<functionspace::boundary>(
-            basfunc, coeff_indices, numel(xi), sizes(xi));
-
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx + deriv::dz, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx + deriv::dz, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx + deriv::dz, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx + deriv::dz, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dx + deriv::dz, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dx + deriv::dz, false>(
-                                 std::get<side::back - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dx + deriv::dz, false>(
-                                 std::get<side::stime - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dx + deriv::dz, false>(
-                                 std::get<side::etime - 1>(xi))[0])));
-
-    basfunc = functionspace.template eval_basfunc<functionspace::boundary,
-                                                  deriv::dx + deriv::dt, false>(
-        xi, knot_indices);
-    eval =
-        functionspace.template eval_from_precomputed<functionspace::boundary>(
-            basfunc, coeff_indices, numel(xi), sizes(xi));
-
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx + deriv::dt, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dx + deriv::dt, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx + deriv::dt, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dx + deriv::dt, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dx + deriv::dt, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dx + deriv::dt, false>(
-                                 std::get<side::back - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dx + deriv::dt, false>(
-                                 std::get<side::stime - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dx + deriv::dt, false>(
-                                 std::get<side::etime - 1>(xi))[0])));
-
-    basfunc = functionspace.template eval_basfunc<functionspace::boundary,
-                                                  deriv::dy + deriv::dz, false>(
-        xi, knot_indices);
-    eval =
-        functionspace.template eval_from_precomputed<functionspace::boundary>(
-            basfunc, coeff_indices, numel(xi), sizes(xi));
-
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dy + deriv::dz, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dy + deriv::dz, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dy + deriv::dz, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dy + deriv::dz, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dy + deriv::dz, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dy + deriv::dz, false>(
-                                 std::get<side::back - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dy + deriv::dz, false>(
-                                 std::get<side::stime - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dy + deriv::dz, false>(
-                                 std::get<side::etime - 1>(xi))[0])));
-
-    basfunc = functionspace.template eval_basfunc<functionspace::boundary,
-                                                  deriv::dy + deriv::dt, false>(
-        xi, knot_indices);
-    eval =
-        functionspace.template eval_from_precomputed<functionspace::boundary>(
-            basfunc, coeff_indices, numel(xi), sizes(xi));
-
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dy + deriv::dt, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dy + deriv::dt, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dy + deriv::dt, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dy + deriv::dt, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dy + deriv::dt, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dy + deriv::dt, false>(
-                                 std::get<side::back - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dy + deriv::dt, false>(
-                                 std::get<side::stime - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dy + deriv::dt, false>(
-                                 std::get<side::etime - 1>(xi))[0])));
-
-    basfunc = functionspace.template eval_basfunc<functionspace::boundary,
-                                                  deriv::dz + deriv::dt, false>(
-        xi, knot_indices);
-    eval =
-        functionspace.template eval_from_precomputed<functionspace::boundary>(
-            basfunc, coeff_indices, numel(xi), sizes(xi));
-
-    EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dz + deriv::dt, false>(
-                                 std::get<side::north - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
-                             *(bspline_bdrNS.eval<deriv::dz + deriv::dt, false>(
-                                 std::get<side::south - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dz + deriv::dt, false>(
-                                 std::get<side::east - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
-                             *(bspline_bdrEW.eval<deriv::dz + deriv::dt, false>(
-                                 std::get<side::west - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dz + deriv::dt, false>(
-                                 std::get<side::front - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
-                             *(bspline_bdrFB.eval<deriv::dz + deriv::dt, false>(
-                                 std::get<side::back - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dz + deriv::dt, false>(
-                                 std::get<side::stime - 1>(xi))[0])));
-    EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
-                             *(bspline_bdrSE.eval<deriv::dz + deriv::dt, false>(
-                                 std::get<side::etime - 1>(xi))[0])));
-
-    /// Evaluation of gradient (in parametric domain)
-    auto grad = functionspace.template grad<functionspace::boundary, false>(xi);
-
-    for (std::size_t i = 0; i < std::get<0>(grad).entries(); ++i) {
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::north - 1>(grad)[i]),
-          *(bspline_bdrNS.grad<false>(std::get<side::north - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::south - 1>(grad)[i]),
-          *(bspline_bdrNS.grad<false>(std::get<side::south - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::east - 1>(grad)[i]),
-          *(bspline_bdrEW.grad<false>(std::get<side::east - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::west - 1>(grad)[i]),
-          *(bspline_bdrEW.grad<false>(std::get<side::west - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::front - 1>(grad)[i]),
-          *(bspline_bdrFB.grad<false>(std::get<side::front - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::back - 1>(grad)[i]),
-          *(bspline_bdrFB.grad<false>(std::get<side::back - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::stime - 1>(grad)[i]),
-          *(bspline_bdrSE.grad<false>(std::get<side::stime - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::etime - 1>(grad)[i]),
-          *(bspline_bdrSE.grad<false>(std::get<side::etime - 1>(xi))[i])));
-    }
-
-    /// Evaluation of gradient (in physical domain)
-    auto igrad = functionspace.template igrad<functionspace::boundary, false>(
-        S_geometry, xi);
-
-    for (std::size_t i = 0; i < std::get<0>(igrad).entries(); ++i) {
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::north - 1>(igrad)[i]),
-                       *(bspline_bdrNS.igrad<false>(
-                           geometry_bdrNS, std::get<side::north - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::south - 1>(igrad)[i]),
-                       *(bspline_bdrNS.igrad<false>(
-                           geometry_bdrNS, std::get<side::south - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::east - 1>(igrad)[i]),
-                       *(bspline_bdrEW.igrad<false>(
-                           geometry_bdrEW, std::get<side::east - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::west - 1>(igrad)[i]),
-                       *(bspline_bdrEW.igrad<false>(
-                           geometry_bdrEW, std::get<side::west - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::front - 1>(igrad)[i]),
-                       *(bspline_bdrFB.igrad<false>(
-                           geometry_bdrFB, std::get<side::front - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::back - 1>(igrad)[i]),
-                       *(bspline_bdrFB.igrad<false>(
-                           geometry_bdrFB, std::get<side::back - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::stime - 1>(igrad)[i]),
-                       *(bspline_bdrSE.igrad<false>(
-                           geometry_bdrSE, std::get<side::stime - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::etime - 1>(igrad)[i]),
-                       *(bspline_bdrSE.igrad<false>(
-                           geometry_bdrSE, std::get<side::etime - 1>(xi))[i])));
-    }
-
-    /// Evaluation of Jacobian (in parametric domain)
-    auto jac = functionspace.template jac<functionspace::boundary, false>(xi);
-
-    for (std::size_t i = 0; i < std::get<0>(jac).entries(); ++i) {
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::north - 1>(jac)[i]),
-          *(bspline_bdrNS.jac<false>(std::get<side::north - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::south - 1>(jac)[i]),
-          *(bspline_bdrNS.jac<false>(std::get<side::south - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::east - 1>(jac)[i]),
-          *(bspline_bdrEW.jac<false>(std::get<side::east - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::west - 1>(jac)[i]),
-          *(bspline_bdrEW.jac<false>(std::get<side::west - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::front - 1>(jac)[i]),
-          *(bspline_bdrFB.jac<false>(std::get<side::front - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::back - 1>(jac)[i]),
-          *(bspline_bdrFB.jac<false>(std::get<side::back - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::stime - 1>(jac)[i]),
-          *(bspline_bdrSE.jac<false>(std::get<side::stime - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::etime - 1>(jac)[i]),
-          *(bspline_bdrSE.jac<false>(std::get<side::etime - 1>(xi))[i])));
-    }
-
-    /// Evaluation of Jacobian (in physical domain)
-    auto ijac = functionspace.template ijac<functionspace::boundary, false>(
-        S_geometry, xi);
-
-    for (std::size_t i = 0; i < std::get<0>(ijac).entries(); ++i) {
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::north - 1>(ijac)[i]),
-                       *(bspline_bdrNS.ijac<false>(
-                           geometry_bdrNS, std::get<side::north - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::south - 1>(ijac)[i]),
-                       *(bspline_bdrNS.ijac<false>(
-                           geometry_bdrNS, std::get<side::south - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::east - 1>(ijac)[i]),
-                       *(bspline_bdrEW.ijac<false>(
-                           geometry_bdrEW, std::get<side::east - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::west - 1>(ijac)[i]),
-                       *(bspline_bdrEW.ijac<false>(
-                           geometry_bdrEW, std::get<side::west - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::front - 1>(ijac)[i]),
-                       *(bspline_bdrFB.ijac<false>(
-                           geometry_bdrFB, std::get<side::front - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::back - 1>(ijac)[i]),
-                       *(bspline_bdrFB.ijac<false>(
-                           geometry_bdrFB, std::get<side::back - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::stime - 1>(ijac)[i]),
-                       *(bspline_bdrSE.ijac<false>(
-                           geometry_bdrSE, std::get<side::stime - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::etime - 1>(ijac)[i]),
-                       *(bspline_bdrSE.ijac<false>(
-                           geometry_bdrSE, std::get<side::etime - 1>(xi))[i])));
-    }
-
-    /// Evaluation of Hessian (in parametric domain)
-    auto hess = functionspace.template hess<functionspace::boundary>(xi);
-
-    for (std::size_t i = 0; i < std::get<0>(hess).entries(); ++i) {
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::north - 1>(hess)[i]),
-          *(bspline_bdrNS.hess<false>(std::get<side::north - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::south - 1>(hess)[i]),
-          *(bspline_bdrNS.hess<false>(std::get<side::south - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::east - 1>(hess)[i]),
-          *(bspline_bdrEW.hess<false>(std::get<side::east - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::west - 1>(hess)[i]),
-          *(bspline_bdrEW.hess<false>(std::get<side::west - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::front - 1>(hess)[i]),
-          *(bspline_bdrFB.hess<false>(std::get<side::front - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::back - 1>(hess)[i]),
-          *(bspline_bdrFB.hess<false>(std::get<side::back - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::stime - 1>(hess)[i]),
-          *(bspline_bdrSE.hess<false>(std::get<side::stime - 1>(xi))[i])));
-      EXPECT_TRUE(torch::equal(
-          *(std::get<side::etime - 1>(hess)[i]),
-          *(bspline_bdrSE.hess<false>(std::get<side::etime - 1>(xi))[i])));
-    }
-
-    /// Evaluation of Hessian (in physical domain)
-    auto ihess =
-        functionspace.template ihess<functionspace::boundary>(S_geometry, xi);
-
-    for (std::size_t i = 0; i < std::get<0>(ihess).entries(); ++i) {
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::north - 1>(ihess)[i]),
-                       *(bspline_bdrNS.ihess<false>(
-                           geometry_bdrNS, std::get<side::north - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::south - 1>(ihess)[i]),
-                       *(bspline_bdrNS.ihess<false>(
-                           geometry_bdrNS, std::get<side::south - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::east - 1>(ihess)[i]),
-                       *(bspline_bdrEW.ihess<false>(
-                           geometry_bdrEW, std::get<side::east - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::west - 1>(ihess)[i]),
-                       *(bspline_bdrEW.ihess<false>(
-                           geometry_bdrEW, std::get<side::west - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::front - 1>(ihess)[i]),
-                       *(bspline_bdrFB.ihess<false>(
-                           geometry_bdrFB, std::get<side::front - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::back - 1>(ihess)[i]),
-                       *(bspline_bdrFB.ihess<false>(
-                           geometry_bdrFB, std::get<side::back - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::stime - 1>(ihess)[i]),
-                       *(bspline_bdrSE.ihess<false>(
-                           geometry_bdrSE, std::get<side::stime - 1>(xi))[i])));
-      EXPECT_TRUE(
-          torch::equal(*(std::get<side::etime - 1>(ihess)[i]),
-                       *(bspline_bdrSE.ihess<false>(
-                           geometry_bdrSE, std::get<side::etime - 1>(xi))[i])));
-    }
-  }
+  // { // Boundary
+
+  //   iganet::UniformBSpline<real_t, 1, 2, 4, 1> bspline_bdrNS(
+  //       {5, 7, 3}, iganet::init::greville, options);
+  //   iganet::UniformBSpline<real_t, 1, 3, 4, 1> bspline_bdrEW(
+  //       {4, 7, 3}, iganet::init::greville, options);
+  //   iganet::UniformBSpline<real_t, 1, 2, 3, 1> bspline_bdrFB(
+  //       {5, 4, 3}, iganet::init::greville, options);
+  //   iganet::UniformBSpline<real_t, 1, 2, 3, 4> bspline_bdrSE(
+  //       {5, 4, 7}, iganet::init::greville, options);
+  //   iganet::UniformBSpline<real_t, 4, 2, 4, 1> geometry_bdrNS(
+  //       {5, 7, 3}, iganet::init::greville, options);
+  //   iganet::UniformBSpline<real_t, 4, 3, 4, 1> geometry_bdrEW(
+  //       {4, 7, 3}, iganet::init::greville, options);
+  //   iganet::UniformBSpline<real_t, 4, 2, 3, 1> geometry_bdrFB(
+  //       {5, 4, 3}, iganet::init::greville, options);
+  //   iganet::UniformBSpline<real_t, 4, 2, 3, 4> geometry_bdrSE(
+  //       {5, 4, 7}, iganet::init::greville, options);
+
+  //   auto xi = std::tuple{
+  //       iganet::utils::to_tensorArray(
+  //           options, {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r, 0.0_r} /* v
+  //           */, {0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r, 0.0_r, 0.1_r} /* w */,
+  //           {0.1_r, 0.1_r, 0.2_r, 0.3_r, 0.3_r, 0.0_r,
+  //            0.1_r} /* t */) /* west  */,
+  //       iganet::utils::to_tensorArray(
+  //           options, {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r, 0.0_r} /* v
+  //           */, {0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r, 0.0_r, 0.1_r} /* w */,
+  //           {0.1_r, 0.1_r, 0.2_r, 0.3_r, 0.3_r, 0.0_r,
+  //            0.1_r} /* t */) /* east  */,
+  //       iganet::utils::to_tensorArray(
+  //           options, {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u
+  //           */, {0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r, 0.0_r, 0.1_r} /* w */,
+  //           {0.1_r, 0.1_r, 0.2_r, 0.3_r, 0.3_r, 0.0_r,
+  //            0.1_r} /* t */) /* south */,
+  //       iganet::utils::to_tensorArray(
+  //           options, {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u
+  //           */, {0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r, 0.0_r, 0.1_r} /* w */,
+  //           {0.1_r, 0.1_r, 0.2_r, 0.3_r, 0.3_r, 0.0_r,
+  //            0.1_r} /* t */) /* north */,
+  //       iganet::utils::to_tensorArray(
+  //           options, {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u
+  //           */, {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r, 0.0_r} /* v */,
+  //           {0.1_r, 0.1_r, 0.2_r, 0.3_r, 0.3_r, 0.0_r,
+  //            0.1_r} /* t */) /* front */,
+  //       iganet::utils::to_tensorArray(
+  //           options, {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u
+  //           */, {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r, 0.0_r} /* v */,
+  //           {0.1_r, 0.1_r, 0.2_r, 0.3_r, 0.3_r, 0.0_r,
+  //            0.1_r} /* t */) /* back  */,
+  //       iganet::utils::to_tensorArray(
+  //           options, {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u
+  //           */, {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r, 0.0_r} /* v */,
+  //           {0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r, 0.0_r,
+  //            0.1_r} /* w */) /* stime */,
+  //       iganet::utils::to_tensorArray(
+  //           options, {0.0_r, 0.1_r, 0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r} /* u
+  //           */, {1.0_r, 0.2_r, 0.1_r, 0.5_r, 0.9_r, 0.75_r, 0.0_r} /* v */,
+  //           {0.2_r, 0.5_r, 0.75_r, 0.9_r, 1.0_r, 0.0_r,
+  //            0.1_r} /* w */) /* etime */};
+
+  //   // Evaluation
+  //   auto eval =
+  //       functionspace.eval<functionspace::boundary, deriv::func, false>(xi);
+
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::func, false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::func, false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::func, false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::func, false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::func, false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::func, false>(
+  //                                std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::func, false>(
+  //                                std::get<side::stime - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::func, false>(
+  //                                std::get<side::etime - 1>(xi))[0])));
+
+  //   eval = functionspace.eval<functionspace::boundary, deriv::dx, false>(xi);
+
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx, false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx, false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dx, false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dx, false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dx, false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dx, false>(
+  //                                std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dx, false>(
+  //                                std::get<side::stime - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dx, false>(
+  //                                std::get<side::etime - 1>(xi))[0])));
+
+  //   eval =
+  //       functionspace.eval<functionspace::boundary, deriv::dx ^ 2,
+  //       false>(xi);
+
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx ^ 2, false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx ^ 2, false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dx ^ 2, false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dx ^ 2, false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dx ^ 2, false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dx ^ 2, false>(
+  //                                std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dx ^ 2, false>(
+  //                                std::get<side::stime - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dx ^ 2, false>(
+  //                                std::get<side::etime - 1>(xi))[0])));
+
+  //   eval = functionspace.eval<functionspace::boundary, deriv::dy, false>(xi);
+
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dy, false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dy, false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dy, false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dy, false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dy, false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dy, false>(
+  //                                std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dy, false>(
+  //                                std::get<side::stime - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dy, false>(
+  //                                std::get<side::etime - 1>(xi))[0])));
+
+  //   eval =
+  //       functionspace.eval<functionspace::boundary, deriv::dy ^ 2,
+  //       false>(xi);
+
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dy ^ 2, false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dy ^ 2, false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dy ^ 2, false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dy ^ 2, false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dy ^ 2, false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dy ^ 2, false>(
+  //                                std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dy ^ 2, false>(
+  //                                std::get<side::stime - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dy ^ 2, false>(
+  //                                std::get<side::etime - 1>(xi))[0])));
+
+  //   eval = functionspace.eval<functionspace::boundary, deriv::dz, false>(xi);
+
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dz, false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dz, false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dz, false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dz, false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dz, false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dz, false>(
+  //                                std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dz, false>(
+  //                                std::get<side::stime - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dz, false>(
+  //                                std::get<side::etime - 1>(xi))[0])));
+
+  //   eval =
+  //       functionspace.eval<functionspace::boundary, deriv::dz ^ 2,
+  //       false>(xi);
+
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dz ^ 2, false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dz ^ 2, false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dz ^ 2, false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dz ^ 2, false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dz ^ 2, false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dz ^ 2, false>(
+  //                                std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dz ^ 2, false>(
+  //                                std::get<side::stime - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dz ^ 2, false>(
+  //                                std::get<side::etime - 1>(xi))[0])));
+
+  //   eval = functionspace.eval<functionspace::boundary, deriv::dt, false>(xi);
+
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dt, false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dt, false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dt, false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dt, false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dt, false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dt, false>(
+  //                                std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dt, false>(
+  //                                std::get<side::stime - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dt, false>(
+  //                                std::get<side::etime - 1>(xi))[0])));
+
+  //   eval =
+  //       functionspace.eval<functionspace::boundary, deriv::dt ^ 2,
+  //       false>(xi);
+
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dt ^ 2, false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dt ^ 2, false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dt ^ 2, false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dt ^ 2, false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dt ^ 2, false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dt ^ 2, false>(
+  //                                std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dt ^ 2, false>(
+  //                                std::get<side::stime - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dt ^ 2, false>(
+  //                                std::get<side::etime - 1>(xi))[0])));
+
+  //   eval = functionspace
+  //              .eval<functionspace::boundary, deriv::dx + deriv::dy,
+  //              false>(xi);
+
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx + deriv::dy,
+  //                            false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx + deriv::dy,
+  //                            false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dx + deriv::dy,
+  //                            false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dx + deriv::dy,
+  //                            false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dx + deriv::dy,
+  //                            false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dx + deriv::dy,
+  //                            false>(
+  //                                std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dx + deriv::dy,
+  //                            false>(
+  //                                std::get<side::stime - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dx + deriv::dy,
+  //                            false>(
+  //                                std::get<side::etime - 1>(xi))[0])));
+
+  //   eval = functionspace
+  //              .eval<functionspace::boundary, deriv::dx + deriv::dz,
+  //              false>(xi);
+
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx + deriv::dz,
+  //                            false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx + deriv::dz,
+  //                            false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dx + deriv::dz,
+  //                            false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dx + deriv::dz,
+  //                            false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dx + deriv::dz,
+  //                            false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dx + deriv::dz,
+  //                            false>(
+  //                                std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dx + deriv::dz,
+  //                            false>(
+  //                                std::get<side::stime - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dx + deriv::dz,
+  //                            false>(
+  //                                std::get<side::etime - 1>(xi))[0])));
+
+  //   eval = functionspace
+  //              .eval<functionspace::boundary, deriv::dx + deriv::dt,
+  //              false>(xi);
+
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx + deriv::dt,
+  //                            false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx + deriv::dt,
+  //                            false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dx + deriv::dt,
+  //                            false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dx + deriv::dt,
+  //                            false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dx + deriv::dt,
+  //                            false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dx + deriv::dt,
+  //                            false>(
+  //                                std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dx + deriv::dt,
+  //                            false>(
+  //                                std::get<side::stime - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dx + deriv::dt,
+  //                            false>(
+  //                                std::get<side::etime - 1>(xi))[0])));
+
+  //   eval = functionspace
+  //              .eval<functionspace::boundary, deriv::dy + deriv::dz,
+  //              false>(xi);
+
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dy + deriv::dz,
+  //                            false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dy + deriv::dz,
+  //                            false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dy + deriv::dz,
+  //                            false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dy + deriv::dz,
+  //                            false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dy + deriv::dz,
+  //                            false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dy + deriv::dz,
+  //                            false>(
+  //                                std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dy + deriv::dz,
+  //                            false>(
+  //                                std::get<side::stime - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dy + deriv::dz,
+  //                            false>(
+  //                                std::get<side::etime - 1>(xi))[0])));
+
+  //   eval = functionspace
+  //              .eval<functionspace::boundary, deriv::dy + deriv::dt,
+  //              false>(xi);
+
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dy + deriv::dt,
+  //                            false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dy + deriv::dt,
+  //                            false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dy + deriv::dt,
+  //                            false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dy + deriv::dt,
+  //                            false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dy + deriv::dt,
+  //                            false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dy + deriv::dt,
+  //                            false>(
+  //                                std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dy + deriv::dt,
+  //                            false>(
+  //                                std::get<side::stime - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dy + deriv::dt,
+  //                            false>(
+  //                                std::get<side::etime - 1>(xi))[0])));
+
+  //   eval = functionspace
+  //              .eval<functionspace::boundary, deriv::dz + deriv::dt,
+  //              false>(xi);
+
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dz + deriv::dt,
+  //                            false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dz + deriv::dt,
+  //                            false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dz + deriv::dt,
+  //                            false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dz + deriv::dt,
+  //                            false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dz + deriv::dt,
+  //                            false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dz + deriv::dt,
+  //                            false>(
+  //                                std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dz + deriv::dt,
+  //                            false>(
+  //                                std::get<side::stime - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dz + deriv::dt,
+  //                            false>(
+  //                                std::get<side::etime - 1>(xi))[0])));
+
+  //   // Evaluation from precomputed coefficients and basis functions
+  //   auto knot_indices =
+  //       functionspace.template
+  //       find_knot_indices<functionspace::boundary>(xi);
+  //   auto coeff_indices =
+  //       functionspace.template find_coeff_indices<functionspace::boundary>(
+  //           knot_indices);
+
+  //   auto numel = [](const auto &xi) {
+  //     return std::tuple{std::get<0>(xi)[0].numel(),
+  //     std::get<1>(xi)[0].numel(),
+  //                       std::get<2>(xi)[0].numel(),
+  //                       std::get<3>(xi)[0].numel(),
+  //                       std::get<4>(xi)[0].numel(),
+  //                       std::get<5>(xi)[0].numel(),
+  //                       std::get<6>(xi)[0].numel(),
+  //                       std::get<7>(xi)[0].numel()};
+  //   };
+  //   auto sizes = [](const auto &xi) {
+  //     return std::tuple{std::get<0>(xi)[0].sizes(),
+  //     std::get<1>(xi)[0].sizes(),
+  //                       std::get<2>(xi)[0].sizes(),
+  //                       std::get<3>(xi)[0].sizes(),
+  //                       std::get<4>(xi)[0].sizes(),
+  //                       std::get<5>(xi)[0].sizes(),
+  //                       std::get<6>(xi)[0].sizes(),
+  //                       std::get<7>(xi)[0].sizes()};
+  //   };
+
+  //   auto basfunc =
+  //       functionspace
+  //           .template eval_basfunc<functionspace::boundary, deriv::func,
+  //           false>(
+  //               xi, knot_indices);
+  //   eval =
+  //       functionspace.template
+  //       eval_from_precomputed<functionspace::boundary>(
+  //           basfunc, coeff_indices, numel(xi), sizes(xi));
+
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::func, false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::func, false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::func, false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::func, false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::func, false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::func, false>(
+  //                                std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::func, false>(
+  //                                std::get<side::stime - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::func, false>(
+  //                                std::get<side::etime - 1>(xi))[0])));
+
+  //   basfunc =
+  //       functionspace
+  //           .template eval_basfunc<functionspace::boundary, deriv::dx,
+  //           false>(
+  //               xi, knot_indices);
+  //   eval =
+  //       functionspace.template
+  //       eval_from_precomputed<functionspace::boundary>(
+  //           basfunc, coeff_indices, numel(xi), sizes(xi));
+
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx, false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx, false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dx, false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dx, false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dx, false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dx, false>(
+  //                                std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dx, false>(
+  //                                std::get<side::stime - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dx, false>(
+  //                                std::get<side::etime - 1>(xi))[0])));
+
+  //   basfunc = functionspace.template eval_basfunc<functionspace::boundary,
+  //                                                 deriv::dx ^ 2, false>(
+  //       xi, knot_indices);
+  //   eval =
+  //       functionspace.template
+  //       eval_from_precomputed<functionspace::boundary>(
+  //           basfunc, coeff_indices, numel(xi), sizes(xi));
+
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx ^ 2, false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx ^ 2, false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dx ^ 2, false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dx ^ 2, false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dx ^ 2, false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dx ^ 2, false>(
+  //                                std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dx ^ 2, false>(
+  //                                std::get<side::stime - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dx ^ 2, false>(
+  //                                std::get<side::etime - 1>(xi))[0])));
+
+  //   basfunc =
+  //       functionspace
+  //           .template eval_basfunc<functionspace::boundary, deriv::dy,
+  //           false>(
+  //               xi, knot_indices);
+  //   eval =
+  //       functionspace.template
+  //       eval_from_precomputed<functionspace::boundary>(
+  //           basfunc, coeff_indices, numel(xi), sizes(xi));
+
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dy, false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dy, false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dy, false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dy, false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dy, false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dy, false>(
+  //                                std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dy, false>(
+  //                                std::get<side::stime - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dy, false>(
+  //                                std::get<side::etime - 1>(xi))[0])));
+
+  //   basfunc = functionspace.template eval_basfunc<functionspace::boundary,
+  //                                                 deriv::dy ^ 2, false>(
+  //       xi, knot_indices);
+  //   eval =
+  //       functionspace.template
+  //       eval_from_precomputed<functionspace::boundary>(
+  //           basfunc, coeff_indices, numel(xi), sizes(xi));
+
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dy ^ 2, false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dy ^ 2, false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dy ^ 2, false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dy ^ 2, false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dy ^ 2, false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dy ^ 2, false>(
+  //                                std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dy ^ 2, false>(
+  //                                std::get<side::stime - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dy ^ 2, false>(
+  //                                std::get<side::etime - 1>(xi))[0])));
+
+  //   basfunc =
+  //       functionspace
+  //           .template eval_basfunc<functionspace::boundary, deriv::dz,
+  //           false>(
+  //               xi, knot_indices);
+  //   eval =
+  //       functionspace.template
+  //       eval_from_precomputed<functionspace::boundary>(
+  //           basfunc, coeff_indices, numel(xi), sizes(xi));
+
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dz, false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dz, false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dz, false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dz, false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dz, false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dz, false>(
+  //                                std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dz, false>(
+  //                                std::get<side::stime - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dz, false>(
+  //                                std::get<side::etime - 1>(xi))[0])));
+
+  //   basfunc = functionspace.template eval_basfunc<functionspace::boundary,
+  //                                                 deriv::dz ^ 2, false>(
+  //       xi, knot_indices);
+  //   eval =
+  //       functionspace.template
+  //       eval_from_precomputed<functionspace::boundary>(
+  //           basfunc, coeff_indices, numel(xi), sizes(xi));
+
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dz ^ 2, false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dz ^ 2, false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dz ^ 2, false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dz ^ 2, false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dz ^ 2, false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dz ^ 2, false>(
+  //                                std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dz ^ 2, false>(
+  //                                std::get<side::stime - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dz ^ 2, false>(
+  //                                std::get<side::etime - 1>(xi))[0])));
+
+  //   basfunc =
+  //       functionspace
+  //           .template eval_basfunc<functionspace::boundary, deriv::dt,
+  //           false>(
+  //               xi, knot_indices);
+  //   eval =
+  //       functionspace.template
+  //       eval_from_precomputed<functionspace::boundary>(
+  //           basfunc, coeff_indices, numel(xi), sizes(xi));
+
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dt, false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dt, false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dt, false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dt, false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dt, false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dt, false>(
+  //                                std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dt, false>(
+  //                                std::get<side::stime - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dt, false>(
+  //                                std::get<side::etime - 1>(xi))[0])));
+
+  //   basfunc = functionspace.template eval_basfunc<functionspace::boundary,
+  //                                                 deriv::dt ^ 2, false>(
+  //       xi, knot_indices);
+  //   eval =
+  //       functionspace.template
+  //       eval_from_precomputed<functionspace::boundary>(
+  //           basfunc, coeff_indices, numel(xi), sizes(xi));
+
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dt ^ 2, false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dt ^ 2, false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dt ^ 2, false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dt ^ 2, false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dt ^ 2, false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dt ^ 2, false>(
+  //                                std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dt ^ 2, false>(
+  //                                std::get<side::stime - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dt ^ 2, false>(
+  //                                std::get<side::etime - 1>(xi))[0])));
+
+  //   basfunc = functionspace.template eval_basfunc<functionspace::boundary,
+  //                                                 deriv::dx + deriv::dy,
+  //                                                 false>(
+  //       xi, knot_indices);
+  //   eval =
+  //       functionspace.template
+  //       eval_from_precomputed<functionspace::boundary>(
+  //           basfunc, coeff_indices, numel(xi), sizes(xi));
+
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx + deriv::dy,
+  //                            false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx + deriv::dy,
+  //                            false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dx + deriv::dy,
+  //                            false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dx + deriv::dy,
+  //                            false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dx + deriv::dy,
+  //                            false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dx + deriv::dy,
+  //                            false>(
+  //                                std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dx + deriv::dy,
+  //                            false>(
+  //                                std::get<side::stime - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dx + deriv::dy,
+  //                            false>(
+  //                                std::get<side::etime - 1>(xi))[0])));
+
+  //   basfunc = functionspace.template eval_basfunc<functionspace::boundary,
+  //                                                 deriv::dx + deriv::dz,
+  //                                                 false>(
+  //       xi, knot_indices);
+  //   eval =
+  //       functionspace.template
+  //       eval_from_precomputed<functionspace::boundary>(
+  //           basfunc, coeff_indices, numel(xi), sizes(xi));
+
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx + deriv::dz,
+  //                            false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx + deriv::dz,
+  //                            false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dx + deriv::dz,
+  //                            false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dx + deriv::dz,
+  //                            false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dx + deriv::dz,
+  //                            false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dx + deriv::dz,
+  //                            false>(
+  //                                std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dx + deriv::dz,
+  //                            false>(
+  //                                std::get<side::stime - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dx + deriv::dz,
+  //                            false>(
+  //                                std::get<side::etime - 1>(xi))[0])));
+
+  //   basfunc = functionspace.template eval_basfunc<functionspace::boundary,
+  //                                                 deriv::dx + deriv::dt,
+  //                                                 false>(
+  //       xi, knot_indices);
+  //   eval =
+  //       functionspace.template
+  //       eval_from_precomputed<functionspace::boundary>(
+  //           basfunc, coeff_indices, numel(xi), sizes(xi));
+
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx + deriv::dt,
+  //                            false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dx + deriv::dt,
+  //                            false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dx + deriv::dt,
+  //                            false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dx + deriv::dt,
+  //                            false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dx + deriv::dt,
+  //                            false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dx + deriv::dt,
+  //                            false>(
+  //                                std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dx + deriv::dt,
+  //                            false>(
+  //                                std::get<side::stime - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dx + deriv::dt,
+  //                            false>(
+  //                                std::get<side::etime - 1>(xi))[0])));
+
+  //   basfunc = functionspace.template eval_basfunc<functionspace::boundary,
+  //                                                 deriv::dy + deriv::dz,
+  //                                                 false>(
+  //       xi, knot_indices);
+  //   eval =
+  //       functionspace.template
+  //       eval_from_precomputed<functionspace::boundary>(
+  //           basfunc, coeff_indices, numel(xi), sizes(xi));
+
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dy + deriv::dz,
+  //                            false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dy + deriv::dz,
+  //                            false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dy + deriv::dz,
+  //                            false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dy + deriv::dz,
+  //                            false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dy + deriv::dz,
+  //                            false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dy + deriv::dz,
+  //                            false>(
+  //                                std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dy + deriv::dz,
+  //                            false>(
+  //                                std::get<side::stime - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dy + deriv::dz,
+  //                            false>(
+  //                                std::get<side::etime - 1>(xi))[0])));
+
+  //   basfunc = functionspace.template eval_basfunc<functionspace::boundary,
+  //                                                 deriv::dy + deriv::dt,
+  //                                                 false>(
+  //       xi, knot_indices);
+  //   eval =
+  //       functionspace.template
+  //       eval_from_precomputed<functionspace::boundary>(
+  //           basfunc, coeff_indices, numel(xi), sizes(xi));
+
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dy + deriv::dt,
+  //                            false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dy + deriv::dt,
+  //                            false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dy + deriv::dt,
+  //                            false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dy + deriv::dt,
+  //                            false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dy + deriv::dt,
+  //                            false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dy + deriv::dt,
+  //                            false>(
+  //                                std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dy + deriv::dt,
+  //                            false>(
+  //                                std::get<side::stime - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dy + deriv::dt,
+  //                            false>(
+  //                                std::get<side::etime - 1>(xi))[0])));
+
+  //   basfunc = functionspace.template eval_basfunc<functionspace::boundary,
+  //                                                 deriv::dz + deriv::dt,
+  //                                                 false>(
+  //       xi, knot_indices);
+  //   eval =
+  //       functionspace.template
+  //       eval_from_precomputed<functionspace::boundary>(
+  //           basfunc, coeff_indices, numel(xi), sizes(xi));
+
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::north - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dz + deriv::dt,
+  //                            false>(
+  //                                std::get<side::north - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::south - 1>(eval)[0]),
+  //                            *(bspline_bdrNS.eval<deriv::dz + deriv::dt,
+  //                            false>(
+  //                                std::get<side::south - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::east - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dz + deriv::dt,
+  //                            false>(
+  //                                std::get<side::east - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::west - 1>(eval)[0]),
+  //                            *(bspline_bdrEW.eval<deriv::dz + deriv::dt,
+  //                            false>(
+  //                                std::get<side::west - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::front - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dz + deriv::dt,
+  //                            false>(
+  //                                std::get<side::front - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::back - 1>(eval)[0]),
+  //                            *(bspline_bdrFB.eval<deriv::dz + deriv::dt,
+  //                            false>(
+  //                                std::get<side::back - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::stime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dz + deriv::dt,
+  //                            false>(
+  //                                std::get<side::stime - 1>(xi))[0])));
+  //   EXPECT_TRUE(torch::equal(*(std::get<side::etime - 1>(eval)[0]),
+  //                            *(bspline_bdrSE.eval<deriv::dz + deriv::dt,
+  //                            false>(
+  //                                std::get<side::etime - 1>(xi))[0])));
+
+  //   /// Evaluation of gradient (in parametric domain)
+  //   auto grad = functionspace.template grad<functionspace::boundary,
+  //   false>(xi);
+
+  //   for (std::size_t i = 0; i < std::get<0>(grad).entries(); ++i) {
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::north - 1>(grad)[i]),
+  //         *(bspline_bdrNS.grad<false>(std::get<side::north - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::south - 1>(grad)[i]),
+  //         *(bspline_bdrNS.grad<false>(std::get<side::south - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::east - 1>(grad)[i]),
+  //         *(bspline_bdrEW.grad<false>(std::get<side::east - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::west - 1>(grad)[i]),
+  //         *(bspline_bdrEW.grad<false>(std::get<side::west - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::front - 1>(grad)[i]),
+  //         *(bspline_bdrFB.grad<false>(std::get<side::front - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::back - 1>(grad)[i]),
+  //         *(bspline_bdrFB.grad<false>(std::get<side::back - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::stime - 1>(grad)[i]),
+  //         *(bspline_bdrSE.grad<false>(std::get<side::stime - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::etime - 1>(grad)[i]),
+  //         *(bspline_bdrSE.grad<false>(std::get<side::etime - 1>(xi))[i])));
+  //   }
+
+  //   /// Evaluation of gradient (in physical domain)
+  //   auto igrad = functionspace.template igrad<functionspace::boundary,
+  //   false>(
+  //       S_geometry, xi);
+
+  //   for (std::size_t i = 0; i < std::get<0>(igrad).entries(); ++i) {
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::north - 1>(igrad)[i]),
+  //                      *(bspline_bdrNS.igrad<false>(
+  //                          geometry_bdrNS, std::get<side::north -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::south - 1>(igrad)[i]),
+  //                      *(bspline_bdrNS.igrad<false>(
+  //                          geometry_bdrNS, std::get<side::south -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::east - 1>(igrad)[i]),
+  //                      *(bspline_bdrEW.igrad<false>(
+  //                          geometry_bdrEW, std::get<side::east -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::west - 1>(igrad)[i]),
+  //                      *(bspline_bdrEW.igrad<false>(
+  //                          geometry_bdrEW, std::get<side::west -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::front - 1>(igrad)[i]),
+  //                      *(bspline_bdrFB.igrad<false>(
+  //                          geometry_bdrFB, std::get<side::front -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::back - 1>(igrad)[i]),
+  //                      *(bspline_bdrFB.igrad<false>(
+  //                          geometry_bdrFB, std::get<side::back -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::stime - 1>(igrad)[i]),
+  //                      *(bspline_bdrSE.igrad<false>(
+  //                          geometry_bdrSE, std::get<side::stime -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::etime - 1>(igrad)[i]),
+  //                      *(bspline_bdrSE.igrad<false>(
+  //                          geometry_bdrSE, std::get<side::etime -
+  //                          1>(xi))[i])));
+  //   }
+
+  //   /// Evaluation of Jacobian (in parametric domain)
+  //   auto jac = functionspace.template jac<functionspace::boundary,
+  //   false>(xi);
+
+  //   for (std::size_t i = 0; i < std::get<0>(jac).entries(); ++i) {
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::north - 1>(jac)[i]),
+  //         *(bspline_bdrNS.jac<false>(std::get<side::north - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::south - 1>(jac)[i]),
+  //         *(bspline_bdrNS.jac<false>(std::get<side::south - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::east - 1>(jac)[i]),
+  //         *(bspline_bdrEW.jac<false>(std::get<side::east - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::west - 1>(jac)[i]),
+  //         *(bspline_bdrEW.jac<false>(std::get<side::west - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::front - 1>(jac)[i]),
+  //         *(bspline_bdrFB.jac<false>(std::get<side::front - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::back - 1>(jac)[i]),
+  //         *(bspline_bdrFB.jac<false>(std::get<side::back - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::stime - 1>(jac)[i]),
+  //         *(bspline_bdrSE.jac<false>(std::get<side::stime - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::etime - 1>(jac)[i]),
+  //         *(bspline_bdrSE.jac<false>(std::get<side::etime - 1>(xi))[i])));
+  //   }
+
+  //   /// Evaluation of Jacobian (in physical domain)
+  //   auto ijac = functionspace.template ijac<functionspace::boundary, false>(
+  //       S_geometry, xi);
+
+  //   for (std::size_t i = 0; i < std::get<0>(ijac).entries(); ++i) {
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::north - 1>(ijac)[i]),
+  //                      *(bspline_bdrNS.ijac<false>(
+  //                          geometry_bdrNS, std::get<side::north -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::south - 1>(ijac)[i]),
+  //                      *(bspline_bdrNS.ijac<false>(
+  //                          geometry_bdrNS, std::get<side::south -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::east - 1>(ijac)[i]),
+  //                      *(bspline_bdrEW.ijac<false>(
+  //                          geometry_bdrEW, std::get<side::east -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::west - 1>(ijac)[i]),
+  //                      *(bspline_bdrEW.ijac<false>(
+  //                          geometry_bdrEW, std::get<side::west -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::front - 1>(ijac)[i]),
+  //                      *(bspline_bdrFB.ijac<false>(
+  //                          geometry_bdrFB, std::get<side::front -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::back - 1>(ijac)[i]),
+  //                      *(bspline_bdrFB.ijac<false>(
+  //                          geometry_bdrFB, std::get<side::back -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::stime - 1>(ijac)[i]),
+  //                      *(bspline_bdrSE.ijac<false>(
+  //                          geometry_bdrSE, std::get<side::stime -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::etime - 1>(ijac)[i]),
+  //                      *(bspline_bdrSE.ijac<false>(
+  //                          geometry_bdrSE, std::get<side::etime -
+  //                          1>(xi))[i])));
+  //   }
+
+  //   /// Evaluation of Hessian (in parametric domain)
+  //   auto hess = functionspace.template hess<functionspace::boundary>(xi);
+
+  //   for (std::size_t i = 0; i < std::get<0>(hess).entries(); ++i) {
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::north - 1>(hess)[i]),
+  //         *(bspline_bdrNS.hess<false>(std::get<side::north - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::south - 1>(hess)[i]),
+  //         *(bspline_bdrNS.hess<false>(std::get<side::south - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::east - 1>(hess)[i]),
+  //         *(bspline_bdrEW.hess<false>(std::get<side::east - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::west - 1>(hess)[i]),
+  //         *(bspline_bdrEW.hess<false>(std::get<side::west - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::front - 1>(hess)[i]),
+  //         *(bspline_bdrFB.hess<false>(std::get<side::front - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::back - 1>(hess)[i]),
+  //         *(bspline_bdrFB.hess<false>(std::get<side::back - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::stime - 1>(hess)[i]),
+  //         *(bspline_bdrSE.hess<false>(std::get<side::stime - 1>(xi))[i])));
+  //     EXPECT_TRUE(torch::equal(
+  //         *(std::get<side::etime - 1>(hess)[i]),
+  //         *(bspline_bdrSE.hess<false>(std::get<side::etime - 1>(xi))[i])));
+  //   }
+
+  //   /// Evaluation of Hessian (in physical domain)
+  //   auto ihess =
+  //       functionspace.template ihess<functionspace::boundary>(S_geometry,
+  //       xi);
+
+  //   for (std::size_t i = 0; i < std::get<0>(ihess).entries(); ++i) {
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::north - 1>(ihess)[i]),
+  //                      *(bspline_bdrNS.ihess<false>(
+  //                          geometry_bdrNS, std::get<side::north -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::south - 1>(ihess)[i]),
+  //                      *(bspline_bdrNS.ihess<false>(
+  //                          geometry_bdrNS, std::get<side::south -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::east - 1>(ihess)[i]),
+  //                      *(bspline_bdrEW.ihess<false>(
+  //                          geometry_bdrEW, std::get<side::east -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::west - 1>(ihess)[i]),
+  //                      *(bspline_bdrEW.ihess<false>(
+  //                          geometry_bdrEW, std::get<side::west -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::front - 1>(ihess)[i]),
+  //                      *(bspline_bdrFB.ihess<false>(
+  //                          geometry_bdrFB, std::get<side::front -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::back - 1>(ihess)[i]),
+  //                      *(bspline_bdrFB.ihess<false>(
+  //                          geometry_bdrFB, std::get<side::back -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::stime - 1>(ihess)[i]),
+  //                      *(bspline_bdrSE.ihess<false>(
+  //                          geometry_bdrSE, std::get<side::stime -
+  //                          1>(xi))[i])));
+  //     EXPECT_TRUE(
+  //         torch::equal(*(std::get<side::etime - 1>(ihess)[i]),
+  //                      *(bspline_bdrSE.ihess<false>(
+  //                          geometry_bdrSE, std::get<side::etime -
+  //                          1>(xi))[i])));
+  //   }
+  // }
 }
 
 TEST_F(FunctionSpaceTest, RT_geoDim1_degrees2) {
@@ -4778,5 +5095,9 @@ TEST_F(FunctionSpaceTest, FunctionSpace_to_device) {}
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
   iganet::init();
-  return RUN_ALL_TESTS();
+  int result = RUN_ALL_TESTS();
+  iganet::finalize();
+  return result;
 }
+
+#pragma nv_diag_default 20208

@@ -16,6 +16,8 @@
 
 #include <GismoPdeModel.hpp>
 
+using namespace std::string_literals;
+
 namespace iganet {
 
 namespace webapp {
@@ -30,89 +32,48 @@ private:
   /// @brief Base class
   using Base = GismoPdeModel<d, T>;
 
-  /// @brief Type of the geometry mapping
-  using geometryMap_type = typename gsExprAssembler<T>::geometryMap;
-
-  /// @brief Type of the variable
-  using variable_type = typename gsExprAssembler<T>::variable;
-
-  /// @brief Type of the function space
-  using space_type = typename gsExprAssembler<T>::space;
-
-  /// @brief Type of the solution
-  using solution_type = typename gsExprAssembler<T>::solution;
-
   /// @brief Multi-patch basis
-  gsMultiBasis<T> basis_;
+  gismo::gsMultiBasis<T> basis_;
 
   /// @brief Boundary conditions
-  gsBoundaryConditions<T> bc_;
+  gismo::gsBoundaryConditions<T> bc_;
 
-  /// @brief Right-hand side values
-  gsFunctionExpr<T> rhsFunc_;
+  /// @brief Right-hand side function
+  gismo::gsFunctionExpr<T> rhsFunc_;
+  gismo::gsFunctionExpr<T> loadFunc_;
 
-  /// @brief Right-hand side function defined on parametric domain (default
-  /// false)
-  bool rhsFuncParametric_;
-
-  /// @brief Boundary values
-  std::array<gsFunctionExpr<T>, 2 * d> bcFunc_;
-
-  /// @brief Boundary values defined on parametric domain (default false)
-  std::array<bool, 2 * d> bcFuncParametric_;
+  /// @brief Boundary condition values
+  std::array<gismo::gsFunctionExpr<T>, 2 * d> bcFunc_;
 
   /// @brief Boundary condition type
   std::array<gismo::condition_type::type, 2 * d> bcType_;
 
-  /// @brief Expression assembler
-  gsExprAssembler<T> assembler_;
-
-  /// @brief Solution
-  gsMultiPatch<T> solution_;
-
   /// @brief Young's modulus
-  T E_;
+  T YoungsModulus_;
 
-  /// Poisson's ratio
-  T nu_;
+  /// @brief Poisson's ratio
+  T PoissonsRatio_;
 
   /// @brief Solve the Linear elasticity problem
   void solve() {
 
-    // Set up expression assembler
-    auto G = assembler_.getMap(Base::geo_);
-    auto u = assembler_.getSpace(basis_, d);
-    auto v = u; // just for distinction of test/trial funs
-    auto f = assembler_.getCoeff(rhsFunc_, G);
+    // Setup assembler
+    gismo::gsElasticityAssembler<T> assembler(Base::geo_, basis_, bc_, rhsFunc_);
+    assembler.options().setReal("YoungsModulus", YoungsModulus_);
+    assembler.options().setReal("PoissonsRatio", PoissonsRatio_);
+    assembler.options().setInt("MaterialLaw", gismo::material_law::hooke);
+    assembler.options().setInt("DirichletStrategy", gismo::dirichlet::elimination);
 
-    // Impose boundary conditions
-    u.setup(bc_, gismo::dirichlet::l2Projection, 0);
-
-    // Lame coefficients
-    T mu = 0.5 * E_ / (1.0 + nu_);
-    T lambda = E_ * nu_ / ((1.0 + nu_) * (1.0 - 2.0 * nu_));
-
-    // Set up system
-    assembler_.initSystem();
-    assembler_.assemble(
-        0.5 * mu * meas(G) * (ijac(v, G) + ijac(v, G).cwisetr()) %
-                (ijac(u, G) + ijac(u, G).cwisetr()).tr() +
-            lambda * meas(G) *
-                (ijac(v, G).trace() * ijac(u, G).trace().tr()) // matrix
-        ,
-        u * (f - G) * meas(G) // rhs vector
-    );
+    // Initialize assembler
+    assembler.assemble();
 
     // Solve system
-    typename gismo::gsSparseSolver<T>::CGDiagonal solver;
-    solver.compute(assembler_.matrix());
-
-    gsMatrix<T> solutionVector;
-    solution_type solution = assembler_.getSolution(u, solutionVector);
-    solutionVector = solver.solve(assembler_.rhs());
+    typename gismo::gsSparseSolver<T>::CGDiagonal solver(assembler.matrix());
+    gismo::gsMatrix<T> solution(solver.solve(assembler.rhs()));
 
     // Extract solution
-    solution.extract(solution_);
+    assembler.constructSolution(solution, assembler.allFixedDofs(),
+                                Base::solution_);
   }
 
 public:
@@ -122,56 +83,33 @@ public:
   /// @brief Constructor for equidistant knot vectors
   GismoLinearElasticityModel(const std::array<short_t, d> degrees,
                              const std::array<int64_t, d> ncoeffs,
-                             const std::array<int64_t, d> npatches)
-      : Base(degrees, ncoeffs, npatches), basis_(Base::geo_, true),
-        rhsFunc_("0", "0", d), assembler_(1, 1), E_(2.1e5), nu_(0.29) {
-    // Specify assembler options
-    gsOptionList Aopt;
+                             const std::array<int64_t, d> npatches,
+                             const std::array<T, d> dimensions)
+      : Base(degrees, ncoeffs, npatches, dimensions), basis_(Base::geo_, true),
+        YoungsModulus_(210e9), PoissonsRatio_(0.3), rhsFunc_("0", "0", "0", 3),
+        loadFunc_("0", "0", "-1e5", 3) {
 
-    Aopt.addInt("DirichletStrategy",
-                "Method for enforcement of Dirichlet BCs [11..14]", 11);
-    Aopt.addInt("DirichletValues",
-                "Method for computation of Dirichlet DoF values [100..103]",
-                101);
-    Aopt.addInt("InterfaceStrategy",
-                "Method of treatment of patch interfaces [0..3]", 1);
-    Aopt.addReal(
-        "bdA", "Estimated nonzeros per column of the matrix: bdA*deg + bdB", 2);
-    Aopt.addInt(
-        "bdB", "Estimated nonzeros per column of the matrix: bdA*deg + bdB", 1);
-    Aopt.addReal(
-        "bdO",
-        "Overhead of sparse mem. allocation: (1+bdO)(bdA*deg + bdB) [0..1]",
-        0.333);
-    Aopt.addReal("quA", "Number of quadrature points: quA*deg + quB", 1);
-    Aopt.addInt("quB", "Number of quadrature points: quA*deg + quB", 1);
-    Aopt.addInt("quRule", "Quadrature rule [1:GaussLegendre, 2:GaussLobatto]",
-                1);
-
-    // Set assembler options
-    assembler_.setOptions(Aopt);
-
-    // Set assembler basis
-    assembler_.setIntegrationElements(basis_);
-
-    // Set boundary conditions
-    for (short_t i = 0; i < 2 * d; ++i) {
-      if constexpr (d == 1)
-        bcFunc_[i] = gismo::give(gsFunctionExpr<T>("0", 1));
-      else if constexpr (d == 2)
-        bcFunc_[i] = gismo::give(gsFunctionExpr<T>("0", "0", 2));
-      else if constexpr (d == 3)
-        bcFunc_[i] = gismo::give(gsFunctionExpr<T>("0", "0", "0", 3));
-      else if constexpr (d == 4)
-        bcFunc_[i] = gismo::give(gsFunctionExpr<T>("0", "0", "0", "0", 4));
-
-      bc_.addCondition(i + 1, gismo::condition_type::dirichlet, &bcFunc_[i]);
+    // Set boundary conditions type and expression
+    for (const auto &side : GismoBoundarySides<d>) {
+      bcType_[side - 1] = gismo::condition_type::unknownType;
+      bcFunc_[side - 1] = gismo::give(gismo::gsFunctionExpr<T>("0", "0", "0", 3));
+      // bc_.addCondition(0, side, bcType_[side - 1], &bcFunc_[side - 1]);
     }
+
+    bc_.addCondition(0, gismo::boundary::west, gismo::condition_type::dirichlet,
+                     nullptr, 0);
+    bc_.addCondition(0, gismo::boundary::west, gismo::condition_type::dirichlet,
+                     nullptr, 1);
+    bc_.addCondition(0, gismo::boundary::west, gismo::condition_type::dirichlet,
+                     nullptr, 2);
+
+    bc_.addCondition(0, gismo::boundary::east, gismo::condition_type::neumann,
+                     &loadFunc_);
 
     // Set geometry
     bc_.setGeoMap(Base::geo_);
 
-    // Generate solution
+    // Regenerate solution
     solve();
   }
 
@@ -189,337 +127,121 @@ public:
            " dimensions";
   };
 
+  /// @brief Returns the model's options
+  nlohmann::json getOptions() const override {
+
+    nlohmann::json json = Base::getOptions();
+
+    return json;
+  }
+
   /// @brief Returns the model's outputs
   nlohmann::json getOutputs() const override {
-    return R"([{
-           "name" : "Solution",
-           "description" : "Solution of the linear elasticity equation",
+    auto json = R"([{
+           "name" : "Displacement",
+           "description" : "Displament magnitude",
+           "type" : 1},{
+           "name" : "Displacement_x",
+           "description" : "Displacement x-component",
+           "type" : 1},{
+           "name" : "Displacement_y",
+           "description" : "Displacement x-component",
+           "type" : 1},{
+           "name" : "Displacement_z",
+           "description" : "Displacement z-component",
            "type" : 1}])"_json;
+
+    for (auto const &output : Base::getOutputs())
+      json.push_back(output);
+
+    return json;
   }
 
   /// @brief Returns the model's parameters
   nlohmann::json getParameters() const override {
 
-    if constexpr (d == 1)
-      return R"([{
-         "name" : "E",
-         "description" : "Young's modulus",
-             "type" : "float",
-             "value" : "2.1e5",
-             "default" : "2.1e5",
-             "uiid" : 0},{
-         "name" : "nu",
-         "description" : "Poisson's ratio",
-             "type" : "float",
-             "value" : "0.29",
-             "default" : "0.29",
-             "uiid" : 1},{
-         "name" : "bc_east",
-         "description" : "Boundary condition at the east boundary",
-             "type" : "text",
-             "value" : "0",
-             "default" : "0",
-             "uiid" : 2},{
-         "name" : "bc_west",
-         "description" : "Boundary condition at the west boundary",
-             "type" : "text",
-             "value" : "0",
-             "default" : "0",
-             "uiid" : 3},{
-         "name" : "rhs",
-         "description" : "Right-hand side function",
-             "type" : "text",
-             "value" : "0",
-             "default" : "0",
-             "uiid" : 4}])"_json;
-    else if constexpr (d == 2)
-      return R"([{
-         "name" : "E",
-         "description" : "Young's modulus",
-             "type" : "float",
-             "value" : "2.1e5",
-             "default" : "2.1e5",
-             "uiid" : 0},{
-         "name" : "nu",
-         "description" : "Poisson's ratio",
-             "type" : "float",
-             "value" : "0.29",
-             "default" : "0.29",
-             "uiid" : 1},{
-         "name" : "bc_north",
-         "description" : "Boundary condition at the north boundary",
-             "type" : "text",
-             "value" : "0",
-             "default" : "0",
-             "uiid" : 2},{
-         "name" : "bc_east",
-         "description" : "Boundary condition at the east boundary",
-             "type" : "text",
-             "value" : "0",
-             "default" : "0",
-             "uiid" : 3},{
-         "name" : "bc_south",
-         "description" : "Boundary condition at the south boundary",
-             "type" : "text",
-             "value" : "0",
-             "default" : "0",
-             "uiid" : 4},{
-         "name" : "bc_west",
-         "description" : "Boundary condition at the west boundary",
-             "type" : "text",
-             "value" : "0",
-             "default" : "0",
-             "uiid" : 5},{
-         "name" : "rhs",
-         "description" : "Right-hand side function",
-             "type" : "text",
-             "value" : "0",
-             "default" : "0",
-             "uiid" : 6}])"_json;
-    else if constexpr (d == 3)
-      return R"([{
-         "name" : "E",
-         "description" : "Young's modulus",
-             "type" : "float",
-             "value" : "2.1e5",
-             "default" : "2.1e5",
-             "uiid" : 0},{
-         "name" : "nu",
-         "description" : "Poisson's ratio",
-             "type" : "float",
-             "value" : "0.29",
-             "default" : "0.29",
-             "uiid" : 1},{
-         "name" : "bc_north",
-         "description" : "Boundary condition at the north boundary",
-             "type" : "text",
-             "value" : "0",
-             "default" : "0",
-             "uiid" : 2},{
-         "name" : "bc_east",
-         "description" : "Boundary condition at the east boundary",
-             "type" : "text",
-             "value" : "0",
-             "default" : "0",
-             "uiid" : 3},{
-         "name" : "bc_south",
-         "description" : "Boundary condition at the south boundary",
-             "type" : "text",
-             "value" : "0",
-             "default" : "0",
-             "uiid" : 4},{
-         "name" : "bc_west",
-         "description" : "Boundary condition at the west boundary",
-             "type" : "text",
-             "value" : "0",
-             "default" : "0",
-             "uiid" : 5},{
-         "name" : "bc_front",
-         "description" : "Boundary condition at the front boundary",
-             "type" : "text",
-             "value" : "0",
-             "default" : "0",
-             "uiid" : 6},{
-         "name" : "bc_back",
-         "description" : "Boundary condition at the back boundary",
-             "type" : "text",
-             "value" : "0",
-             "default" : "0",
-             "uiid" : 7},{
-         "name" : "rhs",
-         "description" : "Right-hand side function",
-             "type" : "text",
-             "value" : "0",
-             "default" : "0",
-             "uiid" : 8}])"_json;
-    else if constexpr (d == 4)
-      return R"([{
-         "name" : "E",
-         "description" : "Young's modulus",
-             "type" : "float",
-             "value" : "2.1e5",
-             "default" : "2.1e5",
-             "uiid" : 0},{
-         "name" : "nu",
-         "description" : "Poisson's ratio",
-             "type" : "float",
-             "value" : "0.29",
-             "default" : "0.29",
-             "uiid" : 1},{
-         "name" : "bc_north",
-         "description" : "Boundary condition at the north boundary",
-             "type" : "text",
-             "value" : "0",
-             "default" : "0",
-             "uiid" : 2},{
-         "name" : "bc_east",
-         "description" : "Boundary condition at the east boundary",
-             "type" : "text",
-             "value" : "0",
-             "default" : "0",
-             "uiid" : 3},{
-         "name" : "bc_south",
-         "description" : "Boundary condition at the south boundary",
-             "type" : "text",
-             "value" : "0",
-             "default" : "0",
-             "uiid" : 4},{
-         "name" : "bc_west",
-         "description" : "Boundary condition at the west boundary",
-             "type" : "text",
-             "value" : "0",
-             "default" : "0",
-             "uiid" : 5},{
-         "name" : "bc_front",
-         "description" : "Boundary condition at the front boundary",
-             "type" : "text",
-             "value" : "0",
-             "default" : "0",
-             "uiid" : 6},{
-         "name" : "bc_back",
-         "description" : "Boundary condition at the back boundary",
-             "type" : "text",
-             "value" : "0",
-             "default" : "0",
-             "uiid" : 7},{
-         "name" : "bc_stime",
-         "description" : "Boundary condition at the start-time boundary",
-             "type" : "text",
-             "value" : "0",
-             "default" : "0",
-             "uiid" : 8},{
-         "name" : "bc_etime",
-         "description" : "Boundary condition at the end-time boundary",
-             "type" : "text",
-             "value" : "0",
-             "default" : "0",
-             "uiid" : 9},{
-         "name" : "rhs",
-         "description" : "Right-hand side function",
-             "type" : "text",
-             "value" : "0",
-             "default" : "0",
-             "uiid" : 10}])"_json;
-    else
-      return R"({ INVALID REQUEST })"_json;
+    auto json = nlohmann::json::array();
+    int uiid = 0;
+
+    // Lambda expression to add a JSON entry
+    auto add_json = [&json, &uiid]<typename Type, typename Value>(
+                        const std::string &name, const std::string &label,
+                        const std::string &group,
+                        const std::string &description, const Type &type,
+                        const Value &value) {
+      nlohmann::json item;
+      item["name"] = name;
+      item["label"] = label;
+      item["description"] = description;
+      item["group"] = group;
+      item["type"] = type;
+      item["value"] = value;
+      item["default"] = value;
+      item["uuid"] = uiid++;
+      json.push_back(item);
+    };
+
+    // Lambda expression to add a JSON entry with different default type
+    auto add_json_default =
+        [&json, &uiid]<typename Type, typename Value, typename DefaultValue>(
+            const std::string &name, const std::string &label,
+            const std::string &group, const std::string &description,
+            const Type &type, const Value &value,
+            const DefaultValue &defaultValue) {
+          nlohmann::json item;
+          item["name"] = name;
+          item["label"] = label;
+          item["description"] = description;
+          item["group"] = group;
+          item["type"] = type;
+          item["value"] = value;
+          item["default"] = defaultValue;
+          item["uuid"] = uiid++;
+          json.push_back(item);
+        };
+
+    add_json("YoungModulus", "Young", "", "Young's modulus", "float",
+             YoungsModulus_);
+    add_json("PoissonRatio", "Poisson", "", "Poisson's ratio", "float",
+             PoissonsRatio_);
+
+    //    add_json("rhs", "Right-hand side function",
+    //             std::vector<std::string>{"text", "text", "text"},
+    //             std::vector<std::string>{rhsFunc_.expression(0),
+    //                                      rhsFunc_.expression(1),
+    //                                      rhsFunc_.expression(2)});
+
+    return json;
   }
 
   /// @brief Updates the attributes of the model
-  nlohmann::json updateAttribute(const std::string &component,
+  nlohmann::json updateAttribute(const std::string &patch,
+                                 const std::string &component,
                                  const std::string &attribute,
                                  const nlohmann::json &json) override {
 
     nlohmann::json result = R"({})"_json;
 
-    if (attribute == "E") {
+    if (attribute == "YoungModulus") {
       if (!json.contains("data"))
         throw InvalidModelAttributeException();
-      if (!json["data"].contains("E"))
+      if (!json["data"].contains("YoungModulus"))
         throw InvalidModelAttributeException();
 
-      E_ = json["data"]["E"].get<T>();
+      YoungsModulus_ = json["data"]["YoungModulus"].get<T>();
     }
 
-    else if (attribute == "nu") {
+    else if (attribute == "PoissonRatio") {
       if (!json.contains("data"))
         throw InvalidModelAttributeException();
-      if (!json["data"].contains("nu"))
+      if (!json["data"].contains("PoissonRatio"))
         throw InvalidModelAttributeException();
 
-      nu_ = json["data"]["nu"].get<T>();
-    }
-
-    else if (attribute == "bc_north") {
-      if (!json.contains("data"))
-        throw InvalidModelAttributeException();
-      if (!json["data"].contains("bc_north"))
-        throw InvalidModelAttributeException();
-
-      bcFunc_[gismo::boundary::north] =
-          gsFunctionExpr<T>(json["data"]["bc_north"].get<std::string>(), d);
-    }
-
-    else if (attribute == "bc_east") {
-      if (!json.contains("data"))
-        throw InvalidModelAttributeException();
-      if (!json["data"].contains("bc_east"))
-        throw InvalidModelAttributeException();
-
-      bcFunc_[gismo::boundary::east] =
-          gsFunctionExpr<T>(json["data"]["bc_east"].get<std::string>(), d);
-    }
-
-    else if (attribute == "bc_south") {
-      if (!json.contains("data"))
-        throw InvalidModelAttributeException();
-      if (!json["data"].contains("bc_south"))
-        throw InvalidModelAttributeException();
-
-      bcFunc_[gismo::boundary::south] =
-          gsFunctionExpr<T>(json["data"]["bc_south"].get<std::string>(), d);
-    }
-
-    else if (attribute == "bc_west") {
-      if (!json.contains("data"))
-        throw InvalidModelAttributeException();
-      if (!json["data"].contains("bc_west"))
-        throw InvalidModelAttributeException();
-
-      bcFunc_[gismo::boundary::west] =
-          gsFunctionExpr<T>(json["data"]["bc_west"].get<std::string>(), d);
-    }
-
-    else if (attribute == "bc_front") {
-      if (!json.contains("data"))
-        throw InvalidModelAttributeException();
-      if (!json["data"].contains("bc_front"))
-        throw InvalidModelAttributeException();
-
-      bcFunc_[gismo::boundary::front] =
-          gsFunctionExpr<T>(json["data"]["bc_front"].get<std::string>(), d);
-    }
-
-    else if (attribute == "bc_back") {
-      if (!json.contains("data"))
-        throw InvalidModelAttributeException();
-      if (!json["data"].contains("bc_back"))
-        throw InvalidModelAttributeException();
-
-      bcFunc_[gismo::boundary::back] =
-          gsFunctionExpr<T>(json["data"]["bc_back"].get<std::string>(), d);
-    }
-
-    else if (attribute == "bc_stime") {
-      if (!json.contains("data"))
-        throw InvalidModelAttributeException();
-      if (!json["data"].contains("bc_stime"))
-        throw InvalidModelAttributeException();
-
-      bcFunc_[gismo::boundary::stime] =
-          gsFunctionExpr<T>(json["data"]["bc_stime"].get<std::string>(), d);
-    }
-
-    else if (attribute == "bc_etime") {
-      if (!json.contains("data"))
-        throw InvalidModelAttributeException();
-      if (!json["data"].contains("bc_etime"))
-        throw InvalidModelAttributeException();
-
-      bcFunc_[gismo::boundary::etime] =
-          gsFunctionExpr<T>(json["data"]["bc_etime"].get<std::string>(), d);
-    }
-
-    else if (attribute == "rhs") {
-      if (!json.contains("data"))
-        throw InvalidModelAttributeException();
-      if (!json["data"].contains("rhs"))
-        throw InvalidModelAttributeException();
-
-      rhsFunc_ = gsFunctionExpr<T>(json["data"]["rhs"].get<std::string>(), d);
+      PoissonsRatio_ = json["data"]["PoissonRatio"].get<T>();
     }
 
     else
-      result = Base::updateAttribute(component, attribute, json);
+      result = Base::updateAttribute(patch, component, attribute, json);
 
     // Solve updated problem
     solve();
@@ -528,15 +250,24 @@ public:
   }
 
   /// @brief Evaluates the model
-  nlohmann::json eval(const std::string &component,
+  nlohmann::json eval(const std::string &patch, const std::string &component,
                       const nlohmann::json &json) const override {
 
-    // Create uniform grid
-    gsMatrix<T> ab = Base::geo_.patch(0).support();
-    gsVector<T> a = ab.col(0);
-    gsVector<T> b = ab.col(1);
+    int patchIndex(-1);
 
-    gsVector<unsigned> np(Base::geo_.parDim());
+    try {
+      patchIndex = stoi(patch);
+    } catch (...) {
+      // Invalid patchIndex
+      return R"({ INVALID REQUEST })"_json;
+    }
+    
+    // Create uniform grid
+    gismo::gsMatrix<T> ab = Base::geo_.patch(patchIndex).support();
+    gismo::gsVector<T> a = ab.col(0);
+    gismo::gsVector<T> b = ab.col(1);
+
+    gismo::gsVector<unsigned> np(Base::geo_.parDim());
     np.setConstant(25);
 
     if (json.contains("data"))
@@ -548,14 +279,25 @@ public:
       }
 
     // Uniform parameters for evaluation
-    gsMatrix<T> pts = gsPointGrid(a, b, np);
-    gsMatrix<T> eval = solution_.patch(0).eval(pts);
+    gismo::gsMatrix<T> pts = gismo::gsPointGrid(a, b, np);
+    gismo::gsMatrix<T> eval = Base::solution_.patch(patchIndex).eval(pts);
 
-    gsMatrix<T> result = eval.colwise().norm();
+    if (component == "Displacement") {
+      gismo::gsMatrix<T> result = eval.colwise().norm();
+      return utils::to_json(result, true, false);
+    } else if (component == "Displacement_x") {
+      gismo::gsMatrix<T> result = eval.row(0);
+      return utils::to_json(result, true, false);
+    } else if (component == "Displacement_y") {
+      gismo::gsMatrix<T> result = eval.row(1);
+      return utils::to_json(result, true, false);
+    } else if (component == "Displacement_z") {
+      gismo::gsMatrix<T> result = eval.row(2);
+      return utils::to_json(result, true, false);
+    }
 
-    std::cout << eval.norm() << std::endl;
-
-    return utils::to_json(result, true);
+    else
+      return Base::eval(patch, component, json);
   }
 
   /// @brief Elevates the model's degrees, preserves smoothness
@@ -575,7 +317,7 @@ public:
       bc_.setGeoMap(Base::geo_);
     }
 
-    int num = 1, dim = -1;
+    int num(1), dim(-1), patchIndex(-1);
 
     if (json.contains("data")) {
       if (json["data"].contains("num"))
@@ -583,15 +325,18 @@ public:
 
       if (json["data"].contains("dim"))
         dim = json["data"]["dim"].get<int>();
+
+      if (json["data"].contains("patch"))
+        patchIndex = json["data"]["patch"].get<int>();
     }
 
     // Degree elevate basis of solution space
-    basis_.basis(0).degreeElevate(num, dim);
+    if (patchIndex == -1)
+      basis_.degreeElevate(num, dim);
+    else
+      basis_.basis(patchIndex).degreeElevate(num, dim);
 
-    // Set assembler basis
-    assembler_.setIntegrationElements(basis_);
-
-    // Generate solution
+    // Regenerate solution
     solve();
   }
 
@@ -612,7 +357,7 @@ public:
       bc_.setGeoMap(Base::geo_);
     }
 
-    int num = 1, dim = -1;
+    int num(1), dim(-1), patchIndex(-1);
 
     if (json.contains("data")) {
       if (json["data"].contains("num"))
@@ -620,15 +365,18 @@ public:
 
       if (json["data"].contains("dim"))
         dim = json["data"]["dim"].get<int>();
+
+      if (json["data"].contains("patch"))
+        patchIndex = json["data"]["patch"].get<int>();
     }
 
     // Degree increase basis of solution space
-    basis_.basis(0).degreeIncrease(num, dim);
+    if (patchIndex == -1)
+      basis_.degreeIncrease(num, dim);
+    else
+      basis_.basis(patchIndex).degreeIncrease(num, dim);
 
-    // Set assembler basis
-    assembler_.setIntegrationElements(basis_);
-
-    // Generate solution
+    // Regenerate solution
     solve();
   }
 
@@ -649,7 +397,7 @@ public:
       bc_.setGeoMap(Base::geo_);
     }
 
-    int num = 1, dim = -1;
+    int num(1), dim(-1), patchIndex(-1);
 
     if (json.contains("data")) {
       if (json["data"].contains("num"))
@@ -657,15 +405,58 @@ public:
 
       if (json["data"].contains("dim"))
         dim = json["data"]["dim"].get<int>();
+
+      if (json["data"].contains("patch"))
+        patchIndex = json["data"]["patch"].get<int>();
     }
 
     // Refine basis of solution space
-    basis_.basis(0).uniformRefine(num, 1, dim);
+    if (patchIndex == -1)
+      basis_.uniformRefine(num, 1, dim);
+    else
+      basis_.basis(patchIndex).uniformRefine(num, 1, dim);
 
-    // Set assembler basis
-    assembler_.setIntegrationElements(basis_);
+    // Regenerate solution
+    solve();
+  }
 
-    // Generate solution
+  /// @brief Add new patch to the model
+  void addPatch(const nlohmann::json &json = NULL) override {
+
+    // Add patch from geometry
+    Base::addPatch(json);
+
+    // Set geometry
+    bc_.setGeoMap(Base::geo_);
+    
+    throw std::runtime_error("Adding patches is not yet implemented in G+Smo");
+
+    // Regenerate solution
+    solve();
+  }
+  
+  /// @brief Remove existing patch from the model
+  void removePatch(const nlohmann::json &json = NULL) override {
+
+    // Remove patch from geometry
+    Base::removePatch(json);
+
+    // Set geometry
+    bc_.setGeoMap(Base::geo_);
+    
+    int patchIndex(-1);
+
+    if (json.contains("data")) {      
+      if (json["data"].contains("patch"))
+        patchIndex = json["data"]["patch"].get<int>();
+    }
+
+    // if (patchIndex == -1)
+    //   throw std::runtime_error("Invalid patch index");
+
+    // throw std::runtime_error("Patch removal is not yet implemented in G+Smo");
+
+    // Regenerate solution
     solve();
   }
 };

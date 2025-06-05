@@ -14,17 +14,29 @@ repos:
   rev: "v4.4.0"
   hooks:
   - id: check-added-large-files
+    exclude: 'perftests/results/.*\.txt$'
   - id: check-case-conflict
+    exclude: 'perftests/results/.*\.txt$'
   - id: check-docstring-first
+    exclude: 'perftests/results/.*\.txt$'
   - id: check-merge-conflict
+    exclude: 'perftests/results/.*\.txt$'
   - id: check-symlinks
+    exclude: 'perftests/results/.*\.txt$'
   - id: check-toml
+    exclude: 'perftests/results/.*\.txt$'
   - id: check-yaml
+    exclude: 'perftests/results/.*\.txt$'
   - id: debug-statements
+    exclude: 'perftests/results/.*\.txt$'
   - id: end-of-file-fixer
+    exclude: 'perftests/results/.*\.txt$'
   - id: mixed-line-ending
+    exclude: 'perftests/results/.*\.txt$'
   - id: requirements-txt-fixer
+    exclude: 'perftests/results/.*\.txt$'
   - id: trailing-whitespace
+    exclude: 'perftests/results/.*\.txt$'
 
 - repo: https://github.com/asottile/pyupgrade
   rev: "v3.4.0"

@@ -52,7 +52,8 @@ jobs:
             c_compiler: gcc
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout Repository
+      uses: actions/checkout@v4
 
     - name: Set reusable strings
       # Turn repeated input strings (such as the build output directory) into step outputs. These step outputs can be used throughout the workflow file.
@@ -64,21 +65,21 @@ jobs:
     - name: Install PyTorch - Linux
       if: matrix.os == 'ubuntu-latest'
       run: >
-        wget https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.3.0%2Bcpu.zip -O libtorch.zip &&
+        wget https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.5.1%2Bcpu.zip -O libtorch.zip &&
         unzip libtorch.zip -d $HOME &&
         rm -f libtorch.zip
 
     - name: Install PyTorch - MacOS
       if: matrix.os == 'macos-latest'
       run: >
-        wget https://download.pytorch.org/libtorch/cpu/libtorch-macos-arm64-2.3.0.zip -O libtorch.zip &&
+        wget https://download.pytorch.org/libtorch/cpu/libtorch-macos-arm64-2.5.1.zip -O libtorch.zip &&
         unzip libtorch.zip -d $HOME &&
         rm -f libtorch.zip
 
     - name: Install PyTorch - Windows
       if: matrix.os == 'windows-latest'
       run: >
-        Invoke-WebRequest -Uri "https://download.pytorch.org/libtorch/cpu/libtorch-win-shared-with-deps-2.3.0%2Bcpu.zip" -OutFile libtorch.zip;
+        Invoke-WebRequest -Uri "https://download.pytorch.org/libtorch/cpu/libtorch-win-shared-with-deps-2.5.1%2Bcpu.zip" -OutFile libtorch.zip;
         Expand-Archive -Path libtorch.zip -DestinationPath C:\;
         Remove-Item -Path "libtorch.zip" -Force
 
@@ -98,6 +99,7 @@ jobs:
         -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
         -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        -DIGANET_BUILD_UNITTESTS=ON
         -DTorch_DIR=$HOME/libtorch/share/cmake/Torch
         -S ${{ github.workspace }}
 
@@ -110,6 +112,7 @@ jobs:
         -DCMAKE_CXX_COMPILER=clang++-17
         -DCMAKE_C_COMPILER=clang-17
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        -DIGANET_BUILD_UNITTESTS=ON
         -DTorch_DIR=$HOME/libtorch/share/cmake/Torch
         -DIGANET_WITH_OPENMP=OFF
         -S ${{ github.workspace }}
@@ -123,6 +126,7 @@ jobs:
         -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
         -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        -DIGANET_BUILD_UNITTESTS=ON
         -DTorch_DIR=$HOME/libtorch/share/cmake/Torch
         -DIGANET_WITH_OPENMP=OFF
         -S ${{ github.workspace }}

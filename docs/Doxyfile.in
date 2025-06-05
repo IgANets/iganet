@@ -940,6 +940,7 @@ WARN_LOGFILE           =
 # Note: If this tag is empty the current directory is searched.
 
 INPUT                  = @PROJECT_SOURCE_DIR@/docs/README.md \
+                         @PROJECT_SOURCE_DIR@/docs \
                          @PROJECT_SOURCE_DIR@/include \
                          @PROJECT_SOURCE_DIR@/examples/README.md \
                          @PROJECT_SOURCE_DIR@/examples \
@@ -993,7 +994,8 @@ FILE_PATTERNS          = *.c \
                          *.cpp \
                          *.cxx \
                          *.h \
-                         *.hpp
+                         *.hpp \
+                         *.md
 
 # The RECURSIVE tag can be used to specify whether or not subdirectories should
 # be searched for input files as well.
@@ -1040,7 +1042,13 @@ EXCLUDE_SYMBOLS        =
 # that contain example code fragments that are included (see the \include
 # command).
 
-EXAMPLE_PATH           = @PROJECT_SOURCE_DIR@/examples
+EXAMPLE_PATH           = @PROJECT_SOURCE_DIR@/docs \
+                         @PROJECT_SOURCE_DIR@/include \
+                         @PROJECT_SOURCE_DIR@/examples \
+                         @PROJECT_SOURCE_DIR@/perftests \
+                         @PROJECT_SOURCE_DIR@/unittests \
+                         @PROJECT_SOURCE_DIR@/webapps \
+                         @PROJECT_SOURCE_DIR@/webapps/models
 
 # If the value of the EXAMPLE_PATH tag contains directories, you can use the
 # EXAMPLE_PATTERNS tag to specify one or more wildcard pattern (like *.cpp and

@@ -2,7 +2,7 @@
 # CMakeLists.txt
 #
 # Author: Matthias Moller
-# Copyright (C) 2021-2023 by the IgANet authors
+# Copyright (C) 2021-2025 by the IgANet authors
 #
 # This file is part of the IgANet project
 #
@@ -23,6 +23,10 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.hpp.in
 ########################################################################
 if(IGANET_BUILD_PCH AND NOT WIN32 AND NOT ${CMAKE_VERSION} VERSION_LESS "3.16.0")
   file(GLOB HEADERS *.hpp ${CMAKE_CURRENT_BINARY_DIR}/*.hpp)
+
+  if (NOT IGANET_BUILD_CPUONLY AND CMAKE_CUDA_COMPILER)
+    set_source_files_properties(.iganet_pch.cxx PROPERTIES LANGUAGE CUDA)
+  endif()
 
   add_executable(iganet_pch .iganet_pch.cxx iganet.h ${HEADERS})
   target_link_libraries(iganet_pch PUBLIC ${TORCH_LIBRARIES})

@@ -3,7 +3,7 @@
 IgANets is a novel approach to combine the concept of deep operator
 learning with the mathematical framework of isogeometric analysis.
 
-## Compilation instructions
+## Installation instructions
 
 IgANets require a C++17 compiler, CMake and LibTorch (the C++ API of
 PyTorch).
@@ -23,7 +23,7 @@ By providing additional CMake flags you can configure IgANet to build the follow
 
 - `-DIGANET_BUILD_PERFTESTS=ON` builds the performance tests (default `OFF`).
 
-- `-DIGANET_BUILD_PYIGANET=ON` builds the Python module `pyiganet` (default `OFF`). This option requires a Python interpreter to be installed on your system.
+- `-DIGANET_BUILD_PYTHON=ON` builds the Python module `pyiganet` (default `OFF`). This option requires a Python interpreter to be installed on your system.
 
 - `-DIGANET_BUILD_UNITTESTS=ON` builds the unit tests (default `OFF`).
 
@@ -41,19 +41,28 @@ In addition to the optional components, IgANets can be compiled with several opt
 
 1.  Install prerequisites (CMake and LibTorch)
 
-    - Ubuntu
+    #### Ubuntu
       ```shell
       apt-get install build-essential cmake unzip wget
       ```
 
-    - RedHat
+    #### RedHat
       ```shell
       yum install make cmake gcc gcc-c++ unzip wget
       ```
 
-    Install LibTorch
+    #### Install LibTorch
+
+    Pre-compiled versions of LibTorch are available at [PyTorch.org](https://pytorch.org/get-started/locally/). Depending on your compiler toolchain you need to choose between the pre-cxx11 and the cxx11 ABI, i.e.
+
     ```shell
-    wget https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.2.0%2Bcpu.zip -O libtorch.zip
+    wget https://download.pytorch.org/libtorch/cpu/libtorch-shared-with-deps-2.4.1%2Bcpu.zip -O libtorch.zip
+    unzip libtorch.zip -d $HOME/
+    rm -f libtorch
+    ```
+    or
+    ```shell
+    wget https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.4.1%2Bcpu.zip -O libtorch.zip
     unzip libtorch.zip -d $HOME/
     rm -f libtorch
     ```
@@ -79,14 +88,14 @@ In addition to the optional components, IgANets can be compiled with several opt
 
     Note that since version 2.2.0, official builds of the LibTorch library for ARM64 and X86_64 can be downloaded from PyTorch.org:
 
-    - https://download.pytorch.org/libtorch/cpu/libtorch-macos-x86_64-2.2.0.zip
-    - https://download.pytorch.org/libtorch/cpu/libtorch-macos-arm64-2.2.0.zip
+    - https://download.pytorch.org/libtorch/cpu/libtorch-macos-x86_64-2.4.1.zip
+    - https://download.pytorch.org/libtorch/cpu/libtorch-macos-arm64-2.4.1.zip
 
-    If you decide to use these version download and unzip them as shown for the Linux installation.
+    If you decide to use these version download and unzip them as shown for the Linux installation. It is, however, recommended to install LibTorch through `brew` as described above since this method is tested regularly by the IgANets authors.
 
 2.  Configure
     ```shell
-    cmake .. -DTorch_DIR=-DTorch_DIR=/opt/homebrew/Cellar/pytorch/2.1.2_1/share/cmake/Torch -DCMAKE_PREFIX_PATH=/opt/homebrew/Cellar/protobuf/25.2
+    CMAKE_PREFIX_PATH=/opt/homebrew/Cellar/protobuf/28.2/share/protobuf cmake .. -DTorch_DIR=/opt/homebrew/Cellar/pytorch/2.4.1/share/cmake/Torch
     ```
 
     Note that the specific version of PyTorch and/or protobuf might be different on your system.
@@ -98,35 +107,45 @@ In addition to the optional components, IgANets can be compiled with several opt
 
     Depending on the number of cores of your CPU you may want to change 8 to a different number.
 
-## Compilation with CUDA support
+## Compilation with CUDA support (only Linux)
 
 1.  Install the CUDA-enabled version of LibTorch
 
-    - https://download.pytorch.org/libtorch/cu121/libtorch-shared-with-deps-2.2.0%2Bcu121.zip
-
-    - https://download.pytorch.org/libtorch/cu121/libtorch-cxx11-abi-shared-with-deps-2.2.0%2Bcu121.zip
+    - https://download.pytorch.org/libtorch/cu121/libtorch-shared-with-deps-2.4.1%2Bcu121.zip
+    - https://download.pytorch.org/libtorch/cu121/libtorch-cxx11-abi-shared-with-deps-2.4.1%2Bcu121.zip
 
     Note that the version must be compatible with the CUDA version installed on your system.
 
-## Compilation with ROCm support
+2. Configure and compile
+
+   All further steps are the same as described above (Linux)
+
+## Compilation with ROCm support (only Linux)
 
 1.  Install the ROCm-enabled version of LibTorch
 
-    - https://download.pytorch.org/libtorch/rocm5.7/libtorch-shared-with-deps-2.2.0%2Brocm5.7.zip
-    - https://download.pytorch.org/libtorch/rocm5.7/libtorch-cxx11-abi-shared-with-deps-2.2.0%2Brocm5.7.zip
+    - https://download.pytorch.org/libtorch/rocm6.1/libtorch-shared-with-deps-2.4.1%2Brocm6.1.zip
+    - https://download.pytorch.org/libtorch/rocm6.1/libtorch-cxx11-abi-shared-with-deps-2.4.1%2Brocm6.1.zip
 
     Note that the version must be compatible with the ROCm version installed on your system.
 
 2.  Configure
     ```shell
-    CC=hipcc CXX=hipcc cmake .. -DTorch_DIR=$HOME/sfw/libtorch/2.2.0-latest-rocm57/share/cmake/Torch/ -DHIP_ROOT_DIR=/opt/rocm/hip -DIGANET_BUILD_PCH=OFF
+    CC=hipcc CXX=hipcc cmake .. -DTorch_DIR=$HOME/sfw/libtorch/2.4.1-latest-rocm61/share/cmake/Torch/ -DHIP_ROOT_DIR=/opt/rocm/hip -DIGANET_BUILD_PCH=OFF
     ```
 
     Note that the `HIP_ROOT_DIR` might be different on your system. Also note that building with precompiled headers does not work with the `hipcc` compiler so it must be disabled.
 
-## Compilation with Intel Extensions for PyTorch support
+3. Compile
 
-### Linux
+   ```shell
+   make
+   ```
+
+   Depending on the number of cores of your CPU you may want to change 8 to a different number.
+
+
+## Compilation with Intel Extensions for PyTorch support (Linux only)
 
 1.  Install the Intel Extensions for PyTorch as described [here](https://github.com/intel/intel-extension-for-pytorch?tab=readme-ov-file).
 

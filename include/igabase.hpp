@@ -76,17 +76,18 @@ protected:
 private:
   /// @brief Constructor: number of spline coefficients (different for Geometry
   /// and Variable types)
-  template <typename... GeometryMapSplines, size_t... Is,
-            typename... VariableSplines, size_t... Js>
+  template <std::size_t... GeometryMapNumCoeffs, size_t... Is,
+            std::size_t... VariableNumCoeffs, size_t... Js>
   IgABaseNoRefData(
-      std::tuple<GeometryMapSplines...> geometryMap_splines,
+      std::tuple<std::array<int64_t, GeometryMapNumCoeffs>...>
+          geometryMapNumCoeffs,
       std::index_sequence<Is...>,
-      std::tuple<VariableSplines...> variable_splines,
+      std::tuple<std::array<int64_t, VariableNumCoeffs>...> variableNumCoeffs,
       std::index_sequence<Js...>,
       iganet::Options<value_type> options = iganet::Options<value_type>{})
       : // Construct the different spline objects individually
-        G_(std::get<Is>(geometryMap_splines)..., init::greville, options),
-        u_(std::get<Js>(variable_splines)..., init::random, options) {}
+        G_(std::get<Is>(geometryMapNumCoeffs)..., init::greville, options),
+        u_(std::get<Js>(variableNumCoeffs)..., init::random, options) {}
 
 public:
   /// @brief Default constructor
@@ -96,24 +97,45 @@ public:
 
   /// @brief Constructor: number of spline coefficients (same for geometry map
   /// and variables)
-  template <typename... Splines>
+  /// @{
+  template <std::size_t NumCoeffs>
   IgABaseNoRefData(
-      std::tuple<Splines...> splines,
+      std::array<int64_t, NumCoeffs> ncoeffs,
       iganet::Options<value_type> options = iganet::Options<value_type>{})
-      : IgABaseNoRefData(splines, splines, options) {}
+      : IgABaseNoRefData(std::tuple{ncoeffs}, std::tuple{ncoeffs}, options) {}
+
+  template <std::size_t... NumCoeffs>
+  IgABaseNoRefData(
+      std::tuple<std::array<int64_t, NumCoeffs>...> ncoeffs,
+      iganet::Options<value_type> options = iganet::Options<value_type>{})
+      : IgABaseNoRefData(ncoeffs, ncoeffs, options) {}
+  /// @}
 
   /// @brief Constructor: number of spline coefficients (different for
   /// geometry map and variables)
-  template <typename... GeometryMapSplines, typename... VariableSplines>
+  /// @{
+  template <std::size_t GeometryMapNumCoeffs, std::size_t VariableNumCoeffs>
   IgABaseNoRefData(
-      std::tuple<GeometryMapSplines...> geometryMap_splines,
-      std::tuple<VariableSplines...> variable_splines,
+      std::array<int64_t, GeometryMapNumCoeffs> geometryMapNumCoeffs,
+      std::array<int64_t, VariableNumCoeffs> variableNumCoeffs,
+      iganet::Options<value_type> options = iganet::Options<value_type>{})
+      : IgABaseNoRefData(std::tuple{geometryMapNumCoeffs},
+                         std::tuple{variableNumCoeffs}, options) {}
+
+  template <std::size_t... GeometryMapNumCoeffs,
+            std::size_t... VariableNumCoeffs>
+  IgABaseNoRefData(
+      std::tuple<std::array<int64_t, GeometryMapNumCoeffs>...>
+          geometryMapNumCoeffs,
+      std::tuple<std::array<int64_t, VariableNumCoeffs>...> variableNumCoeffs,
       iganet::Options<value_type> options = iganet::Options<value_type>{})
       : IgABaseNoRefData(
-            geometryMap_splines,
-            std::make_index_sequence<sizeof...(GeometryMapSplines)>{},
-            variable_splines,
-            std::make_index_sequence<sizeof...(VariableSplines)>{}, options) {}
+            geometryMapNumCoeffs,
+            std::make_index_sequence<sizeof...(GeometryMapNumCoeffs)>{},
+            variableNumCoeffs,
+            std::make_index_sequence<sizeof...(VariableNumCoeffs)>{}, options) {
+  }
+  /// @}
 
   /// @brief Returns a constant reference to the spline
   /// representation of the geometry map
@@ -467,16 +489,18 @@ protected:
 private:
   /// @brief Constructor: number of spline coefficients (different for Geometry
   /// and Variable types)
-  template <typename... GeometryMapSplines, size_t... Is,
-            typename... VariableSplines, size_t... Js>
-  IgABase(std::tuple<GeometryMapSplines...> geometryMap_splines,
-          std::index_sequence<Is...>,
-          std::tuple<VariableSplines...> variable_splines,
-          std::index_sequence<Js...>,
-          iganet::Options<value_type> options = iganet::Options<value_type>{})
+  template <std::size_t... GeometryMapNumCoeffs, size_t... Is,
+            std::size_t... VariableNumCoeffs, size_t... Js>
+  IgABase(
+      std::tuple<std::array<int64_t, GeometryMapNumCoeffs>...>
+          geometryMapNumCoeffs,
+      std::index_sequence<Is...>,
+      std::tuple<std::array<int64_t, VariableNumCoeffs>...> variableNumCoeffs,
+      std::index_sequence<Js...>,
+      iganet::Options<value_type> options = iganet::Options<value_type>{})
       : // Construct the different spline objects individually
-        Base(geometryMap_splines, variable_splines, options),
-        f_(std::get<Js>(variable_splines)..., init::zeros, options) {}
+        Base(geometryMapNumCoeffs, variableNumCoeffs, options),
+        f_(std::get<Js>(variableNumCoeffs)..., init::zeros, options) {}
 
 public:
   /// @brief Default constructor
@@ -486,22 +510,41 @@ public:
 
   /// @brief Constructor: number of spline coefficients (same for geometry map
   /// and variables)
-  template <typename... Splines>
-  IgABase(std::tuple<Splines...> splines,
+  /// @{
+  template <size_t NumCoeffs>
+  IgABase(std::array<int64_t, NumCoeffs> ncoeffs,
           iganet::Options<value_type> options = iganet::Options<value_type>{})
-      : IgABase(splines, splines, options) {}
+      : IgABase(std::tuple{ncoeffs}, std::tuple{ncoeffs}, options) {}
+
+  template <size_t... NumCoeffs>
+  IgABase(std::tuple<std::array<int64_t, NumCoeffs>...> ncoeffs,
+          iganet::Options<value_type> options = iganet::Options<value_type>{})
+      : IgABase(ncoeffs, ncoeffs, options) {}
+  /// @}
 
   /// @brief Constructor: number of spline coefficients (different for
   /// geometry map and variables)
-  template <typename... GeometryMapSplines, typename... VariableSplines>
-  IgABase(std::tuple<GeometryMapSplines...> geometryMap_splines,
-          std::tuple<VariableSplines...> variable_splines,
+  /// @{
+  template <std::size_t GeometryMapNumCoeffs, std::size_t VariableNumCoeffs>
+  IgABase(std::array<int64_t, GeometryMapNumCoeffs> geometryMapNumCoeffs,
+          std::array<int64_t, VariableNumCoeffs> variableNumCoeffs,
           iganet::Options<value_type> options = iganet::Options<value_type>{})
-      : IgABase(geometryMap_splines,
-                std::make_index_sequence<sizeof...(GeometryMapSplines)>{},
-                variable_splines,
-                std::make_index_sequence<sizeof...(VariableSplines)>{},
+      : IgABase(std::tuple{geometryMapNumCoeffs}, std::tuple{variableNumCoeffs},
                 options) {}
+
+  template <std::size_t... GeometryMapNumCoeffs,
+            std::size_t... VariableNumCoeffs>
+  IgABase(
+      std::tuple<std::array<int64_t, GeometryMapNumCoeffs>...>
+          geometryMapNumCoeffs,
+      std::tuple<std::array<int64_t, VariableNumCoeffs>...> variableNumCoeffs,
+      iganet::Options<value_type> options = iganet::Options<value_type>{})
+      : IgABase(geometryMapNumCoeffs,
+                std::make_index_sequence<sizeof...(GeometryMapNumCoeffs)>{},
+                variableNumCoeffs,
+                std::make_index_sequence<sizeof...(VariableNumCoeffs)>{},
+                options) {}
+  /// @}
 
   /// @brief Returns a constant reference to the spline
   /// representation of the reference data

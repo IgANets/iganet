@@ -20,9 +20,9 @@ namespace iganet {
 
 /// @brief Computes the Mobius transformation
 template <typename T>
-inline void mobiusTransform(const gsAsConstVector<T> &c,
-                            const gsVector<T, 2> &uv, gsVector<T, 2> &xieta,
-                            gsMatrix<T, 2, 2> &jac) {
+inline void mobiusTransform(const gismo::gsAsConstVector<T> &c,
+                            const gismo::gsVector<T, 2> &uv, gismo::gsVector<T, 2> &xieta,
+                            gismo::gsMatrix<T, 2, 2> &jac) {
   T s = uv(0), t = uv(1);
   T alpha_1 = c(0), alpha_2 = c(1), beta_1 = c(2), beta_2 = c(3);
 
@@ -48,7 +48,7 @@ inline void mobiusTransform(const gsAsConstVector<T> &c,
 }
 
 /// @brief Objective function for surface reparameterization
-template <typename T> class gsObjFuncSurface : public gsOptProblem<T> {
+  template <typename T> class gsObjFuncSurface : public gismo::gsOptProblem<T> {
 
 private:
   typedef typename gismo::gsExprAssembler<T>::geometryMap geometryMap;
@@ -65,21 +65,21 @@ public:
     gismo::gsMatrix<T> bbox;
     m_mp.boundingBox(bbox);
     m_mp.patch(0).translate(-bbox.col(0));
-    gsVector<T> scaleFactor = bbox.col(1) - bbox.col(0);
+    gismo::gsVector<T> scaleFactor = bbox.col(1) - bbox.col(0);
     for (int i = 0; i != scaleFactor.size(); ++i) {
       if (abs(scaleFactor(i)) < 1e-5)
         scaleFactor(i) = (T)(1.0);
     }
     m_mp.patch(0).scale(1 / scaleFactor.array());
 
-    //    const gsBasis<T> & tbasis = m_mp.basis(0); // basis(u,v) -> deriv will
-    //    give dphi/du ,dphi/dv const gsGeometry<T> & tgeom = m_mp.patch(0);
+    //    const gismo::gsBasis<T> & tbasis = m_mp.basis(0); // basis(u,v) -> deriv will
+    //    give dphi/du ,dphi/dv const gismo::gsGeometry<T> & tgeom = m_mp.patch(0);
     //    //G(u,v) -> deriv will give dG/du, dG/dv
     //    // The basis is composed by the square domain
-    //    gsComposedBasis<T> cbasis(mobiusDomain, tbasis); // basis(u,v) =
+    //    gismo::gsComposedBasis<T> cbasis(mobiusDomain, tbasis); // basis(u,v) =
     //    basis(sigma(xi,eta)) -> deriv will give dphi/dxi, dphi/deta
     //
-    //    gsMultiBasis<T> mbasis(cbasis);
+    //    gismo::gsMultiBasis<T> mbasis(cbasis);
 
     gismo::gsComposedGeometry<T> cgeom(m_MobiusDomain, m_mp.patch(0));
 
@@ -93,7 +93,7 @@ public:
 
     //    m_evaluator.setIntegrationElements( mbasis );
     //    geometryMap G = m_evaluator.getMap(  );
-    //    gsDebugVar( m_evaluator.integral(meas(G)) );
+    //    gismo::gsDebugVar( m_evaluator.integral(meas(G)) );
   }
 
   /// @brief Evaluates the objective function
@@ -101,7 +101,7 @@ public:
 
     m_MobiusDomain.updateGeom(coefsM);
 
-    //  gsComposedGeometry<real_t> cgeom(mobiusDomain, tgeom); // G(u,v) =
+    //  gismo::gsComposedGeometry<real_t> cgeom(mobiusDomain, tgeom); // G(u,v) =
     //  G(sigma(xi,eta))  -> deriv will give dG/dxi, dG/deta
     gismo::gsComposedGeometry<> cgeom(m_MobiusDomain, m_mp.patch(0));
 
@@ -113,7 +113,7 @@ public:
     geometryMap G = m_evaluator.getMap(cgeom);
     auto FFF = gismo::expr::jac(G).tr() * gismo::expr::jac(G);
 
-    gsVector<> pt(2);
+    gismo::gsVector<> pt(2);
     pt.setConstant(0.5);
 
     auto m_integration = (FFF.trace() / gismo::expr::meas(G)).val() +
@@ -122,30 +122,30 @@ public:
     //  FFF.det().val(); auto m_integration = pow(FFF.det().val(), 2); T val =
     //  m_evaluator.integral(m_integration);
 
-    //  gsMatrix<T> uv;
+    //  gismo::gsMatrix<T> uv;
     //  getSamplingPts(51, m_mp, uv);
-    ////  gsDebugVar(uv);
+    ////  gismo::gsDebugVar(uv);
     ////  T val = (m_evaluator.eval(m_integration, uv))/51;
     ////  auto val1 = m_evaluator.eval(m_integration, uv);
     //  T val1 = 0;
     //  for (int i = 0; i < uv.cols(); ++i) {
     //    val1 += m_evaluator.eval(m_integration, uv.col(i)).value();
     //  }
-    ////  gsDebugVar( m_evaluator.eval(m_integration, uv.col(88)).value() );
+    ////  gismo::gsDebugVar( m_evaluator.eval(m_integration, uv.col(88)).value() );
     //  //  T val = val1.sum()/51;
     //  T val = val1/51/51;
 
-    //  gsDebugVar(val);
+    //  gismo::gsDebugVar(val);
 
     //  m_evaluator.integral(meas(G));
     //  T val = 0;
     //
-    //  gsMatrix<T> uv;
+    //  gismo::gsMatrix<T> uv;
     //  getSamplingPts(51, m_mp, uv);
     //
-    //  gsVector<T,2> tempUV, xieta;
-    //  gsMatrix<T,2,2> jacUV, jac2;
-    //  gsMatrix<T,2,3> jacXIETA, jac;
+    //  gismo::gsVector<T,2> tempUV, xieta;
+    //  gismo::gsMatrix<T,2,2> jacUV, jac2;
+    //  gismo::gsMatrix<T,2,3> jacXIETA, jac;
     //  for (auto ipt=0;  ipt != uv.cols(); ++ipt) {
     //    // map sigma
     //    tempUV = uv.col(ipt);
@@ -209,12 +209,12 @@ public:
 
   /// @brief Adds an option to the option list
   void addOptions(const gismo::gsOptionList &options) {
-    m_options.update(options, gsOptionList::addIfUnknown);
+    m_options.update(options, gismo::gsOptionList::addIfUnknown);
   }
 
   /// @brief Applies an option list
   void applyOptions(const gismo::gsOptionList &options) {
-    m_options.update(options, gsOptionList::addIfUnknown);
+    m_options.update(options, gismo::gsOptionList::addIfUnknown);
     m_lambda1 = m_options.getReal("qi_lambda1");
     m_lambda2 = m_options.getReal("qi_lambda2");
     m_evaluator.options().update(m_options, gismo::gsOptionList::addIfUnknown);
@@ -239,21 +239,21 @@ protected:
 
 /// @brief Converts a matrix of coefficients into a multi-patch B-spline object
 template <typename T>
-gsMultiPatch<T> convertIntoBSpline(const gsMultiPatch<T> &mp,
-                                   const gsMatrix<T> &coefsMobiusIn) {
-  gsMultiPatch<T> result;
+gismo::gsMultiPatch<T> convertIntoBSpline(const gismo::gsMultiPatch<T> &mp,
+                                          const gismo::gsMatrix<T> &coefsMobiusIn) {
+  gismo::gsMultiPatch<T> result;
 
   for (int ipatch = 0; ipatch < mp.nPatches(); ++ipatch) {
 
-    gsMatrix<T> uv =
-        gsPointGrid(mp.parameterRange(0), mp.patch(ipatch).basis().size() * 4);
+    gismo::gsMatrix<T> uv =
+      gismo::gsPointGrid(mp.parameterRange(0), mp.patch(ipatch).basis().size() * 4);
 
-    gsVector<T, 2> tempUV, xieta;
-    gsMatrix<T> eval_geo;
+    gismo::gsVector<T, 2> tempUV, xieta;
+    gismo::gsMatrix<T> eval_geo;
     eval_geo.resize(3, uv.cols());
-    gsMatrix<T, 2, 2> jacUV;
+    gismo::gsMatrix<T, 2, 2> jacUV;
 
-    gsAsConstVector<T> coefsMobius(coefsMobiusIn.data(), 4);
+    gismo::gsAsConstVector<T> coefsMobius(coefsMobiusIn.data(), 4);
 
     for (size_t ipt = 0; ipt != uv.cols(); ++ipt) {
       // map sigma
@@ -264,9 +264,9 @@ gsMultiPatch<T> convertIntoBSpline(const gsMultiPatch<T> &mp,
       eval_geo.col(ipt) = mp.patch(ipatch).eval(xieta);
     }
 
-    gsTensorBSplineBasis<2, T> bbasis =
-        static_cast<gsTensorBSplineBasis<2, T> &>(mp.patch(ipatch).basis());
-    gsFitting<> fittingSurface(uv, eval_geo, bbasis);
+    gismo::gsTensorBSplineBasis<2, T> bbasis =
+      static_cast<gismo::gsTensorBSplineBasis<2, T> &>(mp.patch(ipatch).basis());
+    gismo::gsFitting<> fittingSurface(uv, eval_geo, bbasis);
     fittingSurface.compute();
     // fittingSurface.parameterCorrection();
 

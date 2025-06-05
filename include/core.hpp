@@ -38,9 +38,25 @@
 #include <torch/csrc/api/include/torch/types.h>
 #include <torch/torch.h>
 
+#ifdef __CUDACC__
+#include <c10/cuda/CUDACachingAllocator.h>
+#include <c10/cuda/CUDAFunctions.h>
+#endif
+
+#ifdef __HIPCC__
+#include <c10/hip/HIPCachingAllocator.h>
+#include <c10/hip/HIPFunctions.h>
+#endif
+
 #ifdef IGANET_WITH_GISMO
 #include <gismo.h>
-#include <gsNurbs/gsMobiusDomain.h>
+#include <gsModeling/gsSurfaceReparameterization.h>
+
+#ifdef gsElasticity_ENABLED
+#include <gsElasticity/src/gsElasticityAssembler.h>
+#include <gsElasticity/src/gsGeoUtils.h>
+#include <gsElasticity/src/gsMassAssembler.h>
+#endif
 #endif
 
 #undef real_t
@@ -76,7 +92,7 @@ inline int64_t operator""_i64(unsigned long long value) { return value; };
 } // namespace literals
 
 //  clang-format off
-/// @brief Enumerator for specifying the initialization of B-spline coefficients
+/// @brief Enumerator for specifying the logging level
 enum class log : short_t {
   none = 0,    /*!< no logging */
   fatal = 1,   /*!< log fatal errors */
@@ -156,6 +172,606 @@ public:
   }
 } Log;
 
+/// @brief Return a human-readable printout of the current memory allocator
+/// statistics for a given device
+inline std::string memory_summary(c10::DeviceIndex device =
+#ifdef __CUDACC__
+                                      c10::cuda::current_device()
+#elif __HIPCC__
+                                      c10::hip::current_device()
+#else
+                                      0
+#endif
+) {
+
+  std::ostringstream os;
+
+#if defined(__CUDACC__) || defined(__HIPCC__)
+
+  auto _format_size = [](int64_t bytes) -> std::string {
+    if (bytes == 0)
+      return "0 B";
+
+    std::array<std::string, 6> prefixes{"B", "KiB", "MiB", "GiB", "TiB", "PiB"};
+    int64_t n = std::floor(std::max(0.0, std::log2(static_cast<double>(bytes) /
+                                                   static_cast<double>(768))) /
+                           static_cast<double>(10));
+
+    return std::to_string((int64_t)(bytes / std::pow(1024, n))) + " " +
+           prefixes[n];
+  };
+
+#if TORCH_VERSION_MAJOR > 2 ||                                                 \
+    (TORCH_VERSION_MAJOR == 2 && TORCH_VERSION_MINOR > 4)
+  using namespace c10::CachingDeviceAllocator;
+#endif
+
+#ifdef __CUDACC__
+  using namespace c10::cuda::CUDACachingAllocator;
+#elif __HIPCC__
+  using namespace c10::hip::HIPCachingAllocator;
+#endif
+
+  DeviceStats deviceStats = getDeviceStats(device);
+
+  os << "|====================================================================="
+        "======|\n"
+#ifdef __CUDACC__
+     << "|                 LibTorch CUDA memory summary, device ID "
+#elif __HIPCC__
+     << "|                 LibTorch ROCm memory summary, device ID "
+#endif
+     << std::setw(18) << std::left << static_cast<int>(device) << "|\n"
+     << "|---------------------------------------------------------------------"
+        "------|\n"
+#ifdef __CUDACC__
+     << "|            CUDA OOMs: "
+#elif __HIPCC__
+     << "|            ROCm OOMs: "
+#endif
+     << std::setw(13) << std::left << deviceStats.num_ooms
+#ifdef __CUDACC__
+     << "|        cudaMalloc retries: "
+#elif __HIPCC__
+     << "|         hipMalloc retries: "
+#endif
+     << std::setw(10) << std::left << deviceStats.num_alloc_retries << "|\n"
+     << "|====================================================================="
+        "======|\n"
+     << "|        Metric         | Cur Usage  | Peak Usage | Tot Alloc  | Tot "
+        "Freed  |\n"
+     << "|---------------------------------------------------------------------"
+        "------|\n"
+     << "| Allocated memory      | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .allocated_bytes[static_cast<std::size_t>(StatType::AGGREGATE)]
+                .current)
+     << " | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .allocated_bytes[static_cast<std::size_t>(StatType::AGGREGATE)]
+                .peak)
+     << " | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .allocated_bytes[static_cast<std::size_t>(StatType::AGGREGATE)]
+                .allocated)
+     << " | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .allocated_bytes[static_cast<std::size_t>(StatType::AGGREGATE)]
+                .freed)
+     << " |\n"
+     << "|       from large pool | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .allocated_bytes[static_cast<std::size_t>(StatType::LARGE_POOL)]
+                .current)
+     << " | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .allocated_bytes[static_cast<std::size_t>(StatType::LARGE_POOL)]
+                .peak)
+     << " | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .allocated_bytes[static_cast<std::size_t>(StatType::LARGE_POOL)]
+                .allocated)
+     << " | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .allocated_bytes[static_cast<std::size_t>(StatType::LARGE_POOL)]
+                .freed)
+     << " |\n"
+     << "|       from small pool | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .allocated_bytes[static_cast<std::size_t>(StatType::SMALL_POOL)]
+                .current)
+     << " | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .allocated_bytes[static_cast<std::size_t>(StatType::SMALL_POOL)]
+                .peak)
+     << " | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .allocated_bytes[static_cast<std::size_t>(StatType::SMALL_POOL)]
+                .allocated)
+     << " | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .allocated_bytes[static_cast<std::size_t>(StatType::SMALL_POOL)]
+                .freed)
+     << " |\n"
+     << "|---------------------------------------------------------------------"
+        "------|\n"
+     << "| Active memory         | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .active_bytes[static_cast<std::size_t>(StatType::AGGREGATE)]
+                .current)
+     << " | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .active_bytes[static_cast<std::size_t>(StatType::AGGREGATE)]
+                .peak)
+     << " | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .active_bytes[static_cast<std::size_t>(StatType::AGGREGATE)]
+                .allocated)
+     << " | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .active_bytes[static_cast<std::size_t>(StatType::AGGREGATE)]
+                .freed)
+     << " |\n"
+     << "|       from large pool | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .active_bytes[static_cast<std::size_t>(StatType::LARGE_POOL)]
+                .current)
+     << " | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .active_bytes[static_cast<std::size_t>(StatType::LARGE_POOL)]
+                .peak)
+     << " | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .active_bytes[static_cast<std::size_t>(StatType::LARGE_POOL)]
+                .allocated)
+     << " | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .active_bytes[static_cast<std::size_t>(StatType::LARGE_POOL)]
+                .freed)
+     << " |\n"
+     << "|       from small pool | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .active_bytes[static_cast<std::size_t>(StatType::SMALL_POOL)]
+                .current)
+     << " | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .active_bytes[static_cast<std::size_t>(StatType::SMALL_POOL)]
+                .peak)
+     << " | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .active_bytes[static_cast<std::size_t>(StatType::SMALL_POOL)]
+                .allocated)
+     << " | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .active_bytes[static_cast<std::size_t>(StatType::SMALL_POOL)]
+                .freed)
+     << " |\n"
+     << "|---------------------------------------------------------------------"
+        "------|\n"
+     << "| Requested memory      | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .requested_bytes[static_cast<std::size_t>(StatType::AGGREGATE)]
+                .current)
+     << " | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .requested_bytes[static_cast<std::size_t>(StatType::AGGREGATE)]
+                .peak)
+     << " | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .requested_bytes[static_cast<std::size_t>(StatType::AGGREGATE)]
+                .allocated)
+     << " | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .requested_bytes[static_cast<std::size_t>(StatType::AGGREGATE)]
+                .freed)
+     << " |\n"
+     << "|       from large pool | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .requested_bytes[static_cast<std::size_t>(StatType::LARGE_POOL)]
+                .current)
+     << " | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .requested_bytes[static_cast<std::size_t>(StatType::LARGE_POOL)]
+                .peak)
+     << " | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .requested_bytes[static_cast<std::size_t>(StatType::LARGE_POOL)]
+                .allocated)
+     << " | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .requested_bytes[static_cast<std::size_t>(StatType::LARGE_POOL)]
+                .freed)
+     << " |\n"
+     << "|       from small pool | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .requested_bytes[static_cast<std::size_t>(StatType::SMALL_POOL)]
+                .current)
+     << " | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .requested_bytes[static_cast<std::size_t>(StatType::SMALL_POOL)]
+                .peak)
+     << " | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .requested_bytes[static_cast<std::size_t>(StatType::SMALL_POOL)]
+                .allocated)
+     << " | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .requested_bytes[static_cast<std::size_t>(StatType::SMALL_POOL)]
+                .freed)
+     << " |\n"
+     << "|---------------------------------------------------------------------"
+        "------|\n"
+     << "| GPU reserved memory   | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .reserved_bytes[static_cast<std::size_t>(StatType::AGGREGATE)]
+                .current)
+     << " | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .reserved_bytes[static_cast<std::size_t>(StatType::AGGREGATE)]
+                .peak)
+     << " | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .reserved_bytes[static_cast<std::size_t>(StatType::AGGREGATE)]
+                .allocated)
+     << " | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .reserved_bytes[static_cast<std::size_t>(StatType::AGGREGATE)]
+                .freed)
+     << " |\n"
+     << "|       from large pool | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .reserved_bytes[static_cast<std::size_t>(StatType::LARGE_POOL)]
+                .current)
+     << " | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .reserved_bytes[static_cast<std::size_t>(StatType::LARGE_POOL)]
+                .peak)
+     << " | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .reserved_bytes[static_cast<std::size_t>(StatType::LARGE_POOL)]
+                .allocated)
+     << " | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .reserved_bytes[static_cast<std::size_t>(StatType::LARGE_POOL)]
+                .freed)
+     << " |\n"
+     << "|       from small pool | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .reserved_bytes[static_cast<std::size_t>(StatType::SMALL_POOL)]
+                .current)
+     << " | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .reserved_bytes[static_cast<std::size_t>(StatType::SMALL_POOL)]
+                .peak)
+     << " | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .reserved_bytes[static_cast<std::size_t>(StatType::SMALL_POOL)]
+                .allocated)
+     << " | " << std::setw(10) << std::right
+     << _format_size(
+            deviceStats
+                .reserved_bytes[static_cast<std::size_t>(StatType::SMALL_POOL)]
+                .freed)
+     << " |\n"
+     << "|---------------------------------------------------------------------"
+        "------|\n"
+     << "| Non-releasable memory | " << std::setw(10) << std::right
+     << _format_size(deviceStats
+                         .inactive_split_bytes[static_cast<std::size_t>(
+                             StatType::AGGREGATE)]
+                         .current)
+     << " | " << std::setw(10) << std::right
+     << _format_size(deviceStats
+                         .inactive_split_bytes[static_cast<std::size_t>(
+                             StatType::AGGREGATE)]
+                         .peak)
+     << " | " << std::setw(10) << std::right
+     << _format_size(deviceStats
+                         .inactive_split_bytes[static_cast<std::size_t>(
+                             StatType::AGGREGATE)]
+                         .allocated)
+     << " | " << std::setw(10) << std::right
+     << _format_size(deviceStats
+                         .inactive_split_bytes[static_cast<std::size_t>(
+                             StatType::AGGREGATE)]
+                         .freed)
+     << " |\n"
+     << "|       from large pool | " << std::setw(10) << std::right
+     << _format_size(deviceStats
+                         .inactive_split_bytes[static_cast<std::size_t>(
+                             StatType::LARGE_POOL)]
+                         .current)
+     << " | " << std::setw(10) << std::right
+     << _format_size(deviceStats
+                         .inactive_split_bytes[static_cast<std::size_t>(
+                             StatType::LARGE_POOL)]
+                         .peak)
+     << " | " << std::setw(10) << std::right
+     << _format_size(deviceStats
+                         .inactive_split_bytes[static_cast<std::size_t>(
+                             StatType::LARGE_POOL)]
+                         .allocated)
+     << " | " << std::setw(10) << std::right
+     << _format_size(deviceStats
+                         .inactive_split_bytes[static_cast<std::size_t>(
+                             StatType::LARGE_POOL)]
+                         .freed)
+     << " |\n"
+     << "|       from small pool | " << std::setw(10) << std::right
+     << _format_size(deviceStats
+                         .inactive_split_bytes[static_cast<std::size_t>(
+                             StatType::SMALL_POOL)]
+                         .current)
+     << " | " << std::setw(10) << std::right
+     << _format_size(deviceStats
+                         .inactive_split_bytes[static_cast<std::size_t>(
+                             StatType::SMALL_POOL)]
+                         .peak)
+     << " | " << std::setw(10) << std::right
+     << _format_size(deviceStats
+                         .inactive_split_bytes[static_cast<std::size_t>(
+                             StatType::SMALL_POOL)]
+                         .allocated)
+     << " | " << std::setw(10) << std::right
+     << _format_size(deviceStats
+                         .inactive_split_bytes[static_cast<std::size_t>(
+                             StatType::SMALL_POOL)]
+                         .freed)
+     << " |\n"
+     << "|---------------------------------------------------------------------"
+        "------|\n"
+     << "| Allocations           | " << std::setw(10) << std::right
+     << deviceStats.allocation[static_cast<std::size_t>(StatType::AGGREGATE)]
+            .current
+     << " | " << std::setw(10) << std::right
+     << deviceStats.allocation[static_cast<std::size_t>(StatType::AGGREGATE)]
+            .peak
+     << " | " << std::setw(10) << std::right
+     << deviceStats.allocation[static_cast<std::size_t>(StatType::AGGREGATE)]
+            .allocated
+     << " | " << std::setw(10) << std::right
+     << deviceStats.allocation[static_cast<std::size_t>(StatType::AGGREGATE)]
+            .freed
+     << " |\n"
+     << "|---------------------------------------------------------------------"
+        "------|\n"
+     << "|       from large pool | " << std::setw(10) << std::right
+     << deviceStats.allocation[static_cast<std::size_t>(StatType::LARGE_POOL)]
+            .current
+     << " | " << std::setw(10) << std::right
+     << deviceStats.allocation[static_cast<std::size_t>(StatType::LARGE_POOL)]
+            .peak
+     << " | " << std::setw(10) << std::right
+     << deviceStats.allocation[static_cast<std::size_t>(StatType::LARGE_POOL)]
+            .allocated
+     << " | " << std::setw(10) << std::right
+     << deviceStats.allocation[static_cast<std::size_t>(StatType::LARGE_POOL)]
+            .freed
+     << " |\n"
+     << "|---------------------------------------------------------------------"
+        "------|\n"
+     << "|       from small pool | " << std::setw(10) << std::right
+     << deviceStats.allocation[static_cast<std::size_t>(StatType::SMALL_POOL)]
+            .current
+     << " | " << std::setw(10) << std::right
+     << deviceStats.allocation[static_cast<std::size_t>(StatType::SMALL_POOL)]
+            .peak
+     << " | " << std::setw(10) << std::right
+     << deviceStats.allocation[static_cast<std::size_t>(StatType::SMALL_POOL)]
+            .allocated
+     << " | " << std::setw(10) << std::right
+     << deviceStats.allocation[static_cast<std::size_t>(StatType::SMALL_POOL)]
+            .freed
+     << " |\n"
+     << "|---------------------------------------------------------------------"
+        "------|\n"
+     << "| Active allocs         | " << std::setw(10) << std::right
+     << deviceStats.active[static_cast<std::size_t>(StatType::AGGREGATE)]
+            .current
+     << " | " << std::setw(10) << std::right
+     << deviceStats.active[static_cast<std::size_t>(StatType::AGGREGATE)].peak
+     << " | " << std::setw(10) << std::right
+     << deviceStats.active[static_cast<std::size_t>(StatType::AGGREGATE)]
+            .allocated
+     << " | " << std::setw(10) << std::right
+     << deviceStats.active[static_cast<std::size_t>(StatType::AGGREGATE)].freed
+     << " |\n"
+     << "|---------------------------------------------------------------------"
+        "------|\n"
+     << "|       from large pool | " << std::setw(10) << std::right
+     << deviceStats.active[static_cast<std::size_t>(StatType::LARGE_POOL)]
+            .current
+     << " | " << std::setw(10) << std::right
+     << deviceStats.active[static_cast<std::size_t>(StatType::LARGE_POOL)].peak
+     << " | " << std::setw(10) << std::right
+     << deviceStats.active[static_cast<std::size_t>(StatType::LARGE_POOL)]
+            .allocated
+     << " | " << std::setw(10) << std::right
+     << deviceStats.active[static_cast<std::size_t>(StatType::LARGE_POOL)].freed
+     << " |\n"
+     << "|---------------------------------------------------------------------"
+        "------|\n"
+     << "|       from small pool | " << std::setw(10) << std::right
+     << deviceStats.active[static_cast<std::size_t>(StatType::SMALL_POOL)]
+            .current
+     << " | " << std::setw(10) << std::right
+     << deviceStats.active[static_cast<std::size_t>(StatType::SMALL_POOL)].peak
+     << " | " << std::setw(10) << std::right
+     << deviceStats.active[static_cast<std::size_t>(StatType::SMALL_POOL)]
+            .allocated
+     << " | " << std::setw(10) << std::right
+     << deviceStats.active[static_cast<std::size_t>(StatType::SMALL_POOL)].freed
+     << " |\n"
+     << "|---------------------------------------------------------------------"
+        "------|\n"
+     << "| GPU reserved segments | " << std::setw(10) << std::right
+     << deviceStats.segment[static_cast<std::size_t>(StatType::AGGREGATE)]
+            .current
+     << " | " << std::setw(10) << std::right
+     << deviceStats.segment[static_cast<std::size_t>(StatType::AGGREGATE)].peak
+     << " | " << std::setw(10) << std::right
+     << deviceStats.segment[static_cast<std::size_t>(StatType::AGGREGATE)]
+            .allocated
+     << " | " << std::setw(10) << std::right
+     << deviceStats.segment[static_cast<std::size_t>(StatType::AGGREGATE)].freed
+     << " |\n"
+     << "|---------------------------------------------------------------------"
+        "------|\n"
+     << "|       from large pool | " << std::setw(10) << std::right
+     << deviceStats.segment[static_cast<std::size_t>(StatType::LARGE_POOL)]
+            .current
+     << " | " << std::setw(10) << std::right
+     << deviceStats.segment[static_cast<std::size_t>(StatType::LARGE_POOL)].peak
+     << " | " << std::setw(10) << std::right
+     << deviceStats.segment[static_cast<std::size_t>(StatType::LARGE_POOL)]
+            .allocated
+     << " | " << std::setw(10) << std::right
+     << deviceStats.segment[static_cast<std::size_t>(StatType::LARGE_POOL)]
+            .freed
+     << " |\n"
+     << "|---------------------------------------------------------------------"
+        "------|\n"
+     << "|       from small pool | " << std::setw(10) << std::right
+     << deviceStats.segment[static_cast<std::size_t>(StatType::SMALL_POOL)]
+            .current
+     << " | " << std::setw(10) << std::right
+     << deviceStats.segment[static_cast<std::size_t>(StatType::SMALL_POOL)].peak
+     << " | " << std::setw(10) << std::right
+     << deviceStats.segment[static_cast<std::size_t>(StatType::SMALL_POOL)]
+            .allocated
+     << " | " << std::setw(10) << std::right
+     << deviceStats.segment[static_cast<std::size_t>(StatType::SMALL_POOL)]
+            .freed
+     << " |\n"
+     << "|---------------------------------------------------------------------"
+        "------|\n"
+     << "| Non-releasable allocs | " << std::setw(10) << std::right
+     << deviceStats
+            .inactive_split[static_cast<std::size_t>(StatType::AGGREGATE)]
+            .current
+     << " | " << std::setw(10) << std::right
+     << deviceStats
+            .inactive_split[static_cast<std::size_t>(StatType::AGGREGATE)]
+            .peak
+     << " | " << std::setw(10) << std::right
+     << deviceStats
+            .inactive_split[static_cast<std::size_t>(StatType::AGGREGATE)]
+            .allocated
+     << " | " << std::setw(10) << std::right
+     << deviceStats
+            .inactive_split[static_cast<std::size_t>(StatType::AGGREGATE)]
+            .freed
+     << " |\n"
+     << "|---------------------------------------------------------------------"
+        "------|\n"
+     << "|       from large pool | " << std::setw(10) << std::right
+     << deviceStats
+            .inactive_split[static_cast<std::size_t>(StatType::LARGE_POOL)]
+            .current
+     << " | " << std::setw(10) << std::right
+     << deviceStats
+            .inactive_split[static_cast<std::size_t>(StatType::LARGE_POOL)]
+            .peak
+     << " | " << std::setw(10) << std::right
+     << deviceStats
+            .inactive_split[static_cast<std::size_t>(StatType::LARGE_POOL)]
+            .allocated
+     << " | " << std::setw(10) << std::right
+     << deviceStats
+            .inactive_split[static_cast<std::size_t>(StatType::LARGE_POOL)]
+            .freed
+     << " |\n"
+     << "|---------------------------------------------------------------------"
+        "------|\n"
+     << "|       from small pool | " << std::setw(10) << std::right
+     << deviceStats
+            .inactive_split[static_cast<std::size_t>(StatType::SMALL_POOL)]
+            .current
+     << " | " << std::setw(10) << std::right
+     << deviceStats
+            .inactive_split[static_cast<std::size_t>(StatType::SMALL_POOL)]
+            .peak
+     << " | " << std::setw(10) << std::right
+     << deviceStats
+            .inactive_split[static_cast<std::size_t>(StatType::SMALL_POOL)]
+            .allocated
+     << " | " << std::setw(10) << std::right
+     << deviceStats
+            .inactive_split[static_cast<std::size_t>(StatType::SMALL_POOL)]
+            .freed
+     << " |\n"
+     << "|---------------------------------------------------------------------"
+        "------|\n"
+     << "| Oversize allocations  | " << std::setw(10) << std::right
+     << deviceStats.oversize_allocations.current << " | " << std::setw(10)
+     << std::right << deviceStats.oversize_allocations.peak << " | "
+     << std::setw(10) << std::right
+     << deviceStats.oversize_allocations.allocated << " | " << std::setw(10)
+     << std::right << deviceStats.oversize_allocations.freed << " |\n"
+     << "|---------------------------------------------------------------------"
+        "------|\n"
+     << "| Oversize GPU segments | " << std::setw(10) << std::right
+     << deviceStats.oversize_segments.current << " | " << std::setw(10)
+     << std::right << deviceStats.oversize_segments.peak << " | "
+     << std::setw(10) << std::right << deviceStats.oversize_segments.allocated
+     << " | " << std::setw(10) << std::right
+     << deviceStats.oversize_segments.freed << " |\n"
+     << "|====================================================================="
+        "======|";
+#else
+  os << "Memory summary is only available for CUDA/HIP devices";
+#endif
+
+  return os.str();
+}
+
 /// @brief Initializes the library
 inline void init(std::ostream &os = Log(log::info)) {
   torch::manual_seed(1);
@@ -172,12 +788,34 @@ inline void init(std::ostream &os = Log(log::info)) {
   at::set_num_interop_threads(utils::getenv("IGANET_INTEROP_NUM_THREADS", 1));
 
 #ifdef IGANET_WITH_MPI
+  int flag;
+  MPI_Initialized(&flag);
+
+  if (flag == 0)
+    if (MPI_Init(NULL, NULL) != MPI_SUCESS)
+      throw std::runtime_error("An error occured during MPI initialization");
+
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   if (rank == 0)
 #endif
     // Output version information
     os << getVersion();
+}
+
+/// @brief Finalizes the library
+inline void finalize(std::ostream &os = Log(log::info)) {
+
+#if defined(__CUDACC__) || defined(__HIPCC__)
+  std::cout << "\n" << memory_summary() << std::endl;
+#endif
+
+#ifdef IGANET_WITH_MPI
+  if (MPI_Finalize() != MPI_SUCCESS)
+    throw std::runtime_error("An error occured during MPI finalization");
+#endif
+
+  os << "Succeeded\n";
 }
 
 /// Stream manipulator

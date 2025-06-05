@@ -1936,12 +1936,12 @@ public:                                                                        \
   /// @brief Returns a copy of the boundary object with settings from options
   template <typename real_t> inline auto to(Options<real_t> options) const {
     using boundary_type = BoundaryCommon<iganet::BoundaryCore<
-        decltype(typename BoundaryCore::spline_type{}.template to(options)),
+        decltype(typename BoundaryCore::spline_type{}.to(options)),
         BoundaryCore::spline_type::parDim()>>;
 
     return boundary_type(std::apply(
         [&options](const auto &...bspline) {
-          return std::make_tuple(bspline.template to(options)...);
+          return std::make_tuple(bspline.to(options)...);
         },
         BoundaryCore::bdr_));
   }

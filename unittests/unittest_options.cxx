@@ -18,12 +18,14 @@
 
 #include <gtest/gtest.h>
 
+#pragma nv_diag_suppress 20208
+
 TEST(Options, Options_default) {
   iganet::Options<double> options;
 
   EXPECT_EQ(options.dtype(), torch::kDouble);
   EXPECT_EQ(options.device(),
-            torch::cuda::is_available() ? torch::kCUDA : torch::kCPU);
+            torch::cuda::is_available() ? torch::kCUDA : torch::xpu::is_available() ? torch::kXPU : torch::kCPU);
   EXPECT_EQ(options.layout(), torch::kStrided);
   EXPECT_FALSE(options.requires_grad());
   EXPECT_FALSE(options.pinned_memory());
@@ -97,5 +99,9 @@ TEST(Options, Options_conversion) {
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
   iganet::init();
-  return RUN_ALL_TESTS();
+  int result = RUN_ALL_TESTS();
+  iganet::finalize();
+  return result;
 }
+
+#pragma nv_diag_default 20208

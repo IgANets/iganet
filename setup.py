@@ -53,7 +53,7 @@ class CMakeBuild(build_ext):
             f"-DPYTHON_EXECUTABLE={sys.executable}",
             f"-DCMAKE_BUILD_TYPE={cfg}",  # not used on MSVC, but no harm
             f"-DIGANET_BUILD_EXAMPLES=OFF",
-            f"-DIGANET_BUILD_PYIGANET=ON",
+            f"-DIGANET_BUILD_PYTHON=ON",
             f"-DIGANET_WITH_OPENMP=ON",
         ]
         build_args = []

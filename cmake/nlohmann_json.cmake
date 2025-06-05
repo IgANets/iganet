@@ -2,7 +2,7 @@
 # nlohmann_json.cmake
 #
 # Author: Matthias Moller
-# Copyright (C) 2021-2023 by the IgaNet authors
+# Copyright (C) 2021-2025 by the IgaNet authors
 #
 # This file is part of the IgaNet project
 #
@@ -18,7 +18,7 @@
 
 include(FetchContent)
 FetchContent_Declare(nlohmann_json
-  URL https://github.com/nlohmann/json/archive/refs/tags/v3.11.3.zip
+  URL https://github.com/nlohmann/json/archive/refs/tags/v3.12.0.zip
   )
 FetchContent_MakeAvailable(nlohmann_json)
 FetchContent_GetProperties(nlohmann_json)
