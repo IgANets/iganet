@@ -120,6 +120,17 @@ public:
     // and boundary parts that can be evaluated.
     Base::u_.from_tensor(outputs.t());
 
+    auto vel = Base::u_.template clone<0, 1>();
+        
+    auto vel_grad_x = vel.grad( std::get<0>(collPts_.first) ); //  g = grad( vel )[ cpt_u ] -> g_x component
+    std::cout << *vel_grad_x[0] << std::endl;
+    
+    auto vel_grad_y = vel.grad( std::get<1>(collPts_.first) ); //  g = grad( vel )[ cpt_v ] -> g_y component
+    //vel_grad_y[0];
+    
+    //    std::cout << vel << std::endl;
+    exit(0);
+    
     // Evaluate
     //    auto u_ilapl = Base::u_.template clone<0, 1>().div(std::get<0>(
     //        collPts_.first)); //, var_knot_indices_, var_coeff_indices_);
@@ -148,7 +159,7 @@ public:
 
 int main() {
   iganet::init();
-  iganet::verbose(std::cout);
+  //iganet::verbose(std::cout);
 
   nlohmann::json json;
   json["res0"] = 50;
